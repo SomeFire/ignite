@@ -58,30 +58,6 @@ public class GridCacheCrossCacheQuerySelfTest extends GridCommonAbstractTest {
     /** */
     private Ignite ignite;
 
-    /**
-     * Utility class with custom SQL functions.
-     */
-    public static class TestSQLFunctions {
-        /**
-         * Sleep function to simulate long running queries.
-         *
-         * @param x Time to sleep.
-         * @return Return specified argument.
-         */
-        @QuerySqlFunction
-        public static long sleep(long x) {
-            if (x >= 0)
-                try {
-                    Thread.sleep(x);
-                }
-                catch (InterruptedException ignored) {
-                    // No-op.
-                }
-
-            return x;
-        }
-    }
-
     /** {@inheritDoc} */
     @Override protected IgniteConfiguration getConfiguration(String gridName) throws Exception {
         IgniteConfiguration c = super.getConfiguration(gridName);
@@ -140,8 +116,6 @@ public class GridCacheCrossCacheQuerySelfTest extends GridCommonAbstractTest {
             );
         else
             throw new IllegalStateException("mode: " + mode);
-
-        cc.setSqlFunctionClasses(TestSQLFunctions.class);
 
         return cc;
     }
@@ -245,83 +219,6 @@ public class GridCacheCrossCacheQuerySelfTest extends GridCommonAbstractTest {
         }
 
         assertEquals(3, top);
-    }
-
-    /**
-     * Test collecting info about running.
-     *
-     * @throws Exception If failed.
-     */
-    public void testRunningQueries() throws Exception {
-        IgniteInternalFuture<?> fut = multithreadedAsync(new Runnable() {
-            @Override public void run() {
-                try {
-                    SqlFieldsQuery qry = new SqlFieldsQuery("select productId, sleep(3000) from FactPurchase limit 1");
-
-                    ignite.cache("partitioned").query(qry).getAll();
-                }
-                catch (Throwable e) {
-                    e.printStackTrace();
-                }
-            }
-        }, 1);
-
-        Thread.sleep(1000);
-
-        GridQueryProcessor qryProc = ((IgniteKernal)ignite).context().query();
-
-        Collection<GridRunningQueryInfo> queries = qryProc.runningQueries(500);
-
-        assertEquals(1, queries.size());
-
-        fut.get();
-
-        queries = qryProc.runningQueries(500);
-
-        assertEquals(0, queries.size());
-    }
-
-    /**
-     * Test collecting info about running.
-     *
-     * @throws Exception If failed.
-     */
-    public void testCancelingQueries() throws Exception {
-        IgniteInternalFuture<?> fut = multithreadedAsync(new Runnable() {
-            @Override public void run() {
-                try {
-                    SqlFieldsQuery qry = new SqlFieldsQuery("select productId, sleep(500) from FactPurchase limit 100");
-
-                    ignite.cache("partitioned").query(qry).getAll();
-                }
-                catch (Throwable e) {
-                    e.printStackTrace();
-                }
-            }
-        }, 1);
-
-        Thread.sleep(1000);
-
-        GridQueryProcessor queryProc = ((IgniteKernal)ignite).context().query();
-
-        Collection<GridRunningQueryInfo> queries = queryProc.runningQueries(500);
-
-        assertEquals(1, queries.size());
-
-        for (GridRunningQueryInfo query : queries)
-            queryProc.cancelQueries(Collections.singleton(query.id()));
-
-        Thread.sleep(2000); // Give cluster some time to cancel query and cleanup resources.
-
-        queries = queryProc.runningQueries(500);
-
-        assertEquals(0, queries.size());
-
-        fut.get();
-
-        queries = queryProc.runningQueries(500);
-
-        assertEquals(0, queries.size());
     }
 
     /**

@@ -35,7 +35,7 @@ import org.jetbrains.annotations.Nullable;
  * Task to collect currently running queries.
  */
 @GridInternal
-public class VisorCollectCurrentQueriesTask extends VisorMultiNodeTask<Long, Map<UUID, Collection<VisorQuery>>, Collection<VisorQuery>> {
+public class VisorCollectCurrentQueriesTask extends VisorMultiNodeTask<Long, Map<UUID, Collection<VisorRunningQuery>>, Collection<VisorRunningQuery>> {
     /** */
     private static final long serialVersionUID = 0L;
 
@@ -45,12 +45,12 @@ public class VisorCollectCurrentQueriesTask extends VisorMultiNodeTask<Long, Map
     }
 
     /** {@inheritDoc} */
-    @Nullable @Override protected Map<UUID, Collection<VisorQuery>> reduce0(List<ComputeJobResult> results) throws IgniteException {
-        Map<UUID, Collection<VisorQuery>> map = new HashMap<>();
+    @Nullable @Override protected Map<UUID, Collection<VisorRunningQuery>> reduce0(List<ComputeJobResult> results) throws IgniteException {
+        Map<UUID, Collection<VisorRunningQuery>> map = new HashMap<>();
 
         for (ComputeJobResult res : results)
             if (res.getException() != null) {
-                Collection<VisorQuery> queries = res.getData();
+                Collection<VisorRunningQuery> queries = res.getData();
 
                 map.put(res.getNode().id(), queries);
             }
@@ -61,7 +61,7 @@ public class VisorCollectCurrentQueriesTask extends VisorMultiNodeTask<Long, Map
     /**
      * Job to collect currently running queries from node.
      */
-    private static class VisorCollectCurrentQueriesJob extends VisorJob<Long, Collection<VisorQuery>> {
+    private static class VisorCollectCurrentQueriesJob extends VisorJob<Long, Collection<VisorRunningQuery>> {
         /**
          * Create job with specified argument.
          *
@@ -73,13 +73,14 @@ public class VisorCollectCurrentQueriesTask extends VisorMultiNodeTask<Long, Map
         }
 
         /** {@inheritDoc} */
-        @Override protected Collection<VisorQuery> run(@Nullable Long duration) throws IgniteException {
+        @Override protected Collection<VisorRunningQuery> run(@Nullable Long duration) throws IgniteException {
             Collection<GridRunningQueryInfo> queries = ignite.context().query().runningQueries(duration);
 
-            Collection<VisorQuery> res = new ArrayList<>(queries.size());
+            Collection<VisorRunningQuery> res = new ArrayList<>(queries.size());
 
             for (GridRunningQueryInfo qry : queries)
-                res.add(new VisorQuery(qry.id(), qry.query(), qry.cache()));
+                res.add(new VisorRunningQuery(qry.id(), qry.query(), qry.queryType(), qry.cache(), qry.startTime(),
+                    qry.cancelable(), qry.local()));
 
             return res;
         }

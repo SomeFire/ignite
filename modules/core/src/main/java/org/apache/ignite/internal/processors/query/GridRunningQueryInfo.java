@@ -17,6 +17,8 @@
 
 package org.apache.ignite.internal.processors.query;
 
+import org.apache.ignite.internal.processors.cache.query.GridCacheQueryType;
+
 /**
  * Query descriptor.
  */
@@ -27,6 +29,9 @@ public class GridRunningQueryInfo {
     /** */
     private final String qry;
 
+    /** Query type. */
+    private final GridCacheQueryType qryType;
+
     /** */
     private final String cache;
 
@@ -36,19 +41,27 @@ public class GridRunningQueryInfo {
     /** */
     private final GridQueryCancel cancel;
 
+    /** */
+    private final boolean loc;
+
     /**
      * @param id Query ID.
      * @param qry Query text.
+     * @param qryType Query type.
      * @param cache Cache where query was executed.
      * @param startTime Query start time.
      * @param cancel Query cancel.
+     * @param loc Local query flag.
      */
-    public GridRunningQueryInfo(Long id, String qry, String cache, long startTime, GridQueryCancel cancel) {
+    public GridRunningQueryInfo(Long id, String qry, GridCacheQueryType qryType, String cache, long startTime,
+        GridQueryCancel cancel, boolean loc) {
         this.id = id;
         this.qry = qry;
+        this.qryType = qryType;
         this.cache = cache;
         this.startTime = startTime;
         this.cancel = cancel;
+        this.loc = loc;
     }
 
     /**
@@ -63,6 +76,13 @@ public class GridRunningQueryInfo {
      */
     public String query() {
         return qry;
+    }
+
+    /**
+     * @return Query type.
+     */
+    public GridCacheQueryType queryType() {
+        return qryType;
     }
 
     /**
@@ -94,5 +114,19 @@ public class GridRunningQueryInfo {
     public void cancel() {
         if (cancel != null)
             cancel.cancel();
+    }
+
+    /**
+     * @return {@code true} if query can be cancelled.
+     */
+    public boolean cancelable() {
+        return cancel != null;
+    }
+
+    /**
+     * @return {@code true} if query is local.
+     */
+    public boolean local() {
+        return loc;
     }
 }

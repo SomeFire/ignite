@@ -18,38 +18,60 @@
 package org.apache.ignite.internal.visor.query;
 
 import java.io.Serializable;
+import org.apache.ignite.internal.processors.cache.query.GridCacheQueryType;
 
 /**
- * Arguments for {@link VisorQueryTask}.
+ * Descriptor of running query.
  */
-public class VisorQuery implements Serializable {
+public class VisorRunningQuery implements Serializable {
     /** */
     private static final long serialVersionUID = 0L;
 
     /** */
-    private Long id;
+    private long id;
 
     /** Query text. */
     private String qry;
 
+    /** Query type. */
+    private GridCacheQueryType qryType;
+
     /** Cache name for query. */
     private String cache;
+
+    /** */
+    private long startTime;
+
+    /** */
+    private boolean cancellable;
+
+    /** */
+    private boolean loc;
 
     /**
      * @param id Query ID.
      * @param qry Query text.
+     * @param qryType Query type.
      * @param cache Cache where query was executed.
+     * @param startTime Query start time.
+     * @param cancellable {@code true} if query can be canceled.
+     * @param loc {@code true} if query is local.
      */
-    public VisorQuery(Long id, String qry, String cache) {
+    public VisorRunningQuery(long id, String qry, GridCacheQueryType qryType, String cache, long startTime,
+        boolean cancellable, boolean loc) {
         this.id = id;
         this.qry = qry;
+        this.qryType = qryType;
         this.cache = cache;
+        this.startTime = startTime;
+        this.cancellable = cancellable;
+        this.loc = loc;
     }
 
     /**
      * @return Query ID.
      */
-    public Long id() {
+    public long id() {
         return id;
     }
 
@@ -61,9 +83,37 @@ public class VisorQuery implements Serializable {
     }
 
     /**
+     * @return Query type.
+     */
+    public GridCacheQueryType queryType() {
+        return qryType;
+    }
+
+    /**
      * @return Cache name.
      */
     public String getCache() {
         return cache;
+    }
+
+    /**
+     * @return Query start time.
+     */
+    public long getStartTime() {
+        return startTime;
+    }
+
+    /**
+     * @return {@code true} if query can be cancelled.
+     */
+    public boolean isCancelable() {
+        return cancellable;
+    }
+
+    /**
+     * @return {@code true} if query is local.
+     */
+    public boolean isLocal() {
+        return loc;
     }
 }

@@ -27,11 +27,11 @@ import org.apache.ignite.cache.query.Query;
 import org.apache.ignite.cache.query.QueryCursor;
 import org.apache.ignite.cache.query.SqlFieldsQuery;
 import org.apache.ignite.cache.query.SqlQuery;
+import org.apache.ignite.cache.query.annotations.QuerySqlField;
 import org.apache.ignite.cache.query.annotations.QuerySqlFunction;
 import org.apache.ignite.configuration.CacheConfiguration;
 import org.apache.ignite.configuration.IgniteConfiguration;
 import org.apache.ignite.internal.IgniteInternalFuture;
-import org.apache.ignite.internal.IgniteKernal;
 import org.apache.ignite.internal.processors.query.GridQueryProcessor;
 import org.apache.ignite.internal.processors.query.GridRunningQueryInfo;
 import org.apache.ignite.spi.discovery.tcp.TcpDiscoverySpi;
@@ -81,7 +81,7 @@ public class CacheSqlQueryValueCopySelfTest extends GridCommonAbstractTest {
         IgniteCache<Integer, Value> cache = grid(0).cache(null);
 
         for (int i = 0; i < KEYS; i++)
-            cache.put(i, new Value("before"));
+            cache.put(i, new Value(i, "before-" + i));
     }
 
     /** {@inheritDoc} */
@@ -213,7 +213,11 @@ public class CacheSqlQueryValueCopySelfTest extends GridCommonAbstractTest {
         return multithreadedAsync(new Runnable() {
             @Override public void run() {
                 try {
+                    log.info(">>> Query started");
+
                     grid(0).cache(null).query(qry).getAll();
+
+                    log.info(">>> Query finished");
                 }
                 catch (Throwable e) {
                     e.printStackTrace();
@@ -227,12 +231,12 @@ public class CacheSqlQueryValueCopySelfTest extends GridCommonAbstractTest {
      *
      * @throws Exception If failed.
      */
-    public void testRunningQueries() throws Exception {
+    public void testRunningSqlFieldsQuery() throws Exception {
         IgniteInternalFuture<?> fut = runQueryAsync(new SqlFieldsQuery("select _val, sleep(1000) from Value limit 3"));
 
         Thread.sleep(500);
 
-        GridQueryProcessor qryProc = ((IgniteKernal)grid(0)).context().query();
+        GridQueryProcessor qryProc = grid(0).context().query();
 
         Collection<GridRunningQueryInfo> queries = qryProc.runningQueries(0);
 
@@ -267,14 +271,52 @@ public class CacheSqlQueryValueCopySelfTest extends GridCommonAbstractTest {
      *
      * @throws Exception If failed.
      */
-    public void testCancelingQueries() throws Exception {
-        final Ignite ignite = grid(0);
+    public void testRunningSqlQuery() throws Exception {
+        IgniteInternalFuture<?> fut = runQueryAsync(new SqlQuery(Value.class, "id > sleep(100)"));
 
+        Thread.sleep(500);
+
+        GridQueryProcessor qryProc = grid(0).context().query();
+
+        Collection<GridRunningQueryInfo> queries = qryProc.runningQueries(0);
+
+        assertEquals(1, queries.size());
+
+        fut.get();
+
+        queries = qryProc.runningQueries(0);
+
+        assertEquals(0, queries.size());
+
+        SqlQuery qry = new SqlQuery(Value.class, "id > sleep(100)");
+        qry.setLocal(true);
+
+        fut = runQueryAsync(qry);
+
+        Thread.sleep(500);
+
+        queries = qryProc.runningQueries(0);
+
+        assertEquals(1, queries.size());
+
+        fut.get();
+
+        queries = qryProc.runningQueries(0);
+
+        assertEquals(0, queries.size());
+    }
+
+    /**
+     * Test collecting info about running.
+     *
+     * @throws Exception If failed.
+     */
+    public void testCancelingSqlFieldsQuery() throws Exception {
         runQueryAsync(new SqlFieldsQuery("select * from (select _val, sleep(100) from Value limit 50)"));
 
         Thread.sleep(500);
 
-        final GridQueryProcessor qryProc = ((IgniteKernal)ignite).context().query();
+        final GridQueryProcessor qryProc = grid(0).context().query();
 
         Collection<GridRunningQueryInfo> queries = qryProc.runningQueries(0);
 
@@ -306,19 +348,6 @@ public class CacheSqlQueryValueCopySelfTest extends GridCommonAbstractTest {
         assertEquals(0, queries.size());
     }
 
-    /** */
-    private static class Value {
-        /** */
-        private String str;
-
-        /**
-         * @param str String.
-         */
-        public Value(String str) {
-            this.str = str;
-        }
-    }
-
     /**
      * @param cache Cache.
      */
@@ -329,10 +358,30 @@ public class CacheSqlQueryValueCopySelfTest extends GridCommonAbstractTest {
         for (Cache.Entry<Integer, Value> entry : cache) {
             cnt++;
 
-            assertEquals("before", entry.getValue().str);
+            assertEquals("before-" + entry.getKey(), entry.getValue().str);
         }
 
         assertEquals(KEYS, cnt);
+    }
+
+    /** */
+    private static class Value {
+        /** */
+        @QuerySqlField
+        private int id;
+
+        /** */
+        @QuerySqlField
+        private String str;
+
+        /**
+         * @param id ID.
+         * @param str String.
+         */
+        public Value(int id, String str) {
+            this.id = id;
+            this.str = str;
+        }
     }
 
     /**

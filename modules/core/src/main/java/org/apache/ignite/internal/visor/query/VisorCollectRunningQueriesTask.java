@@ -77,7 +77,8 @@ public class VisorCollectRunningQueriesTask extends VisorMultiNodeTask<Long, Map
 
         /** {@inheritDoc} */
         @Override protected Collection<VisorRunningQuery> run(@Nullable Long duration) throws IgniteException {
-            Collection<GridRunningQueryInfo> queries = ignite.context().query().runningQueries(duration);
+            Collection<GridRunningQueryInfo> queries = ignite.context().query()
+                .runningQueries(duration != null ? duration : 0);
 
             Collection<VisorRunningQuery> res = new ArrayList<>(queries.size());
 

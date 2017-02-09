@@ -51,6 +51,9 @@ public class VisorCancelQueriesTask extends VisorMultiNodeTask<Map<UUID, Set<Lon
      * Job to cancel queries on node.
      */
     private static class VisorCancelQueriesJob extends VisorJob<Map<UUID, Set<Long>>, Void> {
+        /** */
+        private static final long serialVersionUID = 0L;
+
         /**
          * Create job with specified argument.
          *

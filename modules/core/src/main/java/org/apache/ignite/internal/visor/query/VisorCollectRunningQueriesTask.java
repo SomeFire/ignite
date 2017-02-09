@@ -35,13 +35,13 @@ import org.jetbrains.annotations.Nullable;
  * Task to collect currently running queries.
  */
 @GridInternal
-public class VisorCollectCurrentQueriesTask extends VisorMultiNodeTask<Long, Map<UUID, Collection<VisorRunningQuery>>, Collection<VisorRunningQuery>> {
+public class VisorCollectRunningQueriesTask extends VisorMultiNodeTask<Long, Map<UUID, Collection<VisorRunningQuery>>, Collection<VisorRunningQuery>> {
     /** */
     private static final long serialVersionUID = 0L;
 
     /** {@inheritDoc} */
-    @Override protected VisorCollectCurrentQueriesJob job(Long arg) {
-        return new VisorCollectCurrentQueriesJob(arg, debug);
+    @Override protected VisorCollectRunningQueriesJob job(Long arg) {
+        return new VisorCollectRunningQueriesJob(arg, debug);
     }
 
     /** {@inheritDoc} */
@@ -61,14 +61,17 @@ public class VisorCollectCurrentQueriesTask extends VisorMultiNodeTask<Long, Map
     /**
      * Job to collect currently running queries from node.
      */
-    private static class VisorCollectCurrentQueriesJob extends VisorJob<Long, Collection<VisorRunningQuery>> {
+    private static class VisorCollectRunningQueriesJob extends VisorJob<Long, Collection<VisorRunningQuery>> {
+        /** */
+        private static final long serialVersionUID = 0L;
+
         /**
          * Create job with specified argument.
          *
          * @param arg Job argument.
          * @param debug Flag indicating whether debug information should be printed into node log.
          */
-        protected VisorCollectCurrentQueriesJob(@Nullable Long arg, boolean debug) {
+        protected VisorCollectRunningQueriesJob(@Nullable Long arg, boolean debug) {
             super(arg, debug);
         }
 

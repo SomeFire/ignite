@@ -1332,7 +1332,7 @@ public class GridReduceQueryExecutor {
      *
      * @param queries Queries IDs to cancel.
      */
-    public void cancelQueries(Set<Long> queries) {
+    public void cancelQueries(Collection<Long> queries) {
         for (Long qryId : queries) {
             QueryRun run = runs.get(qryId);
 

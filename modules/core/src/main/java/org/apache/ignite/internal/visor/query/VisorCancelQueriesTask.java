@@ -17,28 +17,25 @@
 
 package org.apache.ignite.internal.visor.query;
 
+import java.util.Collection;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
 import org.apache.ignite.IgniteException;
 import org.apache.ignite.compute.ComputeJobResult;
 import org.apache.ignite.internal.processors.task.GridInternal;
-import org.apache.ignite.internal.util.typedef.F;
 import org.apache.ignite.internal.visor.VisorJob;
-import org.apache.ignite.internal.visor.VisorMultiNodeTask;
+import org.apache.ignite.internal.visor.VisorOneNodeTask;
 import org.jetbrains.annotations.Nullable;
 
 /**
  * Task to cancel queries.
  */
 @GridInternal
-public class VisorCancelQueriesTask extends VisorMultiNodeTask<Map<UUID, Set<Long>>, Void, Void> {
+public class VisorCancelQueriesTask extends VisorOneNodeTask<Collection<Long>, Void> {
     /** */
     private static final long serialVersionUID = 0L;
 
     /** {@inheritDoc} */
-    @Override protected VisorCancelQueriesJob job(Map<UUID, Set<Long>> arg) {
+    @Override protected VisorCancelQueriesJob job(Collection<Long> arg) {
         return new VisorCancelQueriesJob(arg, debug);
     }
 
@@ -50,7 +47,7 @@ public class VisorCancelQueriesTask extends VisorMultiNodeTask<Map<UUID, Set<Lon
     /**
      * Job to cancel queries on node.
      */
-    private static class VisorCancelQueriesJob extends VisorJob<Map<UUID, Set<Long>>, Void> {
+    private static class VisorCancelQueriesJob extends VisorJob<Collection<Long>, Void> {
         /** */
         private static final long serialVersionUID = 0L;
 
@@ -60,16 +57,13 @@ public class VisorCancelQueriesTask extends VisorMultiNodeTask<Map<UUID, Set<Lon
          * @param arg Job argument.
          * @param debug Flag indicating whether debug information should be printed into node log.
          */
-        protected VisorCancelQueriesJob(@Nullable Map<UUID, Set<Long>> arg, boolean debug) {
+        protected VisorCancelQueriesJob(@Nullable Collection<Long> arg, boolean debug) {
             super(arg, debug);
         }
 
         /** {@inheritDoc} */
-        @Override protected Void run(@Nullable Map<UUID, Set<Long>> arg) throws IgniteException {
-            Set<Long> queries = arg.get(ignite.localNode().id());
-
-            if (!F.isEmpty(queries))
-                ignite.context().query().cancelQueries(queries);
+        @Override protected Void run(@Nullable Collection<Long> queries) throws IgniteException {
+            ignite.context().query().cancelQueries(queries);
 
             return null;
         }

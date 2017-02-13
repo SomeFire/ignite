@@ -43,6 +43,9 @@ public class VisorRunningQuery implements Serializable {
     private long startTime;
 
     /** */
+    private long duration;
+
+    /** */
     private boolean cancellable;
 
     /** */
@@ -54,16 +57,19 @@ public class VisorRunningQuery implements Serializable {
      * @param qryType Query type.
      * @param cache Cache where query was executed.
      * @param startTime Query start time.
+     * @param duration Query current duration.
      * @param cancellable {@code true} if query can be canceled.
      * @param loc {@code true} if query is local.
      */
-    public VisorRunningQuery(long id, String qry, GridCacheQueryType qryType, String cache, long startTime,
+    public VisorRunningQuery(long id, String qry, GridCacheQueryType qryType, String cache,
+        long startTime, long duration,
         boolean cancellable, boolean loc) {
         this.id = id;
         this.qry = qry;
         this.qryType = qryType;
         this.cache = cache;
         this.startTime = startTime;
+        this.duration = duration;
         this.cancellable = cancellable;
         this.loc = loc;
     }
@@ -71,21 +77,21 @@ public class VisorRunningQuery implements Serializable {
     /**
      * @return Query ID.
      */
-    public long id() {
+    public long getId() {
         return id;
     }
 
     /**
      * @return Query txt.
      */
-    public String query() {
+    public String getQuery() {
         return qry;
     }
 
     /**
      * @return Query type.
      */
-    public GridCacheQueryType queryType() {
+    public GridCacheQueryType getQueryType() {
         return qryType;
     }
 
@@ -101,6 +107,13 @@ public class VisorRunningQuery implements Serializable {
      */
     public long getStartTime() {
         return startTime;
+    }
+
+    /**
+     * @return Query duration.
+     */
+    public long getDuration() {
+        return duration;
     }
 
     /**

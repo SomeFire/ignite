@@ -27,6 +27,7 @@ import org.apache.ignite.IgniteException;
 import org.apache.ignite.compute.ComputeJobResult;
 import org.apache.ignite.internal.processors.query.GridRunningQueryInfo;
 import org.apache.ignite.internal.processors.task.GridInternal;
+import org.apache.ignite.internal.util.typedef.internal.U;
 import org.apache.ignite.internal.visor.VisorJob;
 import org.apache.ignite.internal.visor.VisorMultiNodeTask;
 import org.jetbrains.annotations.Nullable;
@@ -49,7 +50,7 @@ public class VisorCollectRunningQueriesTask extends VisorMultiNodeTask<Long, Map
         Map<UUID, Collection<VisorRunningQuery>> map = new HashMap<>();
 
         for (ComputeJobResult res : results)
-            if (res.getException() != null) {
+            if (res.getException() == null) {
                 Collection<VisorRunningQuery> queries = res.getData();
 
                 map.put(res.getNode().id(), queries);
@@ -82,8 +83,11 @@ public class VisorCollectRunningQueriesTask extends VisorMultiNodeTask<Long, Map
 
             Collection<VisorRunningQuery> res = new ArrayList<>(queries.size());
 
+            long curTime = U.currentTimeMillis();
+
             for (GridRunningQueryInfo qry : queries)
-                res.add(new VisorRunningQuery(qry.id(), qry.query(), qry.queryType(), qry.cache(), qry.startTime(),
+                res.add(new VisorRunningQuery(qry.id(), qry.query(), qry.queryType(), qry.cache(),
+                    qry.startTime(), curTime - qry.startTime(),
                     qry.cancelable(), qry.local()));
 
             return res;

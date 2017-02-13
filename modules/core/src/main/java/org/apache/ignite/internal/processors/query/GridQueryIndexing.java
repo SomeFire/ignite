@@ -21,8 +21,6 @@ import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.util.Collection;
 import java.util.List;
-import java.util.Set;
-import java.util.UUID;
 import javax.cache.Cache;
 import org.apache.ignite.IgniteCheckedException;
 import org.apache.ignite.cache.query.QueryCursor;
@@ -255,7 +253,7 @@ public interface GridQueryIndexing {
      *
      * @param queries Queries ID's to cancel.
      */
-    public void cancelQueries(Set<Long> queries);
+    public void cancelQueries(Collection<Long> queries);
 
     /**
      * Cancels all executing queries.

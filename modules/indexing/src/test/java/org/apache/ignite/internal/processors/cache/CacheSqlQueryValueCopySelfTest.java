@@ -272,7 +272,7 @@ public class CacheSqlQueryValueCopySelfTest extends GridCommonAbstractTest {
      * @throws Exception If failed.
      */
     public void testRunningSqlQuery() throws Exception {
-        IgniteInternalFuture<?> fut = runQueryAsync(new SqlQuery(Value.class, "id > sleep(100)"));
+        IgniteInternalFuture<?> fut = runQueryAsync(new SqlQuery<Integer, Value>(Value.class, "id > sleep(100)"));
 
         Thread.sleep(500);
 
@@ -288,7 +288,7 @@ public class CacheSqlQueryValueCopySelfTest extends GridCommonAbstractTest {
 
         assertEquals(0, queries.size());
 
-        SqlQuery qry = new SqlQuery(Value.class, "id > sleep(100)");
+        SqlQuery<Integer, Value> qry = new SqlQuery<>(Value.class, "id > sleep(100)");
         qry.setLocal(true);
 
         fut = runQueryAsync(qry);

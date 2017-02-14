@@ -388,8 +388,9 @@ public abstract class PagesList extends DataStructure {
      * @param bucket Bucket index.
      * @param oldTailId Old tail page ID to replace.
      * @param newTailId New tail page ID.
+     * @return {@code True} if stripe was removed.
      */
-    private void updateTail(int bucket, long oldTailId, long newTailId) {
+    private boolean updateTail(int bucket, long oldTailId, long newTailId) {
         int idx = -1;
 
         for (;;) {
@@ -404,6 +405,12 @@ public abstract class PagesList extends DataStructure {
             assert tails[idx].tailId == oldTailId;
 
             if (newTailId == 0L) {
+                if (tails.length <= MAX_STRIPES_PER_BUCKET / 2) {
+                    tails[idx].empty = true;
+
+                    return false;
+                }
+
                 Stripe[] newTails;
 
                 if (tails.length != 1)
@@ -412,13 +419,13 @@ public abstract class PagesList extends DataStructure {
                     newTails = null; // Drop the bucket completely.
 
                 if (casBucket(bucket, tails, newTails))
-                    return;
+                    return true;
             }
             else {
                 // It is safe to assign new tail since we do it only when write lock on tail is held.
                 tails[idx].tailId = newTailId;
 
-                return;
+                return true;
             }
         }
     }
@@ -550,8 +557,11 @@ public abstract class PagesList extends DataStructure {
                         // the deadlock is impossible as well.
                         putDataPage(tailId, tail, pageAddr, io, dataPage, dataPageAddr, bucket);
 
-                    if (ok)
+                    if (ok) {
+                        stripe.empty = false;
+
                         return;
+                    }
                 }
                 finally {
                     writeUnlock(tail, pageAddr, ok);
@@ -863,7 +873,7 @@ public abstract class PagesList extends DataStructure {
         for (int lockAttempt = 0; ;) {
             Stripe stripe = getPageForTake(bucket);
 
-            if (stripe == null)
+            if (stripe == null || stripe.empty)
                 return 0L;
 
             long tailId = stripe.tailId;
@@ -955,6 +965,8 @@ public abstract class PagesList extends DataStructure {
 
                             ret = tailId;
                         }
+                        else
+                            stripe.empty = true;
                     }
 
                     // If we do not have a previous page (we are at head), then we still can return
@@ -1078,8 +1090,13 @@ public abstract class PagesList extends DataStructure {
                 assert ok == TRUE: ok; // Because we keep lock on current tail and do a world consistency check.
             }
         }
-        else // If we don't have a previous, then we are tail page of free list, just drop the stripe.
-            updateTail(bucket, pageId, 0L);
+        else {
+            // If we don't have a previous, then we are tail page of free list, just drop the stripe.
+            boolean rmvd = updateTail(bucket, pageId, 0L);
+
+            if (!rmvd)
+                return 0L;
+        }
 
         return recyclePage(pageId, page, pageAddr);
     }

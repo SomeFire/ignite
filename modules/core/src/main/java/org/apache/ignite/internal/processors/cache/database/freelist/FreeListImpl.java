@@ -330,7 +330,22 @@ public class FreeListImpl extends PagesList implements FreeList, ReuseList {
             if (dumpBucketsInfo) {
                 Stripe[] stripes = getBucket(b);
 
-                log.info("Bucket [b=" + b + ", stripes=" + (stripes != null ? stripes.length : 0) + ']');
+                boolean empty = true;
+
+                if (stripes != null) {
+                    for (Stripe stripe : stripes) {
+                        if (!stripe.empty) {
+                            empty = false;
+
+                            break;
+                        }
+                    }
+                }
+
+                log.info("Bucket [b=" + b +
+                    ", size=" + size +
+                    ", stripes=" + (stripes != null ? stripes.length : 0) +
+                    ", stripesEmpty=" + empty + ']');
             }
         }
 

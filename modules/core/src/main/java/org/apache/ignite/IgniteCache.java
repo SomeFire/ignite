@@ -314,7 +314,7 @@ public interface IgniteCache<K, V> extends javax.cache.Cache<K, V>, IgniteAsyncS
      * @throws TransactionHeuristicException If operation performs within transaction that entered an unknown state.
      * @throws TransactionException If any other exception occurred.
      */
-    public IgniteFuture<V> getAndPutIfAbsentAsync(K key, V val) throws CacheException;
+    public IgniteFuture<V> getAndPutIfAbsentAsync(K key, V val) throws CacheException, TransactionException;
 
     /**
      * Creates a {@link Lock} instance associated with passed key.
@@ -593,7 +593,7 @@ public interface IgniteCache<K, V> extends javax.cache.Cache<K, V>, IgniteAsyncS
      * @throws TransactionException If any other exception occurred.
      */
     public <T> IgniteFuture<Map<K, EntryProcessorResult<T>>> invokeAllAsync(
-        Map<? extends K, ? extends EntryProcessor<K, V, T>> map, Object... args);
+        Map<? extends K, ? extends EntryProcessor<K, V, T>> map, Object... args) throws TransactionException;
 
     /**
      * {@inheritDoc}
@@ -660,7 +660,7 @@ public interface IgniteCache<K, V> extends javax.cache.Cache<K, V>, IgniteAsyncS
      * @throws TransactionHeuristicException If operation performs within transaction that entered an unknown state.
      * @throws TransactionException If any other exception occurred.
      */
-    public IgniteFuture<CacheEntry<K, V>> getEntryAsync(K key);
+    public IgniteFuture<CacheEntry<K, V>> getEntryAsync(K key) throws TransactionException;
 
     /**
      * {@inheritDoc}
@@ -689,7 +689,7 @@ public interface IgniteCache<K, V> extends javax.cache.Cache<K, V>, IgniteAsyncS
      * @throws TransactionHeuristicException If operation performs within transaction that entered an unknown state.
      * @throws TransactionException If any other exception occurred.
      */
-    public IgniteFuture<Map<K, V>> getAllAsync(Set<? extends K> keys);
+    public IgniteFuture<Map<K, V>> getAllAsync(Set<? extends K> keys) throws TransactionException;
 
     /**
      * Gets a collection of entries from the {@link Cache}.
@@ -739,7 +739,7 @@ public interface IgniteCache<K, V> extends javax.cache.Cache<K, V>, IgniteAsyncS
      * @throws TransactionHeuristicException If operation performs within transaction that entered an unknown state.
      * @throws TransactionException If any other exception occurred.
      */
-    public IgniteFuture<Collection<CacheEntry<K, V>>> getEntriesAsync(Set<? extends K> keys);
+    public IgniteFuture<Collection<CacheEntry<K, V>>> getEntriesAsync(Set<? extends K> keys) throws TransactionException;
 
     /**
      * Gets values from cache. Will bypass started transaction, if any, i.e. will not enlist entries
@@ -784,7 +784,7 @@ public interface IgniteCache<K, V> extends javax.cache.Cache<K, V>, IgniteAsyncS
      * @throws TransactionHeuristicException If operation performs within transaction that entered an unknown state.
      * @throws TransactionException If any other exception occurred.
      */
-    public IgniteFuture<Boolean> containsKeyAsync(K key);
+    public IgniteFuture<Boolean> containsKeyAsync(K key) throws TransactionException;
 
     /**
      * Determines if the {@link Cache} contains entries for the specified keys.
@@ -809,7 +809,7 @@ public interface IgniteCache<K, V> extends javax.cache.Cache<K, V>, IgniteAsyncS
      * @throws TransactionHeuristicException If operation performs within transaction that entered an unknown state.
      * @throws TransactionException If any other exception occurred.
      */
-    public IgniteFuture<Boolean> containsKeysAsync(Set<? extends K> keys);
+    public IgniteFuture<Boolean> containsKeysAsync(Set<? extends K> keys) throws TransactionException;
 
     /**
      * {@inheritDoc}
@@ -837,7 +837,7 @@ public interface IgniteCache<K, V> extends javax.cache.Cache<K, V>, IgniteAsyncS
      * @throws TransactionHeuristicException If operation performs within transaction that entered an unknown state.
      * @throws TransactionException If any other exception occurred.
      */
-    public IgniteFuture<Void> putAsync(K key, V val);
+    public IgniteFuture<Void> putAsync(K key, V val) throws TransactionException;
 
     /**
      * {@inheritDoc}
@@ -870,7 +870,7 @@ public interface IgniteCache<K, V> extends javax.cache.Cache<K, V>, IgniteAsyncS
      * @throws TransactionHeuristicException If operation performs within transaction that entered an unknown state.
      * @throws TransactionException If any other exception occurred.
      */
-    public IgniteFuture<V> getAndPutAsync(K key, V val);
+    public IgniteFuture<V> getAndPutAsync(K key, V val) throws TransactionException;
 
     /**
      * {@inheritDoc}
@@ -906,7 +906,7 @@ public interface IgniteCache<K, V> extends javax.cache.Cache<K, V>, IgniteAsyncS
      * @throws TransactionHeuristicException If operation performs within transaction that entered an unknown state.
      * @throws TransactionException If any other exception occurred.
      */
-    public IgniteFuture<Void> putAllAsync(Map<? extends K, ? extends V> map);
+    public IgniteFuture<Void> putAllAsync(Map<? extends K, ? extends V> map) throws TransactionException;
 
     /**
      * {@inheritDoc}
@@ -962,7 +962,7 @@ public interface IgniteCache<K, V> extends javax.cache.Cache<K, V>, IgniteAsyncS
      * @throws TransactionHeuristicException If operation performs within transaction that entered an unknown state.
      * @throws TransactionException If any other exception occurred.
      */
-    public IgniteFuture<Boolean> removeAsync(K key);
+    public IgniteFuture<Boolean> removeAsync(K key) throws TransactionException;
 
     /**
      * {@inheritDoc}
@@ -986,7 +986,7 @@ public interface IgniteCache<K, V> extends javax.cache.Cache<K, V>, IgniteAsyncS
      * @throws TransactionHeuristicException If operation performs within transaction that entered an unknown state.
      * @throws TransactionException If any other exception occurred.
      */
-    public IgniteFuture<Boolean> removeAsync(K key, V oldVal);
+    public IgniteFuture<Boolean> removeAsync(K key, V oldVal) throws TransactionException;
 
     /**
      * {@inheritDoc}
@@ -1009,7 +1009,7 @@ public interface IgniteCache<K, V> extends javax.cache.Cache<K, V>, IgniteAsyncS
      * @throws TransactionHeuristicException If operation performs within transaction that entered an unknown state.
      * @throws TransactionException If any other exception occurred.
      */
-    public IgniteFuture<V> getAndRemoveAsync(K key);
+    public IgniteFuture<V> getAndRemoveAsync(K key) throws TransactionException;
 
     /**
      * {@inheritDoc}
@@ -1033,7 +1033,7 @@ public interface IgniteCache<K, V> extends javax.cache.Cache<K, V>, IgniteAsyncS
      * @throws TransactionHeuristicException If operation performs within transaction that entered an unknown state.
      * @throws TransactionException If any other exception occurred.
      */
-    public IgniteFuture<Boolean> replaceAsync(K key, V oldVal, V newVal);
+    public IgniteFuture<Boolean> replaceAsync(K key, V oldVal, V newVal) throws TransactionException;
 
     /**
      * {@inheritDoc}
@@ -1057,7 +1057,7 @@ public interface IgniteCache<K, V> extends javax.cache.Cache<K, V>, IgniteAsyncS
      * @throws TransactionHeuristicException If operation performs within transaction that entered an unknown state.
      * @throws TransactionException If any other exception occurred.
      */
-    public IgniteFuture<Boolean> replaceAsync(K key, V val);
+    public IgniteFuture<Boolean> replaceAsync(K key, V val) throws TransactionException;
 
     /**
      * {@inheritDoc}
@@ -1111,7 +1111,7 @@ public interface IgniteCache<K, V> extends javax.cache.Cache<K, V>, IgniteAsyncS
      * @throws TransactionHeuristicException If operation performs within transaction that entered an unknown state.
      * @throws TransactionException If any other exception occurred.
      */
-    public IgniteFuture<Void> removeAllAsync(Set<? extends K> keys);
+    public IgniteFuture<Void> removeAllAsync(Set<? extends K> keys) throws TransactionException;
 
     /**
      * Removes all of the mappings from this cache.
@@ -1273,7 +1273,8 @@ public interface IgniteCache<K, V> extends javax.cache.Cache<K, V>, IgniteAsyncS
      * @throws TransactionHeuristicException If operation performs within transaction that entered an unknown state.
      * @throws TransactionException If any other exception occurred.
      */
-    public <T> IgniteFuture<T> invokeAsync(K key, EntryProcessor<K, V, T> entryProcessor, Object... arguments);
+    public <T> IgniteFuture<T> invokeAsync(K key, EntryProcessor<K, V, T> entryProcessor, Object... arguments)
+		    throws TransactionException;
 
     /**
      * Invokes an {@link CacheEntryProcessor} against the {@link javax.cache.Cache.Entry} specified by
@@ -1306,7 +1307,8 @@ public interface IgniteCache<K, V> extends javax.cache.Cache<K, V>, IgniteAsyncS
      * @see CacheEntryProcessor
      */
     @IgniteAsyncSupported
-    public <T> T invoke(K key, CacheEntryProcessor<K, V, T> entryProcessor, Object... arguments) throws TransactionException;
+    public <T> T invoke(K key, CacheEntryProcessor<K, V, T> entryProcessor, Object... arguments)
+		    throws TransactionException;
 
     /**
      * Asynchronously invokes an {@link CacheEntryProcessor} against the {@link javax.cache.Cache.Entry} specified by
@@ -1338,7 +1340,8 @@ public interface IgniteCache<K, V> extends javax.cache.Cache<K, V>, IgniteAsyncS
      * @throws TransactionException If any other exception occurred.
      * @see CacheEntryProcessor
      */
-    public <T> IgniteFuture<T> invokeAsync(K key, CacheEntryProcessor<K, V, T> entryProcessor, Object... arguments);
+    public <T> IgniteFuture<T> invokeAsync(K key, CacheEntryProcessor<K, V, T> entryProcessor, Object... arguments)
+		    throws TransactionException;
 
     /**
      * {@inheritDoc}
@@ -1349,7 +1352,7 @@ public interface IgniteCache<K, V> extends javax.cache.Cache<K, V>, IgniteAsyncS
      */
     @IgniteAsyncSupported
     @Override public <T> Map<K, EntryProcessorResult<T>> invokeAll(Set<? extends K> keys,
-        EntryProcessor<K, V, T> entryProcessor, Object... args);
+        EntryProcessor<K, V, T> entryProcessor, Object... args) throws TransactionException;
 
     /**
      * Asynchronously invokes an {@link EntryProcessor} against the set of {@link javax.cache.Cache.Entry}s
@@ -1382,7 +1385,7 @@ public interface IgniteCache<K, V> extends javax.cache.Cache<K, V>, IgniteAsyncS
      * @throws TransactionException If any other exception occurred.
      */
     public <T> IgniteFuture<Map<K, EntryProcessorResult<T>>> invokeAllAsync(Set<? extends K> keys,
-        EntryProcessor<K, V, T> entryProcessor, Object... args);
+        EntryProcessor<K, V, T> entryProcessor, Object... args) throws TransactionException;
 
 
     /**
@@ -1425,8 +1428,8 @@ public interface IgniteCache<K, V> extends javax.cache.Cache<K, V>, IgniteAsyncS
      * @throws TransactionTimeoutException If operation performs within transaction and timeout occurred.
      * @throws TransactionRollbackException If operation performs within transaction that automatically rolled back.
      * @throws TransactionHeuristicException If operation performs within transaction that entered an unknown state.
-     * @see CacheEntryProcessor
      * @throws TransactionException If any other exception occurred.
+     * @see CacheEntryProcessor
      */
     @IgniteAsyncSupported
     public <T> Map<K, EntryProcessorResult<T>> invokeAll(Set<? extends K> keys,
@@ -1473,7 +1476,7 @@ public interface IgniteCache<K, V> extends javax.cache.Cache<K, V>, IgniteAsyncS
      * @see CacheEntryProcessor
      */
     public <T> IgniteFuture<Map<K, EntryProcessorResult<T>>> invokeAllAsync(Set<? extends K> keys,
-        CacheEntryProcessor<K, V, T> entryProcessor, Object... args);
+        CacheEntryProcessor<K, V, T> entryProcessor, Object... args) throws TransactionException;
 
     /**
      * Closes this cache instance.

@@ -48,6 +48,9 @@ public class CacheOperationContext implements Serializable {
     /** Keep binary flag. */
     private final boolean keepBinary;
 
+    /** Allow atomic cache in transaction */
+    private final boolean allowInTx;
+
     /** Expiry policy. */
     private final ExpiryPolicy expiryPlc;
 
@@ -71,6 +74,8 @@ public class CacheOperationContext implements Serializable {
         recovery = false;
 
         dataCenterId = null;
+
+        allowInTx = false;
     }
 
     /**
@@ -87,7 +92,8 @@ public class CacheOperationContext implements Serializable {
         @Nullable ExpiryPolicy expiryPlc,
         boolean noRetries,
         @Nullable Byte dataCenterId,
-        boolean recovery
+        boolean recovery,
+        boolean allowInTx
     ) {
         this.skipStore = skipStore;
 
@@ -102,6 +108,8 @@ public class CacheOperationContext implements Serializable {
         this.dataCenterId = dataCenterId;
 
         this.recovery = recovery;
+
+        this.allowInTx = allowInTx;
     }
 
     /**
@@ -131,7 +139,8 @@ public class CacheOperationContext implements Serializable {
             expiryPlc,
             noRetries,
             dataCenterId,
-            recovery);
+            recovery,
+            allowInTx);
     }
 
     /**
@@ -166,7 +175,8 @@ public class CacheOperationContext implements Serializable {
             expiryPlc,
             noRetries,
             dataCenterId,
-            recovery);
+            recovery,
+            allowInTx);
     }
 
     /**
@@ -190,7 +200,8 @@ public class CacheOperationContext implements Serializable {
             expiryPlc,
             noRetries,
             dataCenterId,
-            recovery);
+            recovery,
+            allowInTx);
     }
 
     /**
@@ -214,7 +225,8 @@ public class CacheOperationContext implements Serializable {
             plc,
             noRetries,
             dataCenterId,
-            recovery);
+            recovery,
+            allowInTx);
     }
 
     /**
@@ -229,7 +241,8 @@ public class CacheOperationContext implements Serializable {
             expiryPlc,
             noRetries,
             dataCenterId,
-            recovery);
+            recovery,
+            allowInTx);
     }
 
     /**
@@ -244,7 +257,8 @@ public class CacheOperationContext implements Serializable {
             expiryPlc,
             noRetries,
             dataCenterId,
-            recovery);
+            recovery,
+            allowInTx);
     }
 
     /**
@@ -259,6 +273,22 @@ public class CacheOperationContext implements Serializable {
      */
     public boolean noRetries() {
         return noRetries;
+    }
+
+    public CacheOperationContext setAllowInTx(boolean allowInTx) {
+        return new CacheOperationContext(
+                skipStore,
+                subjId,
+                keepBinary,
+                expiryPlc,
+                noRetries,
+                dataCenterId,
+                recovery,
+                allowInTx);
+    }
+
+    public boolean allowedInTx() {
+        return allowInTx;
     }
 
     /** {@inheritDoc} */

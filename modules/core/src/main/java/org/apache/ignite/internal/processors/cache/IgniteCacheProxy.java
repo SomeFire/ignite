@@ -315,6 +315,33 @@ public class IgniteCacheProxy<K, V> extends AsyncSupportAdapter<IgniteCache<K, V
     }
 
     /** {@inheritDoc} */
+    @Override
+    public IgniteCache<K, V> withAllowInTx() {
+        GridCacheGateway<K, V> gate = this.gate;
+
+        CacheOperationContext prev = onEnter(gate, opCtx);
+
+        try {
+            boolean allow = opCtx != null && opCtx.allowedInTx();
+
+            if (allow)
+                return this;
+
+            CacheOperationContext opCtx0 = opCtx != null ? opCtx.setAllowInTx(true) :
+                    new CacheOperationContext(false, null, false, null, false, null, true);
+
+            return new IgniteCacheProxy<>(ctx,
+                    delegate,
+                    opCtx0,
+                    isAsync(),
+                    lock);
+        }
+        finally {
+            onLeave(gate, prev);
+        }
+    }
+
+    /** {@inheritDoc} */
     @Override public IgniteCache<K, V> withNoRetries() {
         GridCacheGateway<K, V> gate = this.gate;
 
@@ -327,6 +354,7 @@ public class IgniteCacheProxy<K, V> extends AsyncSupportAdapter<IgniteCache<K, V
                 return this;
 
             CacheOperationContext opCtx0 = opCtx != null ? opCtx.setNoRetries(true) :
+                new CacheOperationContext(false, null, false, null, true, null, false);
                 new CacheOperationContext(false, null, false, null, true, null, false);
 
             return new IgniteCacheProxy<>(ctx,
@@ -2551,7 +2579,8 @@ public class IgniteCacheProxy<K, V> extends AsyncSupportAdapter<IgniteCache<K, V
                     opCtx != null ? opCtx.expiry() : null,
                     opCtx != null && opCtx.noRetries(),
                     opCtx != null ? opCtx.dataCenterId() : null,
-                    opCtx != null && opCtx.recovery());
+                    opCtx != null && opCtx.recovery(),
+                    opCtx != null && opCtx.allowedInTx());
 
             return new IgniteCacheProxy<>((GridCacheContext<K1, V1>)ctx,
                 (IgniteInternalCache<K1, V1>)delegate,
@@ -2586,7 +2615,8 @@ public class IgniteCacheProxy<K, V> extends AsyncSupportAdapter<IgniteCache<K, V
                     opCtx != null ? opCtx.expiry() : null,
                     opCtx != null && opCtx.noRetries(),
                     dataCenterId,
-                    opCtx != null && opCtx.recovery());
+                    opCtx != null && opCtx.recovery(),
+                    opCtx != null && opCtx.allowedInTx());
 
             return new IgniteCacheProxy<>(ctx,
                 delegate,
@@ -2620,7 +2650,8 @@ public class IgniteCacheProxy<K, V> extends AsyncSupportAdapter<IgniteCache<K, V
                     opCtx != null ? opCtx.expiry() : null,
                     opCtx != null && opCtx.noRetries(),
                     opCtx != null ? opCtx.dataCenterId() : null,
-                    opCtx != null && opCtx.recovery());
+                    opCtx != null && opCtx.recovery(),
+                    opCtx != null && opCtx.allowedInTx());
 
             return new IgniteCacheProxy<>(ctx,
                 delegate,
@@ -2724,6 +2755,8 @@ public class IgniteCacheProxy<K, V> extends AsyncSupportAdapter<IgniteCache<K, V
      * @return Previous projection set on this thread.
      */
     private CacheOperationContext onEnter(GridCacheGateway<K, V> gate, CacheOperationContext opCtx) {
+        allowedInTx();
+
         return lock ? gate.enter(opCtx) : gate.enterNoLock(opCtx);
     }
 
@@ -2837,5 +2870,14 @@ public class IgniteCacheProxy<K, V> extends AsyncSupportAdapter<IgniteCache<K, V
     /** {@inheritDoc} */
     @Override public String toString() {
         return S.toString(IgniteCacheProxy.class, this);
+    }
+
+    /** {@inheritDoc} */
+    private void allowedInTx() throws IgniteException {
+        if (ctx.atomic() &&
+                (opCtx == null || !opCtx.allowedInTx()) &&
+                ctx.grid().transactions().tx() != null && !ctx.grid().transactions().tx().implicit())
+            throw new IgniteException("Transaction spans operations on atomic cache " +
+                    "(don't use atomic cache inside transaction or set up flag by cache.withAllowInTx()).");
     }
 }

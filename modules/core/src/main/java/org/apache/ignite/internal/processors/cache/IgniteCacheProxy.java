@@ -354,8 +354,7 @@ public class IgniteCacheProxy<K, V> extends AsyncSupportAdapter<IgniteCache<K, V
                 return this;
 
             CacheOperationContext opCtx0 = opCtx != null ? opCtx.setNoRetries(true) :
-                new CacheOperationContext(false, null, false, null, true, null, false);
-                new CacheOperationContext(false, null, false, null, true, null, false);
+                new CacheOperationContext(false, null, false, null, true, null, false, false);
 
             return new IgniteCacheProxy<>(ctx,
                 delegate,
@@ -381,7 +380,7 @@ public class IgniteCacheProxy<K, V> extends AsyncSupportAdapter<IgniteCache<K, V
                 return this;
 
             CacheOperationContext opCtx0 = opCtx != null ? opCtx.setRecovery(true) :
-                new CacheOperationContext(false, null, false, null, false, null, true);
+                new CacheOperationContext(false, null, false, null, false, null, true, false);
 
             return new IgniteCacheProxy<>(ctx,
                 delegate,
@@ -2580,6 +2579,8 @@ public class IgniteCacheProxy<K, V> extends AsyncSupportAdapter<IgniteCache<K, V
                     opCtx != null && opCtx.noRetries(),
                     opCtx != null ? opCtx.dataCenterId() : null,
                     opCtx != null && opCtx.recovery(),
+                    opCtx != null && opCtx.allowedInTx());
+                    opCtx != null ? opCtx.dataCenterId() : null,
                     opCtx != null && opCtx.allowedInTx());
 
             return new IgniteCacheProxy<>((GridCacheContext<K1, V1>)ctx,

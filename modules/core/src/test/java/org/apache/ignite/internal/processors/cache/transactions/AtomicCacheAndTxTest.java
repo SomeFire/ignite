@@ -36,23 +36,9 @@ public class AtomicCacheAndTxTest extends GridCommonAbstractTest {
 	@Override protected IgniteConfiguration getConfiguration(String gridName) throws Exception {
 		IgniteConfiguration cfg = super.getConfiguration(gridName);
 
-		/*TcpDiscoverySpi disc = new TcpDiscoverySpi();
-
-		disc.setIpFinder(new TcpDiscoveryVmIpFinder(true));
-
-		cfg.setDiscoverySpi(disc);*/
-
 		CacheConfiguration ccfg  = new CacheConfiguration();
 
 		ccfg.setAtomicityMode(ATOMIC);
-
-/*
-		ccfg.setCacheMode(REPLICATED);
-
-		ccfg.setBackups(1);
-
-		ccfg.setSwapEnabled(true);
-*/
 
 		cfg.setCacheConfiguration(ccfg);
 
@@ -78,7 +64,7 @@ public class AtomicCacheAndTxTest extends GridCommonAbstractTest {
 		testTransaction(grid(0).cache(null), false);
 	}
 
-	private void testTransaction(IgniteCache<Integer, Integer> cache, boolean allow) {
+	private void testTransaction(IgniteCache cache, boolean allow) {
 		IgniteException err = null;
 		try (Transaction tx = grid(0).transactions().txStart()) {
 			cache.put(1, 1);

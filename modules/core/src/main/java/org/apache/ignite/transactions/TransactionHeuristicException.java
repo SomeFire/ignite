@@ -17,8 +17,6 @@
 
 package org.apache.ignite.transactions;
 
-import org.apache.ignite.IgniteException;
-
 /**
  * Exception thrown whenever grid transaction enters an unknown state.
  * This exception is usually thrown whenever commit partially succeeds.

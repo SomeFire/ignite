@@ -21,9 +21,14 @@ import org.apache.ignite.configuration.TransactionConfiguration;
 import org.apache.ignite.internal.IgniteTransactionsEx;
 import org.apache.ignite.internal.processors.cache.GridCacheContext;
 import org.apache.ignite.internal.processors.cache.GridCacheSharedContext;
+import org.apache.ignite.internal.processors.cache.distributed.near.GridNearTxLocal;
 import org.apache.ignite.internal.util.typedef.internal.A;
 import org.apache.ignite.internal.util.typedef.internal.CU;
-import org.apache.ignite.transactions.*;
+import org.apache.ignite.transactions.Transaction;
+import org.apache.ignite.transactions.TransactionConcurrency;
+import org.apache.ignite.transactions.TransactionIsolation;
+import org.apache.ignite.transactions.TransactionMetrics;
+import org.apache.ignite.transactions.TransactionException;
 import org.jetbrains.annotations.Nullable;
 
 /**
@@ -87,7 +92,7 @@ public class IgniteTransactionsImpl<K, V> implements IgniteTransactionsEx {
     }
 
     /** {@inheritDoc} */
-    @Override public IgniteInternalTx txStartEx(
+    @Override public GridNearTxLocal txStartEx(
         GridCacheContext ctx,
         TransactionConcurrency concurrency,
         TransactionIsolation isolation,
@@ -109,7 +114,7 @@ public class IgniteTransactionsImpl<K, V> implements IgniteTransactionsEx {
     }
 
     /** {@inheritDoc} */
-    @Override public IgniteInternalTx txStartEx(
+    @Override public GridNearTxLocal txStartEx(
         GridCacheContext ctx,
         TransactionConcurrency concurrency,
         TransactionIsolation isolation)
@@ -137,7 +142,7 @@ public class IgniteTransactionsImpl<K, V> implements IgniteTransactionsEx {
      * @return Transaction.
      */
     @SuppressWarnings("unchecked")
-    private IgniteInternalTx txStart0(
+    private GridNearTxLocal txStart0(
         TransactionConcurrency concurrency,
         TransactionIsolation isolation,
         long timeout,
@@ -147,11 +152,12 @@ public class IgniteTransactionsImpl<K, V> implements IgniteTransactionsEx {
         cctx.kernalContext().gateway().readLock();
 
         try {
-            IgniteInternalTx tx = cctx.tm().userTx(sysCacheCtx);
+            GridNearTxLocal tx = cctx.tm().userTx(sysCacheCtx);
 
             if (tx != null)
                 throw new IllegalStateException("Failed to start new transaction " +
                     "(current thread already has a transaction): " + tx);
+
             tx = cctx.tm().newTx(
                 false,
                 false,
@@ -174,7 +180,7 @@ public class IgniteTransactionsImpl<K, V> implements IgniteTransactionsEx {
 
     /** {@inheritDoc} */
     @Nullable @Override public Transaction tx() {
-        IgniteInternalTx tx = cctx.tm().userTx();
+        GridNearTxLocal tx = cctx.tm().userTx();
 
         return tx != null ? tx.proxy() : null;
     }

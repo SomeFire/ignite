@@ -17,8 +17,6 @@
 
 package org.apache.ignite.transactions;
 
-import org.apache.ignite.IgniteException;
-
 /**
  * Transaction deadlock exception.
  * <p>

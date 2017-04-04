@@ -17,8 +17,6 @@
 
 package org.apache.ignite.transactions;
 
-import org.apache.ignite.IgniteException;
-
 /**
  * Exception thrown whenever grid transactions fail optimistically.
  */

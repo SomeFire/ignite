@@ -44,20 +44,34 @@ public class TransactionException extends IgniteException {
 	/** Serial version UID. */
 	private static final long serialVersionUID = 0L;
 
-	/** {@inheritDoc} */
+	/** Create empty exception. */
 	public TransactionException() {}
 
-	/** {@inheritDoc} */
+	/**
+	 * Creates new exception with given error message.
+	 *
+	 * @param msg Error message.
+	 */
 	public TransactionException(String msg) {
 		super(msg);
 	}
 
-	/** {@inheritDoc} */
+	/**
+	 * Creates new transaction exception with given throwable as a cause and
+	 * source of error message.
+	 *
+	 * @param cause Non-null throwable cause.
+	 */
 	public TransactionException(Throwable cause) {
 		super(cause);
 	}
 
-	/** {@inheritDoc} */
+	/**
+	 * Creates new exception with given error message and optional nested exception.
+	 *
+	 * @param msg Error message.
+	 * @param cause Optional nested exception (can be {@code null}).
+	 */
 	public TransactionException(String msg, @Nullable Throwable cause) {
 		super(msg, cause);
 	}

@@ -71,7 +71,6 @@ import org.apache.ignite.internal.processors.cache.version.GridCacheVersion;
 import org.apache.ignite.internal.processors.timeout.GridTimeoutObjectAdapter;
 import org.apache.ignite.internal.transactions.IgniteTxOptimisticCheckedException;
 import org.apache.ignite.internal.transactions.IgniteTxTimeoutCheckedException;
-import org.apache.ignite.internal.transactions.TransactionCheckedException;
 import org.apache.ignite.internal.util.GridBoundedConcurrentOrderedMap;
 import org.apache.ignite.internal.util.future.GridCompoundFuture;
 import org.apache.ignite.internal.util.future.GridFutureAdapter;
@@ -207,7 +206,7 @@ public class IgniteTxManager extends GridCacheSharedManagerAdapter {
     }
 
     /** {@inheritDoc} */
-    @Override protected void start0() throws TransactionCheckedException {
+    @Override protected void start0() throws IgniteCheckedException {
         txFinishSync = new GridCacheTxFinishSync<>(cctx);
 
         txHnd = new IgniteTxHandler(cctx);
@@ -785,7 +784,7 @@ public class IgniteTxManager extends GridCacheSharedManagerAdapter {
             if (tx.remainingTime() == -1)
                 throw new IgniteTxTimeoutCheckedException("Transaction timed out: " + this);
 
-            throw new TransactionCheckedException("Transaction is marked for rollback: " + tx);
+            throw new IgniteCheckedException("Transaction is marked for rollback: " + tx);
         }
 
         if (tx.remainingTime() == -1) {
@@ -1136,7 +1135,7 @@ public class IgniteTxManager extends GridCacheSharedManagerAdapter {
      * @param tx Transaction to commit.
      * @throws IgniteCheckedException If failed.
      */
-    public void commitTx(IgniteInternalTx tx) throws TransactionCheckedException {
+    public void commitTx(IgniteInternalTx tx) throws IgniteCheckedException {
         assert tx != null;
         assert tx.state() == COMMITTING : "Invalid transaction state for commit from tm [state=" + tx.state() +
             ", expected=COMMITTING, tx=" + tx + ']';
@@ -1159,7 +1158,7 @@ public class IgniteTxManager extends GridCacheSharedManagerAdapter {
 
             tx.errorWhenCommitting();
 
-            throw new TransactionCheckedException("Missing commit version (consider increasing " +
+            throw new IgniteCheckedException("Missing commit version (consider increasing " +
                 IGNITE_MAX_COMPLETED_TX_COUNT + " system property) [ver=" + tx.xidVersion() +
                 ", tx=" + tx.getClass().getSimpleName() + ']');
         }
@@ -1601,7 +1600,7 @@ public class IgniteTxManager extends GridCacheSharedManagerAdapter {
                 catch (GridDistributedLockCancelledException ignore) {
                     tx.setRollbackOnly();
 
-                    throw new TransactionCheckedException("Entry lock has been cancelled for transaction: " + tx);
+                    throw new IgniteCheckedException("Entry lock has been cancelled for transaction: " + tx);
                 }
             }
         }

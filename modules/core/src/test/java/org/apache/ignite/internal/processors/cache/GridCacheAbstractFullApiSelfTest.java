@@ -309,11 +309,12 @@ public abstract class GridCacheAbstractFullApiSelfTest extends GridCacheAbstract
 
         storeStgy.removeFromStore(key);
 
-        try (final Transaction transaction = grid(0).transactions().txStart()) {
-            IgniteCache<String, Integer> cache = jcache(0);
+        try (IgniteCache<String, Integer> cache = jcache(0).withAllowInTx();
+        IgniteCache<String, Integer> cacheWithSkipStore = cache.withSkipStore();
+        final Transaction transaction = grid(0).transactions().txStart();) {
 
             // retrieve market type from the grid
-            Integer old = cache.withSkipStore().get(key);
+            Integer old = cacheWithSkipStore.get(key);
 
             assertNull(old);
 
@@ -333,7 +334,7 @@ public abstract class GridCacheAbstractFullApiSelfTest extends GridCacheAbstract
     public void testNoReadThroughTx() {
         String key = "writeThroughKey";
 
-        IgniteCache<String, Integer> cache = jcache(0);
+        IgniteCache<String, Integer> cache = jcache(0).withAllowInTx();
 
         storeStgy.resetStore();
 
@@ -5844,7 +5845,7 @@ public abstract class GridCacheAbstractFullApiSelfTest extends GridCacheAbstract
         };
 
         try {
-            IgniteCache<String, Integer> cache = grid(0).cache(DEFAULT_CACHE_NAME);
+            IgniteCache<String, Integer> cache = grid(0).cache(DEFAULT_CACHE_NAME).withAllowInTx();
 
             List<String> keys = primaryKeysForCache(cache, 2);
 

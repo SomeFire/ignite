@@ -2877,6 +2877,8 @@ public class IgniteCacheProxy<K, V> extends AsyncSupportAdapter<IgniteCache<K, V
     }
 
     private void allowedInTx() throws IgniteException {
+        if (ctx.config() == null)
+            throw new IllegalStateException("Cache has been closed or destroyed. It's context configuration is null.");
         if (ctx.atomic() &&
                 (opCtx == null || !opCtx.allowedInTx()) &&
                 ctx.grid().transactions().tx() != null && !ctx.grid().transactions().tx().implicit())

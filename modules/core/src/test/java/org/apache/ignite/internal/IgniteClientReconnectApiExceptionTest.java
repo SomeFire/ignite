@@ -219,7 +219,7 @@ public class IgniteClientReconnectApiExceptionTest extends IgniteClientReconnect
 
         final Ignite client = startGrid(serverCount());
 
-        final IgniteCache<Object, Object> dfltCache = client.cache(null);
+        final IgniteCache<Object, Object> dfltCache = client.cache(null).withAllowInTx();
 
         assertNotNull(dfltCache);
 

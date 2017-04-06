@@ -161,9 +161,9 @@ public class IgniteClientReconnectCacheTest extends IgniteClientReconnectAbstrac
 
         TestTcpDiscoverySpi srvSpi = spi(srv);
 
-        final IgniteCache<Object, Object> cache = client.getOrCreateCache(new CacheConfiguration<>());
+        final IgniteCache<Object, Object> cache = client.getOrCreateCache(new CacheConfiguration<>()).withAllowInTx();
 
-        final IgniteCache<Object, Object> staticCache = client.cache(STATIC_CACHE);
+        final IgniteCache<Object, Object> staticCache = client.cache(STATIC_CACHE).withAllowInTx();
 
         staticCache.put(1, 1);
 
@@ -175,7 +175,7 @@ public class IgniteClientReconnectCacheTest extends IgniteClientReconnectAbstrac
         ccfg.setName("nearCache");
         ccfg.setAtomicWriteOrderMode(PRIMARY);
 
-        final IgniteCache<Object, Object> nearCache = client.getOrCreateCache(ccfg, new NearCacheConfiguration<>());
+        final IgniteCache<Object, Object> nearCache = client.getOrCreateCache(ccfg, new NearCacheConfiguration<>()).withAllowInTx();
 
         nearCache.put(1, 1);
 

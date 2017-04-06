@@ -21,15 +21,14 @@ import org.apache.ignite.IgniteCache;
 import org.apache.ignite.IgniteException;
 import org.apache.ignite.configuration.CacheConfiguration;
 import org.apache.ignite.configuration.IgniteConfiguration;
-import org.apache.ignite.internal.processors.cache.IgniteCacheProxy;
-import org.apache.ignite.spi.discovery.tcp.TcpDiscoverySpi;
-import org.apache.ignite.spi.discovery.tcp.ipfinder.vm.TcpDiscoveryVmIpFinder;
 import org.apache.ignite.testframework.junits.common.GridCommonAbstractTest;
 import org.apache.ignite.transactions.Transaction;
 
 import static org.apache.ignite.cache.CacheAtomicityMode.ATOMIC;
-import static org.apache.ignite.cache.CacheMode.REPLICATED;
 
+/**
+ * Checks how atomic cache works inside a transaction.
+ */
 public class AtomicCacheAndTxTest extends GridCommonAbstractTest {
 
 	/** {@inheritDoc} */
@@ -45,26 +44,36 @@ public class AtomicCacheAndTxTest extends GridCommonAbstractTest {
 		return cfg;
 	}
 
-	@Override
-	protected void beforeTestsStarted() throws Exception {
+	/** {@inheritDoc} */
+	@Override protected void beforeTestsStarted() throws Exception {
 		super.beforeTestsStarted();
 		startGrid(0);
 	}
 
-	@Override
-	protected void afterTest() throws Exception {
+	/** {@inheritDoc} */
+	@Override protected void afterTest() throws Exception {
 		grid(0).cache(null).remove(1);
 	}
 
+	/**
+	 * Checks that atomic cache works inside a transaction.
+	 */
 	public void testAllowed() throws Exception {
-		testTransaction(grid(0).cache(null).withAllowInTx(), true);
+		checkTransaction(grid(0).cache(null).withAllowInTx(), true);
 	}
 
+	/**
+	 * Checks that atomic cache throws exception inside a transaction.
+	 */
 	public void testNotAllowed() {
-		testTransaction(grid(0).cache(null), false);
+		checkTransaction(grid(0).cache(null), false);
 	}
 
-	private void testTransaction(IgniteCache cache, boolean allow) {
+	/**
+	 * @param cache Atomic cache which is allowed or not allowed for use in transactions.
+	 * @param isAtomicCacheAllowedInTx Variable to compare with result.
+	 */
+	private void checkTransaction(IgniteCache<Integer, Integer> cache, boolean isAtomicCacheAllowedInTx) {
 		IgniteException err = null;
 		try (Transaction tx = grid(0).transactions().txStart()) {
 			cache.put(1, 1);
@@ -72,8 +81,9 @@ public class AtomicCacheAndTxTest extends GridCommonAbstractTest {
 		} catch (IgniteException e) {
 			err = e;
 		}
-		assertTrue(allow && err == null ||
-				!allow && err != null && err.getMessage().startsWith("Transaction spans operations on atomic cache"));
+		assertTrue(isAtomicCacheAllowedInTx && err == null ||
+				!isAtomicCacheAllowedInTx && err != null &&
+						err.getMessage().startsWith("Transaction spans operations on atomic cache"));
 
 	}
 }

@@ -22,6 +22,10 @@ import org.jetbrains.annotations.Nullable;
 
 /**
  * Marker of transactional runtime exceptions.
+ * In case of {@link org.apache.ignite.cache.CacheAtomicityMode#TRANSACTIONAL} cache -
+ * any method throwing this or nested exception have transactional behaviour
+ * (it can be rolled back and not seen outside transaction before committed).
+ * In case of {@link org.apache.ignite.cache.CacheAtomicityMode#ATOMIC} cache - every action is committed when it done.
  * <p>
  * Before doing main thing, all transactional methods (commit, rollback and close) must obtain a readLock from
  * context's gateway to prevent simultaneous actions which can break result of transaction.

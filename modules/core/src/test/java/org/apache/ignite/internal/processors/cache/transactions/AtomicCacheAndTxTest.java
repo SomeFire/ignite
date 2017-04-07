@@ -73,7 +73,7 @@ public class AtomicCacheAndTxTest extends GridCommonAbstractTest {
 	 * @param cache Atomic cache which is allowed or not allowed for use in transactions.
 	 * @param isAtomicCacheAllowedInTx Variable to compare with result.
 	 */
-	private void checkTransaction(IgniteCache<Integer, Integer> cache, boolean isAtomicCacheAllowedInTx) {
+	private void checkTransaction(IgniteCache<Object, Object> cache, boolean isAtomicCacheAllowedInTx) {
 		IgniteException err = null;
 		try (Transaction tx = grid(0).transactions().txStart()) {
 			cache.put(1, 1);

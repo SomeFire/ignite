@@ -17,41 +17,68 @@
 
 package org.apache.ignite.internal.processors.cache.transactions;
 
+import org.apache.ignite.internal.util.tostring.GridToStringInclude;
 import org.apache.ignite.internal.util.typedef.internal.U;
 
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Map;
 
+/**
+ * Transaction savepoint implementation for near local transactions.
+ */
 public class TxSavepointLocal implements TxSavepoint {
 
+    /** Savepoint ID */
+    @GridToStringInclude
 	private final String name;
 
+    /** Per-transaction read map. */
+    @GridToStringInclude
 	private final Map<IgniteTxKey, IgniteTxEntry> txMap;
 
+    /**
+     * @param name Savepoint ID.
+     * @param tx Transaction, which state should be saved.
+     */
 	public TxSavepointLocal(String name,
-	                   IgniteTxState txState,
-	                   IgniteInternalTx tx) {
+                            IgniteInternalTx tx) {
 		this.name = name;
 
-        Collection<IgniteTxEntry> collection = txState.allEntries();
+        Collection<IgniteTxEntry> stateEntries = tx.txState().allEntries();
 
-        txMap = U.newLinkedHashMap(collection.size());
+        txMap = U.newLinkedHashMap(stateEntries.size());
 
-        putCopies(collection, txMap, tx);
+        putCopies(stateEntries, txMap, tx);
 	}
 
+	/** {@inheritDoc} */
 	public String getName() {
 		return name;
 	}
 
+    /**
+     * @return Entries stored in savepoint.
+     */
 	public Map<IgniteTxKey, IgniteTxEntry> getTxMap() {
 		return txMap;
 	}
 
+    /**
+     *
+     * @param key
+     * @return
+     */
 	public boolean containsKey(IgniteTxKey key) {
         return txMap.containsKey(key);
     }
 
+    /**
+     *
+     * @param from Takes this.
+     * @param to And put all members here.
+     * @param tx Transaction where entries occurs.
+     */
     public void putCopies(Collection<IgniteTxEntry> from, Map<IgniteTxKey, IgniteTxEntry> to, IgniteInternalTx tx) {
         for (IgniteTxEntry entry : from) {
             IgniteTxEntry e = entry.cleanCopy(entry.context());
@@ -65,6 +92,7 @@ public class TxSavepointLocal implements TxSavepoint {
         }
     }
 
+    /** Equality of savepoints depends on their IDs. */
 	@Override
 	public boolean equals(Object o) {
 		if (this == o) return true;
@@ -75,6 +103,7 @@ public class TxSavepointLocal implements TxSavepoint {
 		return name.equals(savepoint.name);
 	}
 
+    /** Hash code depends on savepoint ID. */
 	@Override
 	public int hashCode() {
 		return name.hashCode();

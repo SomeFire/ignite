@@ -152,7 +152,7 @@ public class TestTransaction implements Transaction {
     }
 
     /** {@inheritDoc} */
-    @Override public void releaseCheckpoint(String name) {
+    @Override public void releaseSavepoint(String name) {
         // No-op.
     }
 }

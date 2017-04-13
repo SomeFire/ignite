@@ -657,5 +657,5 @@ public interface IgniteInternalTx {
      * @param name Savepoint ID.
      * @return Future for releasing savepoint.
      */
-    public IgniteInternalFuture releaseCheckpointAsync(String name);
+    public IgniteInternalFuture releaseSavepointAsync(String name);
 }

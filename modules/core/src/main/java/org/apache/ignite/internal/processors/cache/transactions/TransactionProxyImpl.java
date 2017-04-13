@@ -21,7 +21,7 @@ import java.io.Externalizable;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
-import java.util.*;
+import java.util.UUID;
 
 import org.apache.ignite.IgniteCheckedException;
 import org.apache.ignite.IgniteClientDisconnectedException;
@@ -414,7 +414,7 @@ public class TransactionProxyImpl<K, V> implements TransactionProxy, Externaliza
     }
 
     /** {@inheritDoc} */
-    @Override public void releaseCheckpoint(String name) {
+    @Override public void releaseSavepoint(String name) {
         enter();
         try {
             IgniteInternalFuture savepointFut = cctx.releaseCheckpointAsync(tx, name);

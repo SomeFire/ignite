@@ -18,15 +18,11 @@
 package org.apache.ignite.internal.processors.cache.transactions;
 
 import java.io.Externalizable;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.Iterator;
-import java.util.LinkedHashMap;
 import java.util.LinkedList;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -1743,7 +1739,7 @@ public abstract class IgniteTxLocalAdapter extends IgniteTxAdapter implements Ig
      */
 	public void savepoint(String name) {
         releaseCheckpoint(name, false);
-        savepoints.add(new TxSavepointLocal(name, txState, this));
+        savepoints.add(new TxSavepointLocal(name, this));
     }
 
     /**

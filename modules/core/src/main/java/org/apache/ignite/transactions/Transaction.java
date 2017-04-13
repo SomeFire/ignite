@@ -25,8 +25,6 @@ import org.apache.ignite.lang.IgniteAsyncSupported;
 import org.apache.ignite.lang.IgniteFuture;
 import org.apache.ignite.lang.IgniteUuid;
 
-import javax.naming.OperationNotSupportedException;
-
 /**
  * Ignite cache transaction. Cache transactions have a default 2PC (two-phase-commit) behavior and
  * can be plugged into ongoing {@code JTA} transaction by properly implementing
@@ -304,5 +302,5 @@ public interface Transaction extends AutoCloseable, IgniteAsyncSupport {
      *
      * @param name
      */
-    public void releaseCheckpoint(String name);
+    public void releaseSavepoint(String name);
 }

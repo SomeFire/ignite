@@ -133,7 +133,7 @@ public abstract class TxSavepointsTest extends GridCommonAbstractTest {
         startGrid(2);
 
         IgniteCache<Integer, Integer> cache1 = grid(0).createCache(cfg.setName("First Cache"));
-        IgniteCache<Integer, Integer> cache2 = grid(0).createCache(cfg.setName("Second Cache"));
+        IgniteCache<Integer, Integer> cache2 = grid(0).createCache(new CacheConfiguration<Integer, Integer>(cfg).setName("Second Cache"));
 
         for (TransactionConcurrency concurrency : TransactionConcurrency.values())
             for (TransactionIsolation isolation : TransactionIsolation.values()) {
@@ -180,6 +180,11 @@ public abstract class TxSavepointsTest extends GridCommonAbstractTest {
             }
     }
 
+    /**
+     * Put values which must be rolled back.
+     *
+     * @param cache Where to put.
+     */
     private void cachePutAfterSavepoint(IgniteCache<Integer, Integer> cache) {
         cache.put(2, 33);
         cache.remove(3);
@@ -199,6 +204,11 @@ public abstract class TxSavepointsTest extends GridCommonAbstractTest {
         cache.remove(15);
     }
 
+    /**
+     * Init starting values.
+     *
+     * @param cache Where to put.
+     */
     private void cachePutBeforeTx(IgniteCache<Integer, Integer> cache) {
         cache.put(1, 0);
         cache.put(2, 0);
@@ -217,6 +227,11 @@ public abstract class TxSavepointsTest extends GridCommonAbstractTest {
         cache.remove(15);
     }
 
+    /**
+     * Put values which must be committed.
+     *
+     * @param cache Where to put.
+     */
     private void cacheActionsBeforeSavepoint(IgniteCache<Integer, Integer> cache) {
         cache.put(1, 1);
         cache.put(2, 2);

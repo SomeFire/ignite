@@ -228,8 +228,6 @@ public class GridNearPessimisticTxPrepareFuture extends GridNearTxPrepareFutureA
             txMapping.addMapping(nodes);
         }
 
-        //TODO same loop for (and create) txMap containing removed entries instead of list of keys
-
         tx.transactionNodes(txMapping.transactionNodes());
 
         checkOnePhase(txMapping);

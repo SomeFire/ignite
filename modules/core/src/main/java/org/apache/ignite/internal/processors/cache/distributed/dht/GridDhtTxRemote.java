@@ -238,7 +238,7 @@ public class GridDhtTxRemote extends GridDistributedTxRemoteAdapter {
     }
 
     @Override
-    public IgniteInternalFuture releaseCheckpointAsync(String name) {
+    public IgniteInternalFuture releaseSavepointAsync(String name) {
         throw new UnsupportedOperationException("Savepoints not implemented in GridDhtTxRemote.");
     }
 

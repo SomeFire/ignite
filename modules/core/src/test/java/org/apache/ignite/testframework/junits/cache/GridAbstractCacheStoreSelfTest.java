@@ -593,7 +593,7 @@ public abstract class GridAbstractCacheStoreSelfTest<T extends CacheStore<Object
         }
 
         /** {@inheritDoc} */
-        @Override public void releaseCheckpoint(String name) {
+        @Override public void releaseSavepoint(String name) {
             // No-op.
         }
     }

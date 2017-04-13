@@ -20,7 +20,6 @@ package org.apache.ignite.internal.processors.cache.transactions;
 import org.apache.ignite.IgniteCache;
 
 import static org.apache.ignite.cache.CacheAtomicityMode.ATOMIC;
-import static org.apache.ignite.cache.CacheAtomicityMode.TRANSACTIONAL;
 import static org.apache.ignite.cache.CacheMode.LOCAL;
 import static org.apache.ignite.cache.CacheMode.PARTITIONED;
 import static org.apache.ignite.cache.CacheMode.REPLICATED;
@@ -70,5 +69,26 @@ public class TxSavepointsAtomicCacheTest extends TxSavepointsTest {
      */
     public void testAtomicPartitioned() throws Exception {
         checkSavepoints(cacheConfig(ATOMIC, PARTITIONED));
+    }
+
+    /**
+     * @throws Exception If failed.
+     */
+    public void testTransLocalMultipleCaches() throws Exception {
+        checkSavepointsWithTwoCaches(cacheConfig(ATOMIC, LOCAL));
+    }
+
+    /**
+     * @throws Exception If failed.
+     */
+    public void testTransReplicatedMultipleCaches() throws Exception {
+        checkSavepointsWithTwoCaches(cacheConfig(ATOMIC, REPLICATED));
+    }
+
+    /**
+     * @throws Exception If failed.
+     */
+    public void testTransPartitionedMultipleCaches() throws Exception {
+        checkSavepointsWithTwoCaches(cacheConfig(ATOMIC, PARTITIONED));
     }
 }

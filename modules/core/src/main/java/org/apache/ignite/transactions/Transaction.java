@@ -25,6 +25,8 @@ import org.apache.ignite.lang.IgniteAsyncSupported;
 import org.apache.ignite.lang.IgniteFuture;
 import org.apache.ignite.lang.IgniteUuid;
 
+import javax.naming.OperationNotSupportedException;
+
 /**
  * Ignite cache transaction. Cache transactions have a default 2PC (two-phase-commit) behavior and
  * can be plugged into ongoing {@code JTA} transaction by properly implementing
@@ -272,4 +274,35 @@ public interface Transaction extends AutoCloseable, IgniteAsyncSupport {
      * @throws IgniteException If rollback failed.
      */
     public IgniteFuture<Void> rollbackAsync() throws IgniteException;
+
+    /**
+     * Use this method to identify a point in a transaction to which you can later roll back.
+     * <p>
+     * Savepoint names must be distinct within a given transaction.
+     * If you create a second savepoint with the same identifier as an earlier savepoint,
+     * then the earlier savepoint is erased.
+     * <p>
+     * After a savepoint has been created, you can either continue processing,
+     * commit your work, roll back the entire transaction, or roll back to the savepoint.
+     *
+     * @param name savepoint ID
+     */
+    public void savepoint(String name);
+
+    /**
+     * Rolls back just the portion of the transaction after the savepoint.
+     * <p>
+     * Erases all savepoints created after that savepoint. The named savepoint is retained,
+     * so you can roll back to the same savepoint multiple times. Prior savepoints are also retained.
+     *
+     * @param name savepoint ID
+     */
+    public void rollbackToSavepoint(String name);
+
+    /**
+     * Removes named savepoint and makes it unavailable as a rollback point.
+     *
+     * @param name
+     */
+    public void releaseCheckpoint(String name);
 }

@@ -18,9 +18,15 @@
 package org.apache.ignite.internal.processors.cache.transactions;
 
 import java.io.Externalizable;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -1725,5 +1731,67 @@ public abstract class IgniteTxLocalAdapter extends IgniteTxAdapter implements Ig
          * @throws IgniteCheckedException If operation failed.
          */
         protected abstract IgniteInternalFuture<T> postMiss(T t) throws IgniteCheckedException;
+    }
+
+    /** List of savepoints for this transaction, which is used to retrieve previous states. */
+	protected LinkedList<TxSavepointLocal> savepoints = new LinkedList<>();
+
+    /**
+     * Creates savepoint.
+     *
+     * @param name Savepoint ID.
+     */
+	public void savepoint(String name) {
+        releaseCheckpoint(name, false);
+        savepoints.add(new TxSavepointLocal(name, txState, this));
+    }
+
+    /**
+     * Returns transaction to previously saved state.
+     *
+     * @param name Savepoint ID.
+     */
+    public void rollbackToSavepoint(String name) {
+        TxSavepointLocal savepoint = releaseCheckpoint(name, true);
+        if (savepoint != null) {
+            txState.rollbackToSavepoint(savepoint, cctx, this);
+            savepoints.add(savepoint);
+        } else throw new IllegalArgumentException("No such savepoint.");
+    }
+
+    /**
+     * Delete savepoint.
+     *
+     * @param name Savepoint ID.
+     */
+    public void releaseCheckpoint(String name) {
+        releaseCheckpoint(name, false);
+    }
+
+    /**
+     * Delete savepoint.
+     *
+     * @param name Savepoint ID.
+     * @param isRollback Delete savepoints after chosen or not.
+     * @return
+     */
+    private TxSavepointLocal releaseCheckpoint(String name, boolean isRollback) {
+        boolean remove = false;
+        TxSavepointLocal checkpoint = null;
+        for (Iterator<TxSavepointLocal> i = savepoints.iterator(); i.hasNext(); ) {
+            TxSavepointLocal savepoint = i.next();
+            if (savepoint.getName().equals(name)) {
+                checkpoint = savepoint;
+                if (isRollback) remove = true;
+                else {
+                    i.remove();
+                    break;
+                }
+            }
+            if (remove) {
+                i.remove();
+            }
+        }
+        return checkpoint;
     }
 }

@@ -767,6 +767,45 @@ public class GridCacheSharedContext<K, V> {
     }
 
     /**
+     *
+     * @param tx Transaction which state should be saved.
+     * @param name Savepoint ID.
+     * @return
+     * @throws IgniteCheckedException
+     */
+    public IgniteInternalFuture savepointAsync(IgniteInternalTx tx, String name) throws IgniteCheckedException {
+        tx.txState().awaitLastFut(this);
+
+        return tx.savepointAsync(name);
+    }
+
+    /**
+     *
+     * @param tx Transaction to rollback to savepoint.
+     * @param name Savepoint ID.
+     * @return
+     * @throws IgniteCheckedException
+     */
+    public IgniteInternalFuture rollbackToSavepointAsync(IgniteInternalTx tx, String name) throws IgniteCheckedException {
+        tx.txState().awaitLastFut(this);
+
+        return tx.rollbackToSavepointAsync(name);
+    }
+
+    /**
+     *
+     * @param tx Transaction which savepoint should be deleted.
+     * @param name Savepoint ID.
+     * @return
+     * @throws IgniteCheckedException
+     */
+    public IgniteInternalFuture releaseCheckpointAsync(IgniteInternalTx tx, String name) throws IgniteCheckedException {
+        tx.txState().awaitLastFut(this);
+
+        return tx.releaseCheckpointAsync(name);
+    }
+
+    /**
      * @return Store session listeners.
      */
     @Nullable public Collection<CacheStoreSessionListener> storeSessionListeners() {

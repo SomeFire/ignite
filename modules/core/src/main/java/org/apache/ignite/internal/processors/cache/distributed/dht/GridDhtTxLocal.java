@@ -523,6 +523,21 @@ public class GridDhtTxLocal extends GridDhtTxLocalAdapter implements GridCacheMa
         return commitDhtLocalAsync();
     }
 
+    @Override
+    public IgniteInternalFuture savepointAsync(String name) {
+        throw new UnsupportedOperationException("Savepoints not implemented in GridDhtTxLocal.");
+    }
+
+    @Override
+    public IgniteInternalFuture rollbackToSavepointAsync(String name) {
+        throw new UnsupportedOperationException("Savepoints not implemented in GridDhtTxLocal.");
+    }
+
+    @Override
+    public IgniteInternalFuture releaseCheckpointAsync(String name) {
+        throw new UnsupportedOperationException("Savepoints not implemented in GridDhtTxLocal.");
+    }
+
     /** {@inheritDoc} */
     @Override protected void clearPrepareFuture(GridDhtTxPrepareFuture fut) {
         assert optimistic();

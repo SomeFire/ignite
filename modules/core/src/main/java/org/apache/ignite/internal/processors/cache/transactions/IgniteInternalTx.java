@@ -634,4 +634,28 @@ public interface IgniteInternalTx {
      * @param e Commit error.
      */
     public void commitError(Throwable e);
+
+    /**
+     * Asynchronously creates savepoint.
+     *
+     * @param name Savepoint ID.
+     * @return Future for savepoint creating operation.
+     */
+    public IgniteInternalFuture savepointAsync(String name);
+
+    /**
+     * Asynchronously rollback this transaction to previous state.
+     *
+     * @param name Savepoint ID.
+     * @return Future for rollback tos savepoint operation.
+     */
+    public IgniteInternalFuture rollbackToSavepointAsync(String name);
+
+    /**
+     * Asynchronously delete savepoint if it exist. Do nothing if there is no savepoint with such name.
+     *
+     * @param name Savepoint ID.
+     * @return Future for releasing savepoint.
+     */
+    public IgniteInternalFuture releaseCheckpointAsync(String name);
 }

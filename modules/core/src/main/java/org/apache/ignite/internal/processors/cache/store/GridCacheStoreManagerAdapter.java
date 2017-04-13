@@ -1388,6 +1388,21 @@ public abstract class GridCacheStoreManagerAdapter extends GridCacheManagerAdapt
             throw new UnsupportedOperationException();
         }
 
+        @Override
+        public void savepoint(String name) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public void rollbackToSavepoint(String name) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public void releaseCheckpoint(String name) {
+            throw new UnsupportedOperationException();
+        }
+
         /** {@inheritDoc} */
         @Override public IgniteAsyncSupport withAsync() {
             throw new UnsupportedOperationException();

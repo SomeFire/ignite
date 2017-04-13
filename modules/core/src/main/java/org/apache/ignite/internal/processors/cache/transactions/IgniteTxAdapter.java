@@ -1941,6 +1941,21 @@ public abstract class IgniteTxAdapter extends GridMetadataAwareAdapter implement
             throw new IllegalStateException("Deserialized transaction can only be used as read-only.");
         }
 
+        @Override
+        public IgniteInternalFuture savepointAsync(String name) {
+            throw new IllegalStateException("Deserialized transaction can only be used as read-only.");
+        }
+
+        @Override
+        public IgniteInternalFuture rollbackToSavepointAsync(String name) {
+            throw new IllegalStateException("Deserialized transaction can only be used as read-only.");
+        }
+
+        @Override
+        public IgniteInternalFuture releaseCheckpointAsync(String name) {
+            throw new IllegalStateException("Deserialized transaction can only be used as read-only.");
+        }
+
         /** {@inheritDoc} */
         @Override public boolean empty() {
             throw new IllegalStateException("Deserialized transaction can only be used as read-only.");

@@ -133,6 +133,9 @@ public class GridNearTxLocal extends GridDhtTxLocalAdapter implements AutoClosea
     private static final AtomicReferenceFieldUpdater<GridNearTxLocal, GridNearTxFinishFuture> ROLLBACK_FUT_UPD =
         AtomicReferenceFieldUpdater.newUpdater(GridNearTxLocal.class, GridNearTxFinishFuture.class, "rollbackFut");
 
+    private static final AtomicReferenceFieldUpdater<GridNearTxLocal, GridNearTxSavepointFuture> SAVEPOINT_FUT_UPD =
+            AtomicReferenceFieldUpdater.newUpdater(GridNearTxLocal.class, GridNearTxSavepointFuture.class, "savepointFut");
+
     /** DHT mappings. */
     private IgniteTxMappings mappings;
 
@@ -150,6 +153,11 @@ public class GridNearTxLocal extends GridDhtTxLocalAdapter implements AutoClosea
     @SuppressWarnings("UnusedDeclaration")
     @GridToStringExclude
     private volatile GridNearTxFinishFuture rollbackFut;
+
+    /** Rollback to savepoint future. */
+    @SuppressWarnings("UnusedDeclaration")
+    @GridToStringExclude
+    private volatile GridNearTxSavepointFuture savepointFut;
 
     /** Entries to lock on next step of prepare stage. */
     private Collection<IgniteTxEntry> optimisticLockEntries = Collections.emptyList();
@@ -4000,5 +4008,138 @@ public class GridNearTxLocal extends GridDhtTxLocalAdapter implements AutoClosea
             "thread", IgniteUtils.threadName(threadId),
             "mappings", mappings,
             "super", super.toString());
+    }
+
+    /** {@inheritDoc} */
+    @Override public IgniteInternalFuture<IgniteInternalTx> savepointAsync(String name) {
+        if (log.isDebugEnabled())
+            log.debug("Saving point \"" + name + "\" for tx: " + this);
+
+        GridNearTxSavepointFuture fut = new GridNearTxSavepointFuture<>(cctx, this, name);
+
+        cctx.mvcc().addFuture(fut, fut.futureId());
+
+        IgniteInternalFuture<?> prepFut = this.prepFut;
+
+        if (prepFut == null || prepFut.isDone()) {
+            try {
+                // Check for errors in prepare future.
+                if (prepFut != null)
+                    prepFut.get();
+            }
+            catch (IgniteCheckedException e) {
+                if (log.isDebugEnabled())
+                    log.debug("Got optimistic tx failure [tx=" + this + ", err=" + e + ']');
+            }
+
+            fut.savepoint();
+        }
+        else {
+            prepFut.listen(new CI1<IgniteInternalFuture<?>>() {
+                @Override public void apply(IgniteInternalFuture<?> f) {
+                    try {
+                        // Check for errors in prepare future.
+                        f.get();
+                    }
+                    catch (IgniteCheckedException e) {
+                        if (log.isDebugEnabled())
+                            log.debug("Got optimistic tx failure [tx=" + this + ", err=" + e + ']');
+                    }
+
+                    GridNearTxSavepointFuture fut0 = savepointFut;
+
+                    fut0.savepoint();
+                }
+            });
+        }
+
+        return fut;
+    }
+
+    /** {@inheritDoc} */
+    @Override public IgniteInternalFuture rollbackToSavepointAsync(String name) {
+        GridNearTxSavepointFuture fut = fut = new GridNearTxSavepointFuture<>(cctx, this, name);
+
+        cctx.mvcc().addFuture(fut, fut.futureId());
+
+        IgniteInternalFuture<?> prepFut = this.prepFut;
+
+        if (prepFut == null || prepFut.isDone()) {
+            try {
+                // Check for errors in prepare future.
+                if (prepFut != null)
+                    prepFut.get();
+            }
+            catch (IgniteCheckedException e) {
+                if (log.isDebugEnabled())
+                    log.debug("Got optimistic tx failure [tx=" + this + ", err=" + e + ']');
+            }
+
+            fut.rollbackToSavepoint();
+        }
+        else {
+            prepFut.listen(new CI1<IgniteInternalFuture<?>>() {
+                @Override public void apply(IgniteInternalFuture<?> f) {
+                    try {
+                        // Check for errors in prepare future.
+                        f.get();
+                    }
+                    catch (IgniteCheckedException e) {
+                        if (log.isDebugEnabled())
+                            log.debug("Got optimistic tx failure [tx=" + this + ", err=" + e + ']');
+                    }
+
+                    GridNearTxSavepointFuture fut0 = savepointFut;
+
+                    fut0.rollbackToSavepoint();
+                }
+            });
+        }
+
+        return fut;
+    }
+
+    /** {@inheritDoc} */
+    public IgniteInternalFuture releaseCheckpointAsync(String name) {
+
+        GridNearTxSavepointFuture fut = new GridNearTxSavepointFuture<>(cctx, this, name);
+
+        cctx.mvcc().addFuture(fut, fut.futureId());
+
+        IgniteInternalFuture<?> prepFut = this.prepFut;
+
+        if (prepFut == null || prepFut.isDone()) {
+            try {
+                // Check for errors in prepare future.
+                if (prepFut != null)
+                    prepFut.get();
+            }
+            catch (IgniteCheckedException e) {
+                if (log.isDebugEnabled())
+                    log.debug("Got optimistic tx failure [tx=" + this + ", err=" + e + ']');
+            }
+
+            fut.releaseCheckpoint();
+        }
+        else {
+            prepFut.listen(new CI1<IgniteInternalFuture<?>>() {
+                @Override public void apply(IgniteInternalFuture<?> f) {
+                    try {
+                        // Check for errors in prepare future.
+                        f.get();
+                    }
+                    catch (IgniteCheckedException e) {
+                        if (log.isDebugEnabled())
+                            log.debug("Got optimistic tx failure [tx=" + this + ", err=" + e + ']');
+                    }
+
+                    GridNearTxSavepointFuture fut0 = savepointFut;
+
+                    fut0.releaseCheckpoint();
+                }
+            });
+        }
+
+        return fut;
     }
 }

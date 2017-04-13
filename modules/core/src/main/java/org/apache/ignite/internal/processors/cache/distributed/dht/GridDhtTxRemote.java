@@ -25,6 +25,7 @@ import java.util.Map;
 import java.util.UUID;
 import javax.cache.processor.EntryProcessor;
 import org.apache.ignite.IgniteCheckedException;
+import org.apache.ignite.internal.IgniteInternalFuture;
 import org.apache.ignite.internal.processors.affinity.AffinityTopologyVersion;
 import org.apache.ignite.internal.processors.cache.CacheObject;
 import org.apache.ignite.internal.processors.cache.GridCacheContext;
@@ -224,6 +225,21 @@ public class GridDhtTxRemote extends GridDistributedTxRemoteAdapter {
     /** {@inheritDoc} */
     @Override public boolean dht() {
         return true;
+    }
+
+    @Override
+    public IgniteInternalFuture savepointAsync(String name) {
+        throw new UnsupportedOperationException("Savepoints not implemented in GridDhtTxRemote.");
+    }
+
+    @Override
+    public IgniteInternalFuture rollbackToSavepointAsync(String name) {
+        throw new UnsupportedOperationException("Savepoints not implemented in GridDhtTxRemote.");
+    }
+
+    @Override
+    public IgniteInternalFuture releaseCheckpointAsync(String name) {
+        throw new UnsupportedOperationException("Savepoints not implemented in GridDhtTxRemote.");
     }
 
     /** {@inheritDoc} */

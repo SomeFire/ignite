@@ -66,7 +66,7 @@ import static org.apache.ignite.transactions.TransactionState.UNKNOWN;
 /**
  *
  */
-public final class GridNearTxFinishFuture<K, V> extends GridCompoundIdentityFuture<IgniteInternalTx>
+public  class GridNearTxFinishFuture<K, V> extends GridCompoundIdentityFuture<IgniteInternalTx>
     implements GridCacheFuture<IgniteInternalTx> {
     /** */
     private static final long serialVersionUID = 0L;
@@ -81,7 +81,7 @@ public final class GridNearTxFinishFuture<K, V> extends GridCompoundIdentityFutu
     protected static IgniteLogger msgLog;
 
     /** Context. */
-    private GridCacheSharedContext<K, V> cctx;
+    protected GridCacheSharedContext<K, V> cctx;
 
     /** Future ID. */
     private final IgniteUuid futId;

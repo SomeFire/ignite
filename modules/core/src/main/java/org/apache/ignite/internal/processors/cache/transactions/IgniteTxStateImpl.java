@@ -485,7 +485,7 @@ public class IgniteTxStateImpl extends IgniteTxLocalStateAdapter {
             writeView = new IgniteTxMap(txMap, CU.writes());
 
         } else {
-            throw new TransactionException("Nothing to rollback. " +
+            cctx.messageLogger().info("Nothing to rollback. " +
                     "Savepoints are available only for transactional caches on the same node as transaction. " +
                     "Atomic caches and caches from other nodes have nothing to save and rollback " +
                     "because they have non transactional behaviour.");

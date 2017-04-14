@@ -115,6 +115,17 @@ import org.apache.ignite.lang.IgniteUuid;
  *     tx.commit();
  * }
  * </pre>
+ *
+ * <h1 class="header">Savepoints</h1>
+ * A savepoint is a special mark inside a transaction that allows all commands
+ * that are executed after it was established to be rolled back,
+ * restoring the transaction state to what it was at the time of the savepoint.
+ * <p>
+ * The {@link #savepoint(String)} method set a named transaction savepoint with a name of an identifier.
+ * <p>
+ * The {@link #rollbackToSavepoint(String)} method roll back all the changes done after a specific checkpoint establishment.
+ * <p>
+ * The {@link #releaseSavepoint(String)} method will destroy a savepoint, keeping the effects of commands executed after it was established.
  */
 public interface Transaction extends AutoCloseable, IgniteAsyncSupport {
     /**

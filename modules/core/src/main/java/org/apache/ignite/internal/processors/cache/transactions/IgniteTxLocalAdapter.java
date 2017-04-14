@@ -1738,7 +1738,7 @@ public abstract class IgniteTxLocalAdapter extends IgniteTxAdapter implements Ig
      * @param name Savepoint ID.
      */
 	public void savepoint(String name) {
-        releaseCheckpoint(name, false);
+        releaseSavepoint(name, false);
         savepoints.add(new TxSavepointLocal(name, this));
     }
 
@@ -1748,7 +1748,7 @@ public abstract class IgniteTxLocalAdapter extends IgniteTxAdapter implements Ig
      * @param name Savepoint ID.
      */
     public void rollbackToSavepoint(String name) {
-        TxSavepointLocal savepoint = releaseCheckpoint(name, true);
+        TxSavepointLocal savepoint = releaseSavepoint(name, true);
         if (savepoint != null) {
             txState.rollbackToSavepoint(savepoint, cctx, this);
             savepoints.add(savepoint);
@@ -1760,8 +1760,8 @@ public abstract class IgniteTxLocalAdapter extends IgniteTxAdapter implements Ig
      *
      * @param name Savepoint ID.
      */
-    public void releaseCheckpoint(String name) {
-        releaseCheckpoint(name, false);
+    public void releaseSavepoint(String name) {
+        releaseSavepoint(name, false);
     }
 
     /**
@@ -1769,9 +1769,9 @@ public abstract class IgniteTxLocalAdapter extends IgniteTxAdapter implements Ig
      *
      * @param name Savepoint ID.
      * @param isRollback Delete savepoints after chosen or not.
-     * @return
+     * @return The previous value associated with key, or null if there was no such savepoint.
      */
-    private TxSavepointLocal releaseCheckpoint(String name, boolean isRollback) {
+    private TxSavepointLocal releaseSavepoint(String name, boolean isRollback) {
         boolean remove = false;
         TxSavepointLocal checkpoint = null;
         for (Iterator<TxSavepointLocal> i = savepoints.iterator(); i.hasNext(); ) {

@@ -121,7 +121,7 @@ public class GridNearTxSavepointFuture<K, V> extends GridCompoundIdentityFuture<
      * Calls deleting of savepoint for transaction.
      */
 	public void releaseSavepoint() {
-		tx.releaseCheckpoint(name);
+		tx.releaseSavepoint(name);
 
 		onDone();
 	}

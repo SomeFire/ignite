@@ -181,30 +181,6 @@ public abstract class TxSavepointsTest extends GridCommonAbstractTest {
     }
 
     /**
-     * Put values which must be rolled back.
-     *
-     * @param cache Where to put.
-     */
-    private void cachePutAfterSavepoint(IgniteCache<Integer, Integer> cache) {
-        cache.put(2, 33);
-        cache.remove(3);
-        cache.put(4, 33);
-        cache.remove(4);
-        cache.put(6, 33);
-        cache.remove(7);
-        cache.put(8, 33);
-        cache.remove(8);
-        cache.put(10, 33);
-        cache.remove(11);
-        cache.put(12, 33);
-        cache.remove(12);
-        cache.put(13, 33);
-        cache.remove(14);
-        cache.put(15, 33);
-        cache.remove(15);
-    }
-
-    /**
      * Init starting values.
      *
      * @param cache Where to put.
@@ -241,6 +217,30 @@ public abstract class TxSavepointsTest extends GridCommonAbstractTest {
         cache.put(10, 10);
         cache.put(11, 11);
         cache.put(12, 12);
+    }
+
+    /**
+     * Put values which must be rolled back.
+     *
+     * @param cache Where to put.
+     */
+    private void cachePutAfterSavepoint(IgniteCache<Integer, Integer> cache) {
+        cache.put(2, 33);
+        cache.remove(3);
+        cache.put(4, 33);
+        cache.remove(4);
+        cache.put(6, 33);
+        cache.remove(7);
+        cache.put(8, 33);
+        cache.remove(8);
+        cache.put(10, 33);
+        cache.remove(11);
+        cache.put(12, 33);
+        cache.remove(12);
+        cache.put(13, 33);
+        cache.remove(14);
+        cache.put(15, 33);
+        cache.remove(15);
     }
 
     /** {@inheritDoc} */

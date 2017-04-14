@@ -66,8 +66,8 @@ public class TxSavepointLocal implements TxSavepoint {
 
     /**
      *
-     * @param key
-     * @return
+     * @param key Key object.
+     * @return True if savepoint contains entry with specified key.
      */
 	public boolean containsKey(IgniteTxKey key) {
         return txMap.containsKey(key);

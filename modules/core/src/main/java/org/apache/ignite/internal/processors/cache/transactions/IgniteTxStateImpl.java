@@ -455,6 +455,7 @@ public class IgniteTxStateImpl extends IgniteTxLocalStateAdapter {
         return S.toString(IgniteTxStateImpl.class, this);
     }
 
+    /** {@inheritDoc} */
     @Override
     public void rollbackToSavepoint(TxSavepoint txSavepoint, GridCacheSharedContext cctx, IgniteInternalTx tx) {
         assert txSavepoint instanceof TxSavepointLocal : "Class IgniteTxStateImpl used not in local transaction. " +

@@ -417,7 +417,7 @@ public class TransactionProxyImpl<K, V> implements TransactionProxy, Externaliza
     @Override public void releaseSavepoint(String name) {
         enter();
         try {
-            IgniteInternalFuture savepointFut = cctx.releaseCheckpointAsync(tx, name);
+            IgniteInternalFuture savepointFut = cctx.releaseSavepointAsync(tx, name);
 
             if (async)
                 asyncRes = new IgniteFutureImpl(savepointFut);

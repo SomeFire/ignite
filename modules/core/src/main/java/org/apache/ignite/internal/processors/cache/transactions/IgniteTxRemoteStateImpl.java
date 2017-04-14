@@ -137,7 +137,7 @@ public class IgniteTxRemoteStateImpl extends IgniteTxRemoteStateAdapter {
     /** {@inheritDoc} */
     @Override
     public void rollbackToSavepoint(TxSavepoint savepoint, GridCacheSharedContext cctx, IgniteInternalTx tx) {
-        throw new UnsupportedOperationException("Not implemented yet.");
+        throw new UnsupportedOperationException();
     }
 
     /** {@inheritDoc} */

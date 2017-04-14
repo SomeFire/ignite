@@ -265,17 +265,18 @@ class IgniteAgentMonitor {
      * @param {String} cacheName Cache name.
      * @param {String} [query] Query if null then scan query.
      * @param {Boolean} nonCollocatedJoins Flag whether to execute non collocated joins.
+     * @param {Boolean} enforceJoinOrder Flag whether enforce join order is enabled.
      * @param {Boolean} local Flag whether to execute query locally.
      * @param {int} pageSize
      * @returns {Promise}
      */
-    query(nid, cacheName, query, nonCollocatedJoins, local, pageSize) {
-        return this._rest('node:query', nid, maskNull(cacheName), maskNull(query), nonCollocatedJoins, local, pageSize)
+    query(nid, cacheName, query, nonCollocatedJoins, enforceJoinOrder, local, pageSize) {
+        return this._rest('node:query', nid, maskNull(cacheName), maskNull(query), nonCollocatedJoins, enforceJoinOrder, local, pageSize)
             .then(({result}) => {
-                if (_.isEmpty(result.key))
-                    return result.value;
+                if (_.isEmpty(result.error))
+                    return result.result;
 
-                return Promise.reject(result.key);
+                return Promise.reject(result.error);
             });
     }
 
@@ -284,11 +285,47 @@ class IgniteAgentMonitor {
      * @param {String} cacheName Cache name.
      * @param {String} [query] Query if null then scan query.
      * @param {Boolean} nonCollocatedJoins Flag whether to execute non collocated joins.
+     * @param {Boolean} enforceJoinOrder Flag whether enforce join order is enabled.
      * @param {Boolean} local Flag whether to execute query locally.
      * @returns {Promise}
      */
-    queryGetAll(nid, cacheName, query, nonCollocatedJoins, local) {
-        return this._rest('node:query:getAll', nid, maskNull(cacheName), maskNull(query), nonCollocatedJoins, local);
+    queryGetAll(nid, cacheName, query, nonCollocatedJoins, enforceJoinOrder, local) {
+        return this._rest('node:query:getAll', nid, maskNull(cacheName), maskNull(query), nonCollocatedJoins, enforceJoinOrder, local);
+    }
+
+    /**
+     * @param {String} nid Node id.
+     * @param {String} cacheName Cache name.
+     * @param {String} filter Optional filter for scan query.
+     * @param {Boolean} regEx Flag whether filter by regexp.
+     * @param {Boolean} caseSensitive Case sensitive filtration.
+     * @param {Boolean} near Scan near cache.
+     * @param {Boolean} local Flag whether to execute query locally.
+     * @param {int} pageSize
+     * @returns {Promise}
+     */
+    scan(nid, cacheName, filter, regEx, caseSensitive, near, local, pageSize) {
+        return this._rest('node:scan', nid, maskNull(cacheName), maskNull(filter), regEx, caseSensitive, near, local, pageSize)
+            .then(({result}) => {
+                if (_.isEmpty(result.error))
+                    return result.result;
+
+                return Promise.reject(result.error);
+            });
+    }
+
+    /**
+     * @param {String} nid Node id.
+     * @param {String} cacheName Cache name.
+     * @param {String} filter Optional filter for scan query.
+     * @param {Boolean} regEx Flag whether filter by regexp.
+     * @param {Boolean} caseSensitive Case sensitive filtration.
+     * @param {Boolean} near Scan near cache.
+     * @param {Boolean} local Flag whether to execute query locally.
+     * @returns {Promise}
+     */
+    scanGetAll(nid, cacheName, filter, regEx, caseSensitive, near, local) {
+        return this._rest('node:scan:getAll', nid, maskNull(cacheName), maskNull(filter), regEx, caseSensitive, near, local);
     }
 
     /**

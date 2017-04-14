@@ -46,6 +46,7 @@ import org.apache.ignite.internal.processors.rest.handlers.cache.GridCacheComman
 import org.apache.ignite.internal.processors.rest.handlers.datastructures.DataStructuresCommandHandler;
 import org.apache.ignite.internal.processors.rest.handlers.log.GridLogCommandHandler;
 import org.apache.ignite.internal.processors.rest.handlers.query.QueryCommandHandler;
+import org.apache.ignite.internal.processors.rest.handlers.cluster.GridChangeStateCommandHandler;
 import org.apache.ignite.internal.processors.rest.handlers.task.GridTaskCommandHandler;
 import org.apache.ignite.internal.processors.rest.handlers.top.GridTopologyCommandHandler;
 import org.apache.ignite.internal.processors.rest.handlers.version.GridVersionCommandHandler;
@@ -147,7 +148,7 @@ public class GridRestProcessor extends GridProcessorAdapter {
 
             workersCnt.increment();
 
-            GridWorker w = new GridWorker(ctx.gridName(), "rest-proc-worker", log) {
+            GridWorker w = new GridWorker(ctx.igniteInstanceName(), "rest-proc-worker", log) {
                 @Override protected void body() {
                     try {
                         IgniteInternalFuture<GridRestResponse> res = handleRequest(req);
@@ -414,8 +415,8 @@ public class GridRestProcessor extends GridProcessorAdapter {
 
         sesTtl = sesExpTime0;
 
-        sesTimeoutCheckerThread = new IgniteThread(ctx.gridName(), "session-timeout-worker",
-            new GridWorker(ctx.gridName(), "session-timeout-worker", log) {
+        sesTimeoutCheckerThread = new IgniteThread(ctx.igniteInstanceName(), "session-timeout-worker",
+            new GridWorker(ctx.igniteInstanceName(), "session-timeout-worker", log) {
                 @Override protected void body() throws InterruptedException {
                     while (!isCancelled()) {
                         Thread.sleep(SES_TIMEOUT_CHECK_DELAY);
@@ -435,7 +436,7 @@ public class GridRestProcessor extends GridProcessorAdapter {
     }
 
     /** {@inheritDoc} */
-    @Override public void start() throws IgniteCheckedException {
+    @Override public void start(boolean activeOnStart) throws IgniteCheckedException {
         if (isRestEnabled()) {
             if (notStartOnClient()) {
                 U.quietAndInfo(log, "REST protocols do not start on client node. " +
@@ -452,7 +453,7 @@ public class GridRestProcessor extends GridProcessorAdapter {
             addHandler(new DataStructuresCommandHandler(ctx));
             addHandler(new QueryCommandHandler(ctx));
             addHandler(new GridLogCommandHandler(ctx));
-
+            addHandler(new GridChangeStateCommandHandler(ctx));
 
             // Start protocols.
             startTcpProtocol();
@@ -487,7 +488,7 @@ public class GridRestProcessor extends GridProcessorAdapter {
     }
 
     /** {@inheritDoc} */
-    @Override public void onKernalStart() throws IgniteCheckedException {
+    @Override public void onKernalStart(boolean activeOnStart) throws IgniteCheckedException {
         if (isRestEnabled()) {
             for (GridRestProtocol proto : protos)
                 proto.onKernalStart();
@@ -887,7 +888,7 @@ public class GridRestProcessor extends GridProcessorAdapter {
     /** {@inheritDoc} */
     @Override public void printMemoryStats() {
         X.println(">>>");
-        X.println(">>> REST processor memory stats [grid=" + ctx.gridName() + ']');
+        X.println(">>> REST processor memory stats [igniteInstanceName=" + ctx.igniteInstanceName() + ']');
         X.println(">>>   protosSize: " + protos.size());
         X.println(">>>   handlersSize: " + handlers.size());
     }

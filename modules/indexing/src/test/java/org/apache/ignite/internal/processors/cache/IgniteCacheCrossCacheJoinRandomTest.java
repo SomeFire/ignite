@@ -85,7 +85,7 @@ public class IgniteCacheCrossCacheJoinRandomTest extends AbstractH2CompareQueryT
         new T2<>(PARTITIONED, 1));
 
     /** {@inheritDoc} */
-    @Override protected void setIndexedTypes(CacheConfiguration<?, ?> cc, CacheMode mode) {
+    @Override protected void createCaches() {
         // No-op.
     }
 
@@ -105,8 +105,8 @@ public class IgniteCacheCrossCacheJoinRandomTest extends AbstractH2CompareQueryT
     }
 
     /** {@inheritDoc} */
-    @Override protected IgniteConfiguration getConfiguration(String gridName) throws Exception {
-        IgniteConfiguration cfg = super.getConfiguration(gridName);
+    @Override protected IgniteConfiguration getConfiguration(String igniteInstanceName) throws Exception {
+        IgniteConfiguration cfg = super.getConfiguration(igniteInstanceName);
 
         TcpDiscoverySpi spi = ((TcpDiscoverySpi)cfg.getDiscoverySpi());
 

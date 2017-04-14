@@ -29,7 +29,6 @@ import org.apache.ignite.cache.CacheAtomicityMode;
 import org.apache.ignite.cache.CacheEntry;
 import org.apache.ignite.cache.affinity.Affinity;
 import org.apache.ignite.cache.affinity.AffinityFunction;
-import org.apache.ignite.cache.affinity.fair.FairAffinityFunction;
 import org.apache.ignite.cache.affinity.rendezvous.RendezvousAffinityFunction;
 import org.apache.ignite.configuration.CacheConfiguration;
 import org.apache.ignite.configuration.IgniteConfiguration;
@@ -51,8 +50,8 @@ public class GridCacheVersionTopologyChangeTest extends GridCommonAbstractTest {
     private static final TcpDiscoveryIpFinder ipFinder = new TcpDiscoveryVmIpFinder(true);
 
     /** {@inheritDoc} */
-    @Override protected IgniteConfiguration getConfiguration(String gridName) throws Exception {
-        IgniteConfiguration cfg = super.getConfiguration(gridName);
+    @Override protected IgniteConfiguration getConfiguration(String igniteInstanceName) throws Exception {
+        IgniteConfiguration cfg = super.getConfiguration(igniteInstanceName);
 
         ((TcpDiscoverySpi)cfg.getDiscoverySpi()).setIpFinder(ipFinder);
 
@@ -213,10 +212,6 @@ public class GridCacheVersionTopologyChangeTest extends GridCommonAbstractTest {
         ccfgs.add(cacheConfiguration("c1", atomicityMode, new RendezvousAffinityFunction(), 0));
         ccfgs.add(cacheConfiguration("c2", atomicityMode, new RendezvousAffinityFunction(), 1));
         ccfgs.add(cacheConfiguration("c3", atomicityMode, new RendezvousAffinityFunction(false, 10), 0));
-
-        ccfgs.add(cacheConfiguration("c4", atomicityMode, new FairAffinityFunction(), 0));
-        ccfgs.add(cacheConfiguration("c5", atomicityMode, new FairAffinityFunction(), 1));
-        ccfgs.add(cacheConfiguration("c6", atomicityMode, new FairAffinityFunction(false, 10), 0));
 
         return ccfgs;
     }

@@ -101,11 +101,14 @@ public class IgniteClientReconnectCacheTest extends IgniteClientReconnectAbstrac
     private static final String STATIC_CACHE = "static-cache";
 
     /** */
+    private static final int CACHE_PUTS_CNT = 3;
+
+    /** */
     private UUID nodeId;
 
     /** {@inheritDoc} */
-    @Override protected IgniteConfiguration getConfiguration(String gridName) throws Exception {
-        IgniteConfiguration cfg = super.getConfiguration(gridName);
+    @Override protected IgniteConfiguration getConfiguration(String igniteInstanceName) throws Exception {
+        IgniteConfiguration cfg = super.getConfiguration(igniteInstanceName);
 
         TestCommunicationSpi commSpi = new TestCommunicationSpi();
 
@@ -580,17 +583,8 @@ public class IgniteClientReconnectCacheTest extends IgniteClientReconnectAbstrac
             new CI1<IgniteCache<Object, Object>>() {
                 @Override public void apply(IgniteCache<Object, Object> cache) {
                     try (Transaction tx = client.transactions().txStart(txConcurrency, REPEATABLE_READ)) {
-                        log.info("Put1: " + key);
-
-                        cache.put(key, key);
-
-                        Integer key2 = key + 1;
-
-                        log.info("Put2: " + key2);
-
-                        cache.put(key2, key2);
-
-                        log.info("Commit [key1=" + key + ", key2=" + key2 + ']');
+                        for (int i = 0; i < CACHE_PUTS_CNT; ++i)
+                            cache.put(key + i, key + i);
 
                         tx.commit();
                     }
@@ -698,11 +692,14 @@ public class IgniteClientReconnectCacheTest extends IgniteClientReconnectAbstrac
         IgniteInternalFuture<Boolean> fut = GridTestUtils.runAsync(new Callable<Boolean>() {
             @Override public Boolean call() throws Exception {
                 try {
-                    Ignition.start(optimize(getConfiguration(getTestGridName(SRV_CNT))));
+                    Ignition.start(optimize(getConfiguration(getTestIgniteInstanceName(SRV_CNT))));
 
-                    fail();
+                    // Commented due to IGNITE-4473, because
+                    // IgniteClientDisconnectedException won't
+                    // be thrown, but client will reconnect.
+//                    fail();
 
-                    return false;
+                    return true;
                 }
                 catch (IgniteClientDisconnectedException e) {
                     log.info("Expected start error: " + e);
@@ -1449,8 +1446,8 @@ public class IgniteClientReconnectCacheTest extends IgniteClientReconnectAbstrac
                     Set<UUID> blockNodes = blockCls.get(msg0.getClass());
 
                     if (F.contains(blockNodes, node.id())) {
-                        log.info("Block message [node=" + node.attribute(IgniteNodeAttributes.ATTR_GRID_NAME) +
-                            ", msg=" + msg0 + ']');
+                        log.info("Block message [node=" +
+                            node.attribute(IgniteNodeAttributes.ATTR_IGNITE_INSTANCE_NAME) + ", msg=" + msg0 + ']');
 
                         blockedMsgs.add(new T2<>(node, (GridIoMessage)msg));
 
@@ -1491,7 +1488,8 @@ public class IgniteClientReconnectCacheTest extends IgniteClientReconnectAbstrac
                     for (T2<ClusterNode, GridIoMessage> msg : blockedMsgs) {
                         ClusterNode node = msg.get1();
 
-                        log.info("Send blocked message: [node=" + node.attribute(IgniteNodeAttributes.ATTR_GRID_NAME) +
+                        log.info("Send blocked message: [node=" +
+                            node.attribute(IgniteNodeAttributes.ATTR_IGNITE_INSTANCE_NAME) +
                             ", msg=" + msg.get2().message() + ']');
 
                         super.sendMessage(msg.get1(), msg.get2());

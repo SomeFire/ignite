@@ -34,7 +34,7 @@ import org.apache.ignite.cache.query.SqlFieldsQuery;
 import org.apache.ignite.cache.query.annotations.QuerySqlField;
 import org.apache.ignite.configuration.CacheConfiguration;
 import org.apache.ignite.configuration.IgniteConfiguration;
-import org.apache.ignite.marshaller.optimized.OptimizedMarshaller;
+import org.apache.ignite.internal.marshaller.optimized.OptimizedMarshaller;
 
 /**
  * SQL query stress test.
@@ -151,7 +151,7 @@ public class FetchingQueryCursorStressTest {
     private static IgniteConfiguration config(int idx, boolean client) {
         IgniteConfiguration cfg = new IgniteConfiguration();
 
-        cfg.setGridName("grid-" + idx);
+        cfg.setIgniteInstanceName("grid-" + idx);
         cfg.setClientMode(client);
 
         CacheConfiguration ccfg = new CacheConfiguration();

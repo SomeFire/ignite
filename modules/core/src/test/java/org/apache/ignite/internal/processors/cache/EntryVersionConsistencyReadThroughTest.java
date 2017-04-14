@@ -57,8 +57,8 @@ public class EntryVersionConsistencyReadThroughTest extends GridCommonAbstractTe
     private boolean client;
 
     /** {@inheritDoc} */
-    @Override protected IgniteConfiguration getConfiguration(String gridName) throws Exception {
-        IgniteConfiguration cfg = super.getConfiguration(gridName);
+    @Override protected IgniteConfiguration getConfiguration(String igniteInstanceName) throws Exception {
+        IgniteConfiguration cfg = super.getConfiguration(igniteInstanceName);
 
         cfg.setClientMode(client);
 
@@ -180,9 +180,11 @@ public class EntryVersionConsistencyReadThroughTest extends GridCommonAbstractTe
                     for (IgniteEx g : grids) {
                         GridCacheAdapter<Object, Object> cx = g.context().cache().internalCache();
 
-                        GridCacheEntryEx e = cx.peekEx(key);
+                        GridCacheEntryEx e = cx.entryEx(key);
 
-                        assertNotNull("Failed to find entry on primary/backup node.", e);
+                        e.unswap();
+
+                        assertNotNull("Failed to find entry on primary/backup node.", e.rawGet());
 
                         GridCacheVersion ver = e.version();
                         Object val = e.rawGet().value(cx.context().cacheObjectContext(), true);

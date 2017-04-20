@@ -21,7 +21,6 @@ import org.apache.ignite.internal.util.tostring.GridToStringInclude;
 import org.apache.ignite.internal.util.typedef.internal.U;
 
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Map;
 
 /**
@@ -31,49 +30,49 @@ public class TxSavepointLocal implements TxSavepoint {
 
     /** Savepoint ID */
     @GridToStringInclude
-	private final String name;
+    private final String name;
 
     /** Per-transaction read map. */
     @GridToStringInclude
-	private final Map<IgniteTxKey, IgniteTxEntry> txMap;
+    private final Map<IgniteTxKey, IgniteTxEntry> txMapSnapshot;
 
     /**
      * @param name Savepoint ID.
      * @param tx Transaction, which state should be saved.
      */
-	public TxSavepointLocal(String name,
+    public TxSavepointLocal(String name,
                             IgniteInternalTx tx) {
-		this.name = name;
+        this.name = name;
 
         Collection<IgniteTxEntry> stateEntries = tx.txState().allEntries();
 
-        txMap = U.newLinkedHashMap(stateEntries.size());
+        txMapSnapshot = U.newLinkedHashMap(stateEntries.size());
 
-        putCopies(stateEntries, txMap, tx);
-	}
+        putCopies(stateEntries, txMapSnapshot, tx);
+    }
 
-	/** {@inheritDoc} */
-	public String getName() {
-		return name;
-	}
+    /** {@inheritDoc} */
+    @Override public String getName() {
+        return name;
+    }
 
     /**
      * @return Entries stored in savepoint.
      */
-	public Map<IgniteTxKey, IgniteTxEntry> getTxMap() {
-		return txMap;
-	}
-
-    /**
-     *
-     * @param key Key object.
-     * @return True if savepoint contains entry with specified key.
-     */
-	public boolean containsKey(IgniteTxKey key) {
-        return txMap.containsKey(key);
+    public Map<IgniteTxKey, IgniteTxEntry> getTxMapSnapshot() {
+        return txMapSnapshot;
     }
 
     /**
+     * @param key Key object.
+     * @return True if savepoint contains entry with specified key.
+     */
+    public boolean containsKey(IgniteTxKey key) {
+        return txMapSnapshot.containsKey(key);
+    }
+
+    /**
+     * Takes collection with IgniteTxEntries and copy it into specified map.
      *
      * @param from Takes this.
      * @param to And put all members here.
@@ -93,19 +92,17 @@ public class TxSavepointLocal implements TxSavepoint {
     }
 
     /** Equality of savepoints depends on their IDs. */
-	@Override
-	public boolean equals(Object o) {
-		if (this == o) return true;
-		if (o == null || getClass() != o.getClass()) return false;
+    @Override public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
 
-		TxSavepointLocal savepoint = (TxSavepointLocal) o;
+        TxSavepointLocal savepoint = (TxSavepointLocal) o;
 
-		return name.equals(savepoint.name);
-	}
+        return name.equals(savepoint.name);
+    }
 
     /** Hash code depends on savepoint ID. */
-	@Override
-	public int hashCode() {
-		return name.hashCode();
-	}
+    @Override public int hashCode() {
+        return name.hashCode();
+    }
 }

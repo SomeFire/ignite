@@ -767,11 +767,10 @@ public class GridCacheSharedContext<K, V> {
     }
 
     /**
-     *
      * @param tx Transaction which state should be saved.
      * @param name Savepoint ID.
      * @return Transaction savepoint future.
-     * @throws IgniteCheckedException
+     * @throws IgniteCheckedException If failed.
      */
     public IgniteInternalFuture savepointAsync(IgniteInternalTx tx, String name) throws IgniteCheckedException {
         tx.txState().awaitLastFut(this);
@@ -780,11 +779,10 @@ public class GridCacheSharedContext<K, V> {
     }
 
     /**
-     *
      * @param tx Transaction to rollback to savepoint.
      * @param name Savepoint ID.
      * @return Rollback to savepoint future.
-     * @throws IgniteCheckedException
+     * @throws IgniteCheckedException If failed.
      */
     public IgniteInternalFuture rollbackToSavepointAsync(IgniteInternalTx tx, String name) throws IgniteCheckedException {
         tx.txState().awaitLastFut(this);
@@ -793,11 +791,10 @@ public class GridCacheSharedContext<K, V> {
     }
 
     /**
-     *
      * @param tx Transaction which savepoint should be deleted.
      * @param name Savepoint ID.
      * @return Release savepoint future.
-     * @throws IgniteCheckedException
+     * @throws IgniteCheckedException If failed.
      */
     public IgniteInternalFuture releaseSavepointAsync(IgniteInternalTx tx, String name) throws IgniteCheckedException {
         tx.txState().awaitLastFut(this);

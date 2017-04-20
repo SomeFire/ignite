@@ -889,6 +889,21 @@ public abstract class IgniteTxAdapter extends GridMetadataAwareAdapter implement
     }
 
     /** {@inheritDoc} */
+    @Override public IgniteInternalFuture savepointAsync(String name) {
+        throw new UnsupportedOperationException();
+    }
+
+    /** {@inheritDoc} */
+    @Override public IgniteInternalFuture rollbackToSavepointAsync(String name) {
+        throw new UnsupportedOperationException();
+    }
+
+    /** {@inheritDoc} */
+    @Override public IgniteInternalFuture releaseSavepointAsync(String name) {
+        throw new UnsupportedOperationException();
+    }
+
+    /** {@inheritDoc} */
     @Override public boolean optimistic() {
         return concurrency == OPTIMISTIC;
     }
@@ -1941,16 +1956,19 @@ public abstract class IgniteTxAdapter extends GridMetadataAwareAdapter implement
             throw new IllegalStateException("Deserialized transaction can only be used as read-only.");
         }
 
+        /** {@inheritDoc} */
         @Override
         public IgniteInternalFuture savepointAsync(String name) {
             throw new IllegalStateException("Deserialized transaction can only be used as read-only.");
         }
 
+        /** {@inheritDoc} */
         @Override
         public IgniteInternalFuture rollbackToSavepointAsync(String name) {
             throw new IllegalStateException("Deserialized transaction can only be used as read-only.");
         }
 
+        /** {@inheritDoc} */
         @Override
         public IgniteInternalFuture releaseSavepointAsync(String name) {
             throw new IllegalStateException("Deserialized transaction can only be used as read-only.");

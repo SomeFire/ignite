@@ -68,7 +68,6 @@ public class GridNearTxSavepointFuture<K, V> extends GridCompoundIdentityFuture<
 	private String name;
 
     /**
-     *
      * @param cctx Context.
      * @param tx Transaction.
      * @param name Savepoint ID.
@@ -79,21 +78,10 @@ public class GridNearTxSavepointFuture<K, V> extends GridCompoundIdentityFuture<
         this.cctx = cctx;
         this.tx = tx;
 
-        ignoreInterrupts(true);
-
         futId = IgniteUuid.randomUuid();
 
-        CacheWriteSynchronizationMode syncMode;
-
-        if (tx.explicitLock())
-            syncMode = FULL_SYNC;
-        else
-            syncMode = tx.syncMode();
-
-        tx.syncMode(syncMode);
-
         if (log == null) {
-            msgLog = cctx.txFinishMessageLogger();
+            msgLog = cctx.messageLogger();
             log = U.logger(cctx.kernalContext(), logRef, GridNearTxSavepointFuture.class);
         }
 		this.name = name;

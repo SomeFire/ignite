@@ -25,7 +25,6 @@ import java.util.LinkedList;
 import java.util.Map;
 import java.util.UUID;
 import org.apache.ignite.IgniteCheckedException;
-import org.apache.ignite.internal.IgniteInternalFuture;
 import org.apache.ignite.internal.processors.affinity.AffinityTopologyVersion;
 import org.apache.ignite.internal.processors.cache.CacheObject;
 import org.apache.ignite.internal.processors.cache.GridCacheContext;
@@ -220,21 +219,6 @@ public class GridNearTxRemote extends GridDistributedTxRemoteAdapter {
     /** {@inheritDoc} */
     @Override public boolean near() {
         return true;
-    }
-
-    @Override
-    public IgniteInternalFuture savepointAsync(String name) {
-        throw new UnsupportedOperationException("Savepoints not implemented in GridNearTxRemote.");
-    }
-
-    @Override
-    public IgniteInternalFuture rollbackToSavepointAsync(String name) {
-        throw new UnsupportedOperationException("Savepoints not implemented in GridNearTxRemote.");
-    }
-
-    @Override
-    public IgniteInternalFuture releaseSavepointAsync(String name) {
-        throw new UnsupportedOperationException("Savepoints not implemented in GridNearTxRemote.");
     }
 
     /** {@inheritDoc} */

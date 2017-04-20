@@ -45,6 +45,14 @@ package org.apache.ignite.internal.processors.cache.transactions;
  * }
  * </pre>
  *
+ * The result of this transaction is:
+ * <p>
+ * cache.get(1) - 1,
+ * <br>
+ * cache.get(2) - null,
+ * <br>
+ * cache.get(3) - null.
+ * </p>
  * <h1 class="header">Restrictions</h1>
  *
  * <ul>

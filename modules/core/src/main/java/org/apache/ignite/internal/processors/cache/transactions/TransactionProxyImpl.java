@@ -22,7 +22,6 @@ import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.util.UUID;
-
 import org.apache.ignite.IgniteCheckedException;
 import org.apache.ignite.IgniteClientDisconnectedException;
 import org.apache.ignite.IgniteException;
@@ -381,6 +380,8 @@ public class TransactionProxyImpl<K, V> implements TransactionProxy, Externaliza
 
     /** {@inheritDoc} */
     @Override public void savepoint(String name) {
+        if (implicit())
+            throw new IllegalStateException("Savepoints must be used inside explicit transactions.");
         enter();
         try {
             IgniteInternalFuture savepointFut = cctx.savepointAsync(tx, name);
@@ -398,6 +399,8 @@ public class TransactionProxyImpl<K, V> implements TransactionProxy, Externaliza
 
     /** {@inheritDoc} */
     @Override public void rollbackToSavepoint(String name) {
+        if (implicit())
+            throw new IllegalStateException("Savepoints must be used inside explicit transactions.");
         enter();
         try {
             IgniteInternalFuture savepointFut = cctx.rollbackToSavepointAsync(tx, name);
@@ -415,6 +418,8 @@ public class TransactionProxyImpl<K, V> implements TransactionProxy, Externaliza
 
     /** {@inheritDoc} */
     @Override public void releaseSavepoint(String name) {
+        if (implicit())
+            throw new IllegalStateException("Savepoints must be used inside explicit transactions.");
         enter();
         try {
             IgniteInternalFuture savepointFut = cctx.releaseSavepointAsync(tx, name);

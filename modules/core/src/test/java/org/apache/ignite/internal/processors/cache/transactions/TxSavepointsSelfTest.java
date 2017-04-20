@@ -33,6 +33,8 @@ import static org.apache.ignite.cache.CacheAtomicityMode.ATOMIC;
  */
 public class TxSavepointsSelfTest extends GridCommonAbstractTest {
 
+    private static String ERR_MSG = "No such savepoint.";
+
     /** */
     private IgniteCache<Integer, Integer> cache;
 
@@ -52,26 +54,28 @@ public class TxSavepointsSelfTest extends GridCommonAbstractTest {
     }
 
     /** {@inheritDoc} */
-    @Override
-    protected void beforeTest() throws Exception {
+    @Override protected void beforeTest() throws Exception {
         super.beforeTest();
+
         startGrid(0);
+
         cache = grid(0).cache(null);
     }
 
     /** {@inheritDoc} */
-    @Override
-    protected void afterTest() throws Exception {
+    @Override protected void afterTest() throws Exception {
         stopAllGrids();
     }
 
     /**
-     *
+     * Tests savepoint.
      */
-    public void testMultipleSavepoints() {
+    public void testSavepoints() {
         try (Transaction tx = grid(0).transactions().txStart()) {
             putThreeValuesAndCreateSavepoints(tx);
+
             tx.rollbackToSavepoint("s2");
+
             tx.commit();
         }
         assertEquals((Integer) 2, cache.get(2));
@@ -80,18 +84,22 @@ public class TxSavepointsSelfTest extends GridCommonAbstractTest {
     /**
      * Tests valid and invalid rollbacks to savepoint.
      */
-    public void testMultipleRollbacksToSavepoint() {
+    public void testFailRollbackToSavepoint() {
+        Exception err = null;
         try (Transaction tx = grid(0).transactions().txStart()) {
             putThreeValuesAndCreateSavepoints(tx);
+
             tx.rollbackToSavepoint("s2");
+
             assertEquals((Integer) 2, cache.get(2));
-            tx.rollbackToSavepoint("s2");
-            assertEquals((Integer) 2, cache.get(2));
-            putThreeValuesAndCreateSavepoints(tx);
+
             tx.rollbackToSavepoint("s3");
         } catch (Exception e) {
-            assertTrue("Unexpected exception: " + e.getMessage(), e.getMessage().startsWith("No such savepoint."));
+            assertTrue("Unexpected exception: " + e.getMessage(), e.getMessage().startsWith(ERR_MSG));
+
+            err = e;
         }
+        assertNotNull(err);
     }
 
     /**
@@ -100,9 +108,13 @@ public class TxSavepointsSelfTest extends GridCommonAbstractTest {
     public void testReleaseSavepoints() {
         try (Transaction tx = grid(0).transactions().txStart()) {
             putThreeValuesAndCreateSavepoints(tx);
+
             tx.releaseSavepoint("s1");
+
             tx.releaseSavepoint("s3");
+
             tx.rollbackToSavepoint("s2");
+
             tx.commit();
         }
         assertEquals((Integer) 2, cache.get(2));
@@ -111,12 +123,16 @@ public class TxSavepointsSelfTest extends GridCommonAbstractTest {
     /**
      * Tests rollbacks to the same savepoint instance.
      */
-    public void testDoubleRollbackToSavepoint() {
+    public void testMultipleRollbackToSavepoint() {
         try (Transaction tx = grid(0).transactions().txStart()) {
             putThreeValuesAndCreateSavepoints(tx);
+
             tx.rollbackToSavepoint("s2");
+
             cache.put(2, 3);
+
             tx.rollbackToSavepoint("s2");
+
             tx.commit();
         }
         assertEquals((Integer) 2, cache.get(2));
@@ -128,8 +144,11 @@ public class TxSavepointsSelfTest extends GridCommonAbstractTest {
     public void testTransactionRollback() {
         try (Transaction tx = grid(0).transactions().txStart()) {
             putThreeValuesAndCreateSavepoints(tx);
+
             tx.releaseSavepoint("s3");
+
             tx.rollbackToSavepoint("s2");
+
             tx.rollback();
         }
         assertEquals(null, cache.get(2));
@@ -145,9 +164,13 @@ public class TxSavepointsSelfTest extends GridCommonAbstractTest {
                         .setName("Second Cache"));
         try (Transaction tx = grid(0).transactions().txStart()) {
             cache1.put(2, 1);
+
             putThreeValuesAndCreateSavepoints(tx);
+
             cache1.put(2, 2);
+
             tx.rollbackToSavepoint("s2");
+
             tx.commit();
         }
         assertEquals((Integer) 2, cache.get(2));
@@ -155,8 +178,7 @@ public class TxSavepointsSelfTest extends GridCommonAbstractTest {
     }
 
     /**
-     *
-     * @param tx
+     * @param tx Transaction for savepoints.
      */
     private void putThreeValuesAndCreateSavepoints(Transaction tx) {
         cache.put(2, 1);

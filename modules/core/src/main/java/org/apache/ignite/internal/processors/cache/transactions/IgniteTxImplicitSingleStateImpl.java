@@ -247,12 +247,6 @@ public class IgniteTxImplicitSingleStateImpl extends IgniteTxLocalStateAdapter {
     }
 
     /** {@inheritDoc} */
-    @Override
-    public void rollbackToSavepoint(TxSavepoint savepoint, GridCacheSharedContext cctx, IgniteInternalTx tx) {
-        throw new UnsupportedOperationException();
-    }
-
-    /** {@inheritDoc} */
     @Override public Collection<IgniteTxEntry> allEntries() {
         return entry != null ? entry : Collections.<IgniteTxEntry>emptyList();
     }

@@ -18,6 +18,7 @@
 package org.apache.ignite.internal.processors.cache.transactions;
 
 import org.apache.ignite.internal.processors.cache.GridCacheContext;
+import org.apache.ignite.internal.processors.cache.GridCacheSharedContext;
 import org.apache.ignite.internal.util.typedef.internal.U;
 
 /**
@@ -37,5 +38,10 @@ public abstract class IgniteTxLocalStateAdapter implements IgniteTxLocalState {
             else
                 cacheCtx.cache().metrics0().onTxRollback((U.currentTimeMillis() - tx.startTime()) * 1000);
         }
+    }
+
+    /** {@inheritDoc} */
+    @Override public void rollbackToSavepoint(TxSavepoint savepoint, GridCacheSharedContext cctx, IgniteInternalTx tx) {
+        throw new UnsupportedOperationException();
     }
 }

@@ -92,7 +92,6 @@ import org.apache.ignite.lang.IgniteClosure;
 import org.apache.ignite.lang.IgniteUuid;
 import org.apache.ignite.plugin.security.SecurityPermission;
 import org.apache.ignite.transactions.TransactionConcurrency;
-import org.apache.ignite.transactions.TransactionException;
 import org.apache.ignite.transactions.TransactionIsolation;
 import org.apache.ignite.transactions.TransactionState;
 import org.jetbrains.annotations.Nullable;
@@ -4022,7 +4021,7 @@ public class GridNearTxLocal extends GridDhtTxLocalAdapter implements AutoClosea
 
     /** {@inheritDoc} */
     @Override public IgniteInternalFuture rollbackToSavepointAsync(String name) {
-        GridNearTxSavepointFuture fut = fut = new GridNearTxSavepointFuture<>(cctx, this, name);
+        GridNearTxSavepointFuture fut = new GridNearTxSavepointFuture<>(cctx, this, name);
 
         cctx.mvcc().addFuture(fut, fut.futureId());
 
@@ -4035,7 +4034,7 @@ public class GridNearTxLocal extends GridDhtTxLocalAdapter implements AutoClosea
     }
 
     /** {@inheritDoc} */
-    public IgniteInternalFuture releaseSavepointAsync(String name) {
+    @Override public IgniteInternalFuture releaseSavepointAsync(String name) {
 
         GridNearTxSavepointFuture fut = new GridNearTxSavepointFuture<>(cctx, this, name);
 

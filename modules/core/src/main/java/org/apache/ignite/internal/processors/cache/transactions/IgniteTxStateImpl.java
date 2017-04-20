@@ -23,7 +23,6 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
-
 import org.apache.ignite.IgniteCheckedException;
 import org.apache.ignite.IgniteException;
 import org.apache.ignite.cache.CacheInterceptor;
@@ -42,7 +41,6 @@ import org.apache.ignite.internal.util.typedef.F;
 import org.apache.ignite.internal.util.typedef.internal.CU;
 import org.apache.ignite.internal.util.typedef.internal.S;
 import org.apache.ignite.internal.util.typedef.internal.U;
-import org.apache.ignite.transactions.TransactionException;
 import org.jetbrains.annotations.Nullable;
 
 import static org.apache.ignite.cache.CacheWriteSynchronizationMode.FULL_ASYNC;
@@ -456,8 +454,9 @@ public class IgniteTxStateImpl extends IgniteTxLocalStateAdapter {
     }
 
     /** {@inheritDoc} */
-    @Override
-    public void rollbackToSavepoint(TxSavepoint txSavepoint, GridCacheSharedContext cctx, IgniteInternalTx tx) {
+    @Override public void rollbackToSavepoint(TxSavepoint txSavepoint,
+                                              GridCacheSharedContext cctx,
+                                              IgniteInternalTx tx) {
         assert txSavepoint instanceof TxSavepointLocal : "Class IgniteTxStateImpl used not in local transaction. " +
                 "TxSavepoint: " + txSavepoint + ". Tx: " + tx;
         assert cctx != null;
@@ -472,14 +471,14 @@ public class IgniteTxStateImpl extends IgniteTxLocalStateAdapter {
                     try {
                         next.getValue().cached().txUnlock(tx);
                     } catch (GridCacheEntryRemovedException e) {
-                        throw new IgniteException("Failed to unlock entry during rollback to savepoint. Entry: " + next.getValue()
-                                + "; transaction:" + tx, e);
+                        throw new IgniteException("Failed to unlock entry during rollback to savepoint. " +
+                                "Entry: " + next.getValue() + "; transaction:" + tx, e);
                     }
             }
 
             txMap.clear();
 
-            savepoint.putCopies(savepoint.getTxMap().values(), txMap, tx);
+            savepoint.putCopies(savepoint.getTxMapSnapshot().values(), txMap, tx);
 
             readView = new IgniteTxMap(txMap, CU.reads());
 

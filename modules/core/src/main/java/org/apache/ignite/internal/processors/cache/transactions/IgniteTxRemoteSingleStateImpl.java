@@ -108,12 +108,6 @@ public class IgniteTxRemoteSingleStateImpl extends IgniteTxRemoteStateAdapter {
     }
 
     /** {@inheritDoc} */
-    @Override
-    public void rollbackToSavepoint(TxSavepoint savepoint, GridCacheSharedContext cctx, IgniteInternalTx tx) {
-        throw new UnsupportedOperationException();
-    }
-
-    /** {@inheritDoc} */
     @Override public Collection<IgniteTxEntry> allEntries() {
         return entry != null ? Collections.singletonList(entry) : Collections.<IgniteTxEntry>emptyList();
     }

@@ -34,47 +34,44 @@ import org.apache.ignite.transactions.TransactionIsolation;
  */
 public abstract class TxSavepointsTest extends GridCommonAbstractTest {
 
-	/** {@inheritDoc} */
-	@Override protected IgniteConfiguration getConfiguration(String gridName) throws Exception {
-		IgniteConfiguration cfg = super.getConfiguration(gridName);
+    /** {@inheritDoc} */
+    @Override protected IgniteConfiguration getConfiguration(String gridName) throws Exception {
+        IgniteConfiguration cfg = super.getConfiguration(gridName);
 
-		TcpDiscoverySpi disc = new TcpDiscoverySpi();
+        TcpDiscoverySpi disc = new TcpDiscoverySpi();
 
-		disc.setIpFinder(new TcpDiscoveryVmIpFinder(true));
+        disc.setIpFinder(new TcpDiscoveryVmIpFinder(true));
 
-		cfg.setDiscoverySpi(disc);
+        cfg.setDiscoverySpi(disc);
 
-		return cfg;
-	}
+        return cfg;
+    }
 
     /**
-     *
-     * @param atomicityMode
-     * @param cacheMode
-     * @return
+     * @param atomicityMode Cache atomicity mode.
+     * @param cacheMode Cache mode.
+     * @return Cache configuration.
      */
     protected CacheConfiguration<Integer, Integer> cacheConfig(CacheAtomicityMode atomicityMode,
-                                                             CacheMode cacheMode) {
-		CacheConfiguration<Integer, Integer> cfg  = new CacheConfiguration<>();
+                                                               CacheMode cacheMode) {
+        CacheConfiguration<Integer, Integer> cfg  = new CacheConfiguration<>();
 
-		cfg.setAtomicityMode(atomicityMode);
+        cfg.setAtomicityMode(atomicityMode);
 
-		cfg.setCacheMode(cacheMode);
+        cfg.setCacheMode(cacheMode);
 
-		cfg.setBackups(2);
+        cfg.setBackups(1);
 
-		return cfg;
-	}
+        return cfg;
+    }
 
     /**
-     *
      * @param errMsg Message to show for incorrect result.
      * @param cache Cache, which values will be checked.
      */
-	protected abstract void checkResult(String errMsg, IgniteCache<Integer, Integer> cache);
+    protected abstract void checkResult(String errMsg, IgniteCache<Integer, Integer> cache);
 
     /**
-     *
      * @param cfg Will be used to configure cache.
      * @throws Exception If test fails.
      */
@@ -123,7 +120,6 @@ public abstract class TxSavepointsTest extends GridCommonAbstractTest {
     }
 
     /**
-     *
      * @param cfg Will be used to configure cache.
      * @throws Exception If test fails.
      */
@@ -244,7 +240,7 @@ public abstract class TxSavepointsTest extends GridCommonAbstractTest {
     }
 
     /** {@inheritDoc} */
-	@Override protected void afterTest() throws Exception {
-		stopAllGrids();
-	}
+    @Override protected void afterTest() throws Exception {
+        stopAllGrids();
+    }
 }

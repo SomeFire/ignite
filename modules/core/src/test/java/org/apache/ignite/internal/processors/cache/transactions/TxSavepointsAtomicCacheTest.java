@@ -30,8 +30,7 @@ import static org.apache.ignite.cache.CacheMode.REPLICATED;
 public class TxSavepointsAtomicCacheTest extends TxSavepointsTest {
 
     /** {@inheritDoc} */
-    @Override
-    protected void checkResult(String errMsg, IgniteCache<Integer, Integer> cache) {
+    @Override protected void checkResult(String errMsg, IgniteCache<Integer, Integer> cache) {
         assertEquals(errMsg, (Integer) 1, cache.get(1));
         assertEquals(errMsg, (Integer) 33, cache.get(2));
         assertEquals(errMsg, null, cache.get(3));

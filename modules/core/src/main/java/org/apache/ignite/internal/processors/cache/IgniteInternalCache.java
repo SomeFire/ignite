@@ -1696,6 +1696,12 @@ public interface IgniteInternalCache<K, V> extends Iterable<Cache.Entry<K, V>> {
      */
     public IgniteInternalCache<K, V> withNoRetries();
 
+    public <K1, V1> IgniteInternalCache<K1, V1> withAllowInTx();
+    /**
+     * @return New projection based on this one, but allowed to use inside transactions.
+     */
+    public <K1, V1> IgniteInternalCache<K1, V1> withAllowInTx();
+
     /**
      * @param key Key.
      * @param entryProcessor Entry processor.

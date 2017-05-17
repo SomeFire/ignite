@@ -291,7 +291,7 @@ public abstract class CacheJdbcStoreAbstractMultithreadedSelfTest<T extends Cach
 
             @Nullable @Override public Object call() throws Exception {
                 for (int i = 0; i < TX_CNT; i++) {
-                    IgniteCache<PersonKey, Person> cache = jcache();
+                    IgniteCache<PersonKey, Person> cache = jcache().withAllowInTx();
 
                     try (Transaction tx = grid().transactions().txStart()) {
                         cache.put(new PersonKey(1), new Person(1, rnd.nextInt(),

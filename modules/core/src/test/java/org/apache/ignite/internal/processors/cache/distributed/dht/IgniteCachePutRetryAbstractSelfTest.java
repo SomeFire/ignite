@@ -33,7 +33,6 @@ import javax.cache.processor.EntryProcessorResult;
 import javax.cache.processor.MutableEntry;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteCache;
-import org.apache.ignite.cache.CacheAtomicWriteOrderMode;
 import org.apache.ignite.cache.CacheAtomicityMode;
 import org.apache.ignite.cache.CacheEntryProcessor;
 import org.apache.ignite.cache.CachePartialUpdateException;
@@ -57,8 +56,6 @@ import org.apache.ignite.spi.discovery.tcp.ipfinder.vm.TcpDiscoveryVmIpFinder;
 import org.apache.ignite.testframework.GridTestUtils;
 import org.apache.ignite.testframework.junits.common.GridCommonAbstractTest;
 
-import static org.apache.ignite.cache.CacheAtomicWriteOrderMode.CLOCK;
-import static org.apache.ignite.cache.CacheAtomicityMode.ATOMIC;
 import static org.apache.ignite.cache.CacheRebalanceMode.SYNC;
 import static org.apache.ignite.cache.CacheWriteSynchronizationMode.FULL_SYNC;
 import static org.apache.ignite.internal.processors.cache.transactions.IgniteTxManager.DEFERRED_ONE_PHASE_COMMIT_ACK_REQUEST_TIMEOUT;
@@ -92,11 +89,10 @@ public abstract class IgniteCachePutRetryAbstractSelfTest extends GridCommonAbst
      */
     @SuppressWarnings("unchecked")
     protected CacheConfiguration cacheConfiguration(boolean evict, boolean store) throws Exception {
-        CacheConfiguration cfg = new CacheConfiguration();
+        CacheConfiguration cfg = new CacheConfiguration(DEFAULT_CACHE_NAME);
 
         cfg.setAtomicityMode(atomicityMode());
         cfg.setWriteSynchronizationMode(FULL_SYNC);
-        cfg.setAtomicWriteOrderMode(writeOrderMode());
         cfg.setBackups(1);
         cfg.setRebalanceMode(SYNC);
 
@@ -161,7 +157,7 @@ public abstract class IgniteCachePutRetryAbstractSelfTest extends GridCommonAbst
             checkInternalCleanup();
         }
         finally {
-            ignite(0).destroyCache(null);
+            ignite(0).destroyCache(DEFAULT_CACHE_NAME);
         }
     }
 
@@ -169,13 +165,6 @@ public abstract class IgniteCachePutRetryAbstractSelfTest extends GridCommonAbst
      * @return Cache atomicity mode.
      */
     protected abstract CacheAtomicityMode atomicityMode();
-
-    /**
-     * @return Write order mode.
-     */
-    protected CacheAtomicWriteOrderMode writeOrderMode() {
-        return CLOCK;
-    }
 
     /**
      * @throws Exception If failed.
@@ -272,16 +261,11 @@ public abstract class IgniteCachePutRetryAbstractSelfTest extends GridCommonAbst
             }
         });
 
-        final IgniteCache<Integer, Integer> cache = ignite(0).cache(null);
+        final IgniteCache<Integer, Integer> cache = ignite(0).cache(DEFAULT_CACHE_NAME);
 
         int iter = 0;
 
         try {
-            if (atomicityMode() == ATOMIC) {
-                assertEquals(writeOrderMode(),
-                    cache.getConfiguration(CacheConfiguration.class).getAtomicWriteOrderMode());
-            }
-
             long stopTime = System.currentTimeMillis() + DURATION;
 
             switch (test) {
@@ -459,13 +443,13 @@ public abstract class IgniteCachePutRetryAbstractSelfTest extends GridCommonAbst
     private void checkInternalCleanup() throws Exception{
         checkNoAtomicFutures();
 
-        checkOnePhaseCommitReturnValuesCleaned();
+        checkOnePhaseCommitReturnValuesCleaned(GRID_CNT);
     }
 
     /**
      * @throws Exception If failed.
      */
-    void checkNoAtomicFutures() throws Exception {
+    private void checkNoAtomicFutures() throws Exception {
         for (int i = 0; i < GRID_CNT; i++) {
             final IgniteKernal ignite = (IgniteKernal)grid(i);
 
@@ -478,27 +462,6 @@ public abstract class IgniteCachePutRetryAbstractSelfTest extends GridCommonAbst
             Collection<?> futs = ignite.context().cache().context().mvcc().atomicFutures();
 
             assertTrue("Unexpected atomic futures: " + futs, futs.isEmpty());
-        }
-    }
-
-    /**
-     * @throws Exception If failed.
-     */
-    void checkOnePhaseCommitReturnValuesCleaned() throws Exception {
-        U.sleep(DEFERRED_ONE_PHASE_COMMIT_ACK_REQUEST_TIMEOUT);
-
-        for (int i = 0; i < GRID_CNT; i++) {
-            IgniteKernal ignite = (IgniteKernal)grid(i);
-
-            IgniteTxManager tm = ignite.context().cache().context().tm();
-
-            Map completedVersHashMap = U.field(tm, "completedVersHashMap");
-
-            for (Object o : completedVersHashMap.values()) {
-                assertTrue("completedVersHashMap contains" + o.getClass() + " instead of boolean. " +
-                    "These values should be replaced by boolean after onePhaseCommit finished. " +
-                    "[node=" + i + "]", o instanceof Boolean);
-            }
         }
     }
 
@@ -544,7 +507,7 @@ public abstract class IgniteCachePutRetryAbstractSelfTest extends GridCommonAbst
 
             boolean eThrown = false;
 
-            IgniteCache<Object, Object> cache = ignite(0).cache(null).withNoRetries();
+            IgniteCache<Object, Object> cache = ignite(0).cache(DEFAULT_CACHE_NAME).withNoRetries();
 
             long stopTime = System.currentTimeMillis() + 60_000;
 

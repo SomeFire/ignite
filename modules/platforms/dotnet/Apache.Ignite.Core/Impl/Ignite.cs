@@ -75,9 +75,6 @@ namespace Apache.Ignite.Core.Impl
         /** Binary processor. */
         private readonly BinaryProcessor _binaryProc;
 
-        /** Cached proxy. */
-        private readonly IgniteProxy _proxy;
-
         /** Lifecycle handlers. */
         private readonly IList<LifecycleHandlerHolder> _lifecycleHandlers;
 
@@ -134,8 +131,6 @@ namespace Apache.Ignite.Core.Impl
 
             _binaryProc = new BinaryProcessor(UU.ProcessorBinaryProcessor(proc), marsh);
 
-            _proxy = new IgniteProxy(this);
-
             cbs.Initialize(this);
 
             // Grid is not completely started here, can't initialize interop transactions right away.
@@ -175,15 +170,6 @@ namespace Apache.Ignite.Core.Impl
 
             foreach (var lifecycleBean in _lifecycleHandlers)
                 lifecycleBean.OnStart(this);
-        }
-
-        /// <summary>
-        /// Gets Ignite proxy.
-        /// </summary>
-        /// <returns>Proxy.</returns>
-        public IgniteProxy Proxy
-        {
-            get { return _proxy; }
         }
 
         /** <inheritdoc /> */
@@ -400,12 +386,16 @@ namespace Apache.Ignite.Core.Impl
         /** <inheritdoc /> */
         public ICache<TK, TV> GetCache<TK, TV>(string name)
         {
+            IgniteArgumentCheck.NotNull(name, "name");
+
             return Cache<TK, TV>(UU.ProcessorCache(_proc, name));
         }
 
         /** <inheritdoc /> */
         public ICache<TK, TV> GetOrCreateCache<TK, TV>(string name)
         {
+            IgniteArgumentCheck.NotNull(name, "name");
+
             return Cache<TK, TV>(UU.ProcessorGetOrCreateCache(_proc, name));
         }
 
@@ -420,6 +410,7 @@ namespace Apache.Ignite.Core.Impl
             NearCacheConfiguration nearConfiguration)
         {
             IgniteArgumentCheck.NotNull(configuration, "configuration");
+            IgniteArgumentCheck.NotNull(configuration.Name, "CacheConfiguration.Name");
             configuration.Validate(Logger);
 
             using (var stream = IgniteManager.Memory.Allocate().GetStream())
@@ -445,6 +436,8 @@ namespace Apache.Ignite.Core.Impl
         /** <inheritdoc /> */
         public ICache<TK, TV> CreateCache<TK, TV>(string name)
         {
+            IgniteArgumentCheck.NotNull(name, "name");
+
             return Cache<TK, TV>(UU.ProcessorCreateCache(_proc, name));
         }
 
@@ -459,6 +452,7 @@ namespace Apache.Ignite.Core.Impl
             NearCacheConfiguration nearConfiguration)
         {
             IgniteArgumentCheck.NotNull(configuration, "configuration");
+            IgniteArgumentCheck.NotNull(configuration.Name, "CacheConfiguration.Name");
             configuration.Validate(Logger);
 
             using (var stream = IgniteManager.Memory.Allocate().GetStream())
@@ -485,6 +479,8 @@ namespace Apache.Ignite.Core.Impl
         /** <inheritdoc /> */
         public void DestroyCache(string name)
         {
+            IgniteArgumentCheck.NotNull(name, "name");
+
             UU.ProcessorDestroyCache(_proc, name);
         }
 
@@ -498,7 +494,7 @@ namespace Apache.Ignite.Core.Impl
         /// </returns>
         public ICache<TK, TV> Cache<TK, TV>(IUnmanagedTarget nativeCache, bool keepBinary = false)
         {
-            return new CacheImpl<TK, TV>(this, nativeCache, _marsh, false, keepBinary, false);
+            return new CacheImpl<TK, TV>(this, nativeCache, _marsh, false, keepBinary, false, false);
         }
 
         /** <inheritdoc /> */
@@ -542,6 +538,8 @@ namespace Apache.Ignite.Core.Impl
         /** <inheritdoc /> */
         public IDataStreamer<TK, TV> GetDataStreamer<TK, TV>(string cacheName)
         {
+            IgniteArgumentCheck.NotNull(cacheName, "cacheName");
+
             return new DataStreamerImpl<TK, TV>(UU.ProcessorDataStreamer(_proc, cacheName, false),
                 _marsh, cacheName, false);
         }
@@ -555,6 +553,8 @@ namespace Apache.Ignite.Core.Impl
         /** <inheritdoc /> */
         public ICacheAffinity GetAffinity(string cacheName)
         {
+            IgniteArgumentCheck.NotNull(cacheName, "cacheName");
+
             return new CacheAffinityImpl(UU.ProcessorAffinity(_proc, cacheName), _marsh, false, this);
         }
 
@@ -715,6 +715,26 @@ namespace Apache.Ignite.Core.Impl
             IgniteArgumentCheck.NotNullOrEmpty(name, "name");
 
             return PluginProcessor.GetProvider(name).GetPlugin<T>();
+        }
+
+        /** <inheritdoc /> */
+        public void ResetLostPartitions(IEnumerable<string> cacheNames)
+        {
+            IgniteArgumentCheck.NotNull(cacheNames, "cacheNames");
+
+            _prj.ResetLostPartitions(cacheNames);
+        }
+
+        /** <inheritdoc /> */
+        public void ResetLostPartitions(params string[] cacheNames)
+        {
+            ResetLostPartitions((IEnumerable<string>) cacheNames);
+        }
+
+        /** <inheritdoc /> */
+        public ICollection<IMemoryMetrics> GetMemoryMetrics()
+        {
+            return _prj.GetMemoryMetrics();
         }
 
         /// <summary>

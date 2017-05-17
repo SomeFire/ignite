@@ -39,12 +39,14 @@ const appModulePaths = [
 ];
 
 const resourcePaths = [
+    './public/**/*.svg',
     './public/**/*.png',
     './public/*.ico'
 ];
 
 const resourceModulePaths = [
     igniteModulesDir + '/**/images/*.png',
+    igniteModulesDir + '/**/images/*.svg',
     igniteModulesDir + '/*.ico'
 ];
 

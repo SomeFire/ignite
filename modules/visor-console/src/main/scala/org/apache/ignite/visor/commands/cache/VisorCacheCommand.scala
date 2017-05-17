@@ -839,7 +839,6 @@ object VisorCacheCommand {
 
         cacheT += ("Mode", cfg.getMode)
         cacheT += ("Atomicity Mode", safe(cfg.getAtomicityMode))
-        cacheT += ("Atomic Write Ordering Mode", safe(cfg.getAtomicWriteOrderMode))
         cacheT += ("Statistic Enabled", bool2Str(cfg.isStatisticsEnabled))
         cacheT += ("Management Enabled", bool2Str(cfg.isManagementEnabled))
 
@@ -847,7 +846,6 @@ object VisorCacheCommand {
 
         cacheT += ("Write Synchronization Mode", safe(cfg.getWriteSynchronizationMode))
         cacheT += ("Invalidate", bool2Str(cfg.isInvalidate))
-        cacheT += ("Start Size", cfg.getStartSize)
 
         cacheT += ("Affinity Function", safe(affinityCfg.getFunction))
         cacheT += ("Affinity Backups", affinityCfg.getPartitionedBackups)
@@ -897,7 +895,6 @@ object VisorCacheCommand {
         cacheT +=("Query Execution Time Threshold", queryCfg.getLongQueryWarningTimeout)
         cacheT +=("Query Schema Name", queryCfg.getSqlSchema)
         cacheT +=("Query Escaped Names", bool2Str(queryCfg.isSqlEscapeAll))
-        cacheT +=("Query Onheap Cache Size", queryCfg.getSqlOnheapRowCacheSize)
 
         val sqlFxs = queryCfg.getSqlFunctionClasses
 

@@ -39,29 +39,24 @@
                     <property name="name" value="local"/>
                     <property name="cacheMode" value="LOCAL"/>
                     <property name="atomicityMode" value="TRANSACTIONAL"/>
-                    <property name="startSize" value="10"/>
                 </bean>
 
                 <bean parent="cache-template">
                     <property name="name" value="local_atomic"/>
                     <property name="cacheMode" value="LOCAL"/>
                     <property name="atomicityMode" value="ATOMIC"/>
-                    <property name="startSize" value="10"/>
                 </bean>
 
                 <bean parent="cache-template">
                     <property name="name" value="partitioned"/>
                     <property name="cacheMode" value="PARTITIONED"/>
                     <property name="atomicityMode" value="TRANSACTIONAL"/>
-                    <property name="startSize" value="10"/>
                 </bean>
 
                 <bean parent="cache-template">
                     <property name="name" value="partitioned_atomic"/>
                     <property name="cacheMode" value="PARTITIONED"/>
                     <property name="atomicityMode" value="ATOMIC"/>
-                    <property name="atomicWriteOrderMode" value="PRIMARY"/>
-                    <property name="startSize" value="10"/>
                 </bean>
 
                 <bean parent="cache-template">
@@ -71,38 +66,31 @@
                     <property name="nearConfiguration">
                         <bean class="org.apache.ignite.configuration.NearCacheConfiguration" />
                     </property>
-                    <property name="startSize" value="10"/>
                 </bean>
 
                 <bean parent="cache-template">
                     <property name="name" value="partitioned_atomic_near"/>
                     <property name="cacheMode" value="PARTITIONED"/>
                     <property name="atomicityMode" value="ATOMIC"/>
-                    <property name="atomicWriteOrderMode" value="PRIMARY"/>
                     <property name="nearConfiguration">
                         <bean class="org.apache.ignite.configuration.NearCacheConfiguration" />
                     </property>
-                    <property name="startSize" value="10"/>
                 </bean>
 
                 <bean parent="cache-template">
                     <property name="name" value="replicated"/>
                     <property name="cacheMode" value="REPLICATED"/>
                     <property name="atomicityMode" value="TRANSACTIONAL"/>
-                    <property name="startSize" value="10"/>
                 </bean>
 
                 <bean parent="cache-template">
                     <property name="name" value="replicated_atomic"/>
                     <property name="cacheMode" value="REPLICATED"/>
                     <property name="atomicityMode" value="ATOMIC"/>
-                    <property name="atomicWriteOrderMode" value="PRIMARY"/>
-                    <property name="startSize" value="10"/>
                 </bean>
                 
                 <bean parent="cache-template">
                     <property name="name" value="template*"/>
-                    <property name="startSize" value="10"/>
                 </bean>
             </list>
         </property>

@@ -26,10 +26,7 @@ const DFLT_CACHE = {
         clsName: 'org.apache.ignite.cache.PartitionLossPolicy',
         value: 'IGNORE'
     },
-    startSize: 1500000,
-    sqlOnheapRowCacheSize: 10240,
     longQueryWarningTimeout: 3000,
-    snapshotableIndex: false,
     sqlEscapeAll: false,
     storeKeepBinary: false,
     loadPreviousValue: false,
@@ -50,9 +47,6 @@ const DFLT_CACHE = {
     writeBehindFlushThreadCount: 1,
     maxConcurrentAsyncOperations: 500,
     defaultLockTimeout: 0,
-    atomicWriteOrderMode: {
-        clsName: 'org.apache.ignite.cache.CacheAtomicWriteOrderMode'
-    },
     writeSynchronizationMode: {
         clsName: 'org.apache.ignite.cache.CacheWriteSynchronizationMode',
         value: 'PRIMARY_SYNC'

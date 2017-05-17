@@ -414,6 +414,13 @@ public class GridCacheContext<K, V> implements Externalizable {
     }
 
     /**
+     * @return {@code true} If this is a replicated cache and we are on a data node.
+     */
+    public boolean isReplicatedAffinityNode() {
+        return isReplicated() && affinityNode();
+    }
+
+    /**
      * @throws IgniteCheckedException If failed to wait.
      */
     public void awaitStarted() throws IgniteCheckedException {
@@ -1812,29 +1819,6 @@ public class GridCacheContext<K, V> implements Externalizable {
     }
 
     /**
-     * @param type Type.
-     * @param bytes Bytes.
-     * @param clsLdrId Class loader ID.
-     * @return Cache object.
-     * @throws IgniteCheckedException If failed.
-     */
-    @Nullable public CacheObject unswapCacheObject(byte type, byte[] bytes, @Nullable IgniteUuid clsLdrId)
-        throws IgniteCheckedException {
-        if (ctx.config().isPeerClassLoadingEnabled() && type != CacheObject.TYPE_BYTE_ARR) {
-            ClassLoader ldr = clsLdrId != null ? deploy().getClassLoader(clsLdrId) : deploy().localLoader();
-
-            if (ldr == null)
-                return null;
-
-            return ctx.cacheObjects().toCacheObject(cacheObjCtx,
-                ctx.cacheObjects().unmarshal(cacheObjCtx, bytes, ldr),
-                false);
-        }
-
-        return ctx.cacheObjects().toCacheObject(cacheObjCtx, type, bytes);
-    }
-
-    /**
      * @param map Map.
      * @param key Key.
      * @param val Value.
@@ -2055,6 +2039,18 @@ public class GridCacheContext<K, V> implements Externalizable {
      */
     public boolean allowFastLocalRead(int part, List<ClusterNode> affNodes, AffinityTopologyVersion topVer) {
         return affinityNode() && rebalanceEnabled() && hasPartition(part, affNodes, topVer);
+    }
+
+    /**
+     * Checks if it is possible to directly read data memory without entry creation (this
+     * is optimization to avoid unnecessary blocking synchronization on cache entry).
+     *
+     * @param expiryPlc Optional expiry policy for read operation.
+     * @param readers {@code True} if need update near cache readers.
+     * @return {@code True} if it is possible to directly read offheap instead of using {@link GridCacheEntryEx#innerGet}.
+     */
+    public boolean readNoEntry(@Nullable IgniteCacheExpiryPolicy expiryPlc, boolean readers) {
+        return !config().isOnheapCacheEnabled() && !readers && expiryPlc == null;
     }
 
     /**

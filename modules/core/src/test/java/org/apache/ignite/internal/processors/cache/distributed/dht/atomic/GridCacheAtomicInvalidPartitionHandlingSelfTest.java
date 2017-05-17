@@ -30,7 +30,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.ignite.IgniteCache;
 import org.apache.ignite.IgniteDataStreamer;
 import org.apache.ignite.IgniteException;
-import org.apache.ignite.cache.CacheAtomicWriteOrderMode;
 import org.apache.ignite.cache.CachePartialUpdateException;
 import org.apache.ignite.cache.CacheWriteSynchronizationMode;
 import org.apache.ignite.cache.affinity.Affinity;
@@ -59,8 +58,6 @@ import org.apache.ignite.testframework.GridTestUtils;
 import org.apache.ignite.testframework.junits.common.GridCommonAbstractTest;
 import org.jsr166.ThreadLocalRandom8;
 
-import static org.apache.ignite.cache.CacheAtomicWriteOrderMode.CLOCK;
-import static org.apache.ignite.cache.CacheAtomicWriteOrderMode.PRIMARY;
 import static org.apache.ignite.cache.CacheMode.PARTITIONED;
 import static org.apache.ignite.cache.CacheRebalanceMode.SYNC;
 import static org.apache.ignite.cache.CacheWriteSynchronizationMode.FULL_ASYNC;
@@ -77,9 +74,6 @@ public class GridCacheAtomicInvalidPartitionHandlingSelfTest extends GridCommonA
 
     /** Delay flag. */
     private static volatile boolean delay;
-
-    /** Write order. */
-    private CacheAtomicWriteOrderMode writeOrder;
 
     /** Write sync. */
     private CacheWriteSynchronizationMode writeSync;
@@ -108,12 +102,11 @@ public class GridCacheAtomicInvalidPartitionHandlingSelfTest extends GridCommonA
 
     /** {@inheritDoc} */
     protected CacheConfiguration cacheConfiguration() {
-        CacheConfiguration ccfg = new CacheConfiguration();
+        CacheConfiguration ccfg = new CacheConfiguration(DEFAULT_CACHE_NAME);
 
         ccfg.setCacheMode(PARTITIONED);
 
         ccfg.setBackups(1);
-        ccfg.setAtomicWriteOrderMode(writeOrder);
         ccfg.setWriteSynchronizationMode(writeSync);
 
         ccfg.setRebalanceMode(SYNC);
@@ -143,54 +136,30 @@ public class GridCacheAtomicInvalidPartitionHandlingSelfTest extends GridCommonA
     /**
      * @throws Exception If failed.
      */
-    public void testClockFullSync() throws Exception {
-        checkRestarts(CLOCK, FULL_SYNC);
-    }
-
-    /**
-     * @throws Exception If failed.
-     */
-    public void testClockPrimarySync() throws Exception {
-        checkRestarts(CLOCK, PRIMARY_SYNC);
-    }
-
-    /**
-     * @throws Exception If failed.
-     */
-    public void testClockFullAsync() throws Exception {
-        checkRestarts(CLOCK, FULL_ASYNC);
-    }
-
-    /**
-     * @throws Exception If failed.
-     */
     public void testPrimaryFullSync() throws Exception {
-        checkRestarts(PRIMARY, FULL_SYNC);
+        checkRestarts(FULL_SYNC);
     }
 
     /**
      * @throws Exception If failed.
      */
     public void testPrimaryPrimarySync() throws Exception {
-        checkRestarts(PRIMARY, PRIMARY_SYNC);
+        checkRestarts(PRIMARY_SYNC);
     }
 
     /**
      * @throws Exception If failed.
      */
     public void testPrimaryFullAsync() throws Exception {
-        checkRestarts(PRIMARY, FULL_ASYNC);
+        checkRestarts(FULL_ASYNC);
     }
 
     /**
-     * @param writeOrder Write order to check.
      * @param writeSync Write synchronization mode to check.
      * @throws Exception If failed.
      */
-    private void checkRestarts(CacheAtomicWriteOrderMode writeOrder,
-        CacheWriteSynchronizationMode writeSync)
+    private void checkRestarts(CacheWriteSynchronizationMode writeSync)
         throws Exception {
-        this.writeOrder = writeOrder;
         this.writeSync = writeSync;
 
         final int gridCnt = 6;
@@ -202,13 +171,13 @@ public class GridCacheAtomicInvalidPartitionHandlingSelfTest extends GridCommonA
         try {
             assertEquals(testClientNode(), (boolean)grid(0).configuration().isClientMode());
 
-            final IgniteCache<Object, Object> cache = grid(0).cache(null);
+            final IgniteCache<Object, Object> cache = grid(0).cache(DEFAULT_CACHE_NAME);
 
             final int range = 100_000;
 
             final Set<Integer> keys = new LinkedHashSet<>();
 
-            try (IgniteDataStreamer<Integer, Integer> streamer = grid(0).dataStreamer(null)) {
+            try (IgniteDataStreamer<Integer, Integer> streamer = grid(0).dataStreamer(DEFAULT_CACHE_NAME)) {
                 streamer.allowOverwrite(true);
 
                 for (int i = 0; i < range; i++) {
@@ -221,7 +190,7 @@ public class GridCacheAtomicInvalidPartitionHandlingSelfTest extends GridCommonA
                 }
             }
 
-            final Affinity<Integer> aff = grid(0).affinity(null);
+            final Affinity<Integer> aff = grid(0).affinity(DEFAULT_CACHE_NAME);
 
             boolean putDone = GridTestUtils.waitForCondition(new GridAbsPredicate() {
                 @Override public boolean apply() {
@@ -235,7 +204,7 @@ public class GridCacheAtomicInvalidPartitionHandlingSelfTest extends GridCommonA
                         for (int i = 0; i < gridCnt; i++) {
                             ClusterNode locNode = grid(i).localNode();
 
-                            IgniteCache<Object, Object> cache = grid(i).cache(null);
+                            IgniteCache<Object, Object> cache = grid(i).cache(DEFAULT_CACHE_NAME);
 
                             Object val = cache.localPeek(key);
 
@@ -329,7 +298,7 @@ public class GridCacheAtomicInvalidPartitionHandlingSelfTest extends GridCommonA
                 for (int i = 0; i < gridCnt; i++) {
                     ClusterNode locNode = grid(i).localNode();
 
-                    GridCacheAdapter<Object, Object> c = ((IgniteKernal)grid(i)).internalCache();
+                    GridCacheAdapter<Object, Object> c = ((IgniteKernal)grid(i)).internalCache(DEFAULT_CACHE_NAME);
 
                     GridCacheEntryEx entry = null;
 

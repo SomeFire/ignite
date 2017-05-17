@@ -28,6 +28,7 @@ import javax.cache.integration.CacheLoader;
 import javax.cache.processor.EntryProcessor;
 import javax.management.MBeanServer;
 import javax.net.ssl.SSLContext;
+import org.apache.ignite.IgniteCompute;
 import org.apache.ignite.IgniteLogger;
 import org.apache.ignite.IgniteSystemProperties;
 import org.apache.ignite.Ignition;
@@ -120,12 +121,6 @@ public class IgniteConfiguration {
     /** Default message send retries count. */
     public static final int DFLT_SEND_RETRY_CNT = 3;
 
-    /** Default number of clock sync samples. */
-    public static final int DFLT_CLOCK_SYNC_SAMPLES = 8;
-
-    /** Default clock synchronization frequency. */
-    public static final int DFLT_CLOCK_SYNC_FREQUENCY = 120000;
-
     /** Default discovery startup delay in milliseconds (value is {@code 60,000ms}). */
     public static final long DFLT_DISCOVERY_STARTUP_DELAY = 60000;
 
@@ -204,6 +199,10 @@ public class IgniteConfiguration {
     /** Default failure detection timeout in millis. */
     @SuppressWarnings("UnnecessaryBoxing")
     public static final Long DFLT_FAILURE_DETECTION_TIMEOUT = new Long(10_000);
+
+    /** Default failure detection timeout for client nodes in millis. */
+    @SuppressWarnings("UnnecessaryBoxing")
+    public static final Long DFLT_CLIENT_FAILURE_DETECTION_TIMEOUT = new Long(30_000);
 
     /** Optional local Ignite instance name. */
     private String igniteInstanceName;
@@ -291,12 +290,6 @@ public class IgniteConfiguration {
 
     /** Message send retries delay. */
     private int sndRetryCnt = DFLT_SEND_RETRY_CNT;
-
-    /** Number of samples for clock synchronization. */
-    private int clockSyncSamples = DFLT_CLOCK_SYNC_SAMPLES;
-
-    /** Clock synchronization frequency. */
-    private long clockSyncFreq = DFLT_CLOCK_SYNC_FREQUENCY;
 
     /** Metrics history time. */
     private int metricsHistSize = DFLT_METRICS_HISTORY_SIZE;
@@ -397,6 +390,9 @@ public class IgniteConfiguration {
     /** Failure detection timeout. */
     private Long failureDetectionTimeout = DFLT_FAILURE_DETECTION_TIMEOUT;
 
+    /** Failure detection timeout for client nodes. */
+    private Long clientFailureDetectionTimeout = DFLT_CLIENT_FAILURE_DETECTION_TIMEOUT;
+
     /** Property names to include into node attributes. */
     private String[] includeProps;
 
@@ -449,11 +445,14 @@ public class IgniteConfiguration {
     /** */
     private BinaryConfiguration binaryCfg;
 
+    /** Custom executor configurations. */
+    private ExecutorConfiguration[] execCfgs;
+
     /** */
     private boolean lateAffAssignment = DFLT_LATE_AFF_ASSIGNMENT;
 
-    /** Database configuration. */
-    private MemoryConfiguration dbCfg;
+    /** Page memory configuration. */
+    private MemoryConfiguration memCfg;
 
     /** Active on start flag. */
     private boolean activeOnStart = DFLT_ACTIVE_ON_START;
@@ -493,21 +492,21 @@ public class IgniteConfiguration {
         allResolversPassReq = cfg.isAllSegmentationResolversPassRequired();
         atomicCfg = cfg.getAtomicConfiguration();
         binaryCfg = cfg.getBinaryConfiguration();
-        dbCfg = cfg.getMemoryConfiguration();
+        memCfg = cfg.getMemoryConfiguration();
         cacheCfg = cfg.getCacheConfiguration();
         cacheKeyCfg = cfg.getCacheKeyConfiguration();
         cacheSanityCheckEnabled = cfg.isCacheSanityCheckEnabled();
         callbackPoolSize = cfg.getAsyncCallbackPoolSize();
         classLdr = cfg.getClassLoader();
+        clientFailureDetectionTimeout = cfg.getClientFailureDetectionTimeout();
         clientMode = cfg.isClientMode();
-        clockSyncFreq = cfg.getClockSyncFrequency();
-        clockSyncSamples = cfg.getClockSyncSamples();
         connectorCfg = cfg.getConnectorConfiguration();
         consistentId = cfg.getConsistentId();
         daemon = cfg.isDaemon();
         dataStreamerPoolSize = cfg.getDataStreamerThreadPoolSize();
         deployMode = cfg.getDeploymentMode();
         discoStartupDelay = cfg.getDiscoveryStartupDelay();
+        execCfgs = cfg.getExecutorConfiguration();
         failureDetectionTimeout = cfg.getFailureDetectionTimeout();
         hadoopCfg = cfg.getHadoopConfiguration();
         igfsCfg = cfg.getFileSystemConfiguration();
@@ -1297,20 +1296,13 @@ public class IgniteConfiguration {
     }
 
     /**
-     * Gets job metrics update frequency in milliseconds.
+     * Gets Ignite metrics update frequency in milliseconds.
      * <p>
      * Updating metrics too frequently may have negative performance impact.
      * <p>
-     * The following values are accepted:
-     * <ul>
-     *     <li>{@code -1} job metrics are never updated.</li>
-     *     <li>{@code 0} job metrics are updated on each job start and finish.</li>
-     *     <li>Positive value defines the actual update frequency. If not provided, then default value
-     *     {@link #DFLT_METRICS_UPDATE_FREQ} is used.</li>
-     * </ul>
      * If not provided, then default value {@link #DFLT_METRICS_UPDATE_FREQ} is used.
      *
-     * @return Job metrics update frequency in milliseconds.
+     * @return Metrics update frequency in milliseconds.
      * @see #DFLT_METRICS_UPDATE_FREQ
      */
     public long getMetricsUpdateFrequency() {
@@ -1318,15 +1310,13 @@ public class IgniteConfiguration {
     }
 
     /**
-     * Sets job metrics update frequency in milliseconds.
+     * Sets Ignite metrics update frequency in milliseconds.
      * <p>
-     * If set to {@code -1} job metrics are never updated.
-     * If set to {@code 0} job metrics are updated on each job start and finish.
      * Positive value defines the actual update frequency.
      * If not provided, then default value
      * {@link #DFLT_METRICS_UPDATE_FREQ} is used.
      *
-     * @param metricsUpdateFreq Job metrics update frequency in milliseconds.
+     * @param metricsUpdateFreq Metrics update frequency in milliseconds.
      * @return {@code this} for chaining.
      */
     public IgniteConfiguration setMetricsUpdateFrequency(long metricsUpdateFreq) {
@@ -1444,52 +1434,6 @@ public class IgniteConfiguration {
      */
     public IgniteConfiguration setNetworkSendRetryCount(int sndRetryCnt) {
         this.sndRetryCnt = sndRetryCnt;
-
-        return this;
-    }
-
-    /**
-     * Gets number of samples used to synchronize clocks between different nodes.
-     * <p>
-     * Clock synchronization is used for cache version assignment in {@code CLOCK} order mode.
-     *
-     * @return Number of samples for one synchronization round.
-     */
-    public int getClockSyncSamples() {
-        return clockSyncSamples;
-    }
-
-    /**
-     * Sets number of samples used for clock synchronization.
-     *
-     * @param clockSyncSamples Number of samples.
-     * @return {@code this} for chaining.
-     */
-    public IgniteConfiguration setClockSyncSamples(int clockSyncSamples) {
-        this.clockSyncSamples = clockSyncSamples;
-
-        return this;
-    }
-
-    /**
-     * Gets frequency at which clock is synchronized between nodes, in milliseconds.
-     * <p>
-     * Clock synchronization is used for cache version assignment in {@code CLOCK} order mode.
-     *
-     * @return Clock synchronization frequency, in milliseconds.
-     */
-    public long getClockSyncFrequency() {
-        return clockSyncFreq;
-    }
-
-    /**
-     * Sets clock synchronization frequency in milliseconds.
-     *
-     * @param clockSyncFreq Clock synchronization frequency.
-     * @return {@code this} for chaining.
-     */
-    public IgniteConfiguration setClockSyncFrequency(long clockSyncFreq) {
-        this.clockSyncFreq = clockSyncFreq;
 
         return this;
     }
@@ -1890,6 +1834,33 @@ public class IgniteConfiguration {
     }
 
     /**
+     * Returns failure detection timeout for client nodes used by {@link TcpDiscoverySpi} and {@link TcpCommunicationSpi}.
+     * <p>
+     * Default is {@link #DFLT_CLIENT_FAILURE_DETECTION_TIMEOUT}.
+     *
+     * @see #setClientFailureDetectionTimeout(long)
+     * @return Failure detection timeout for client nodes in milliseconds.
+     */
+    public Long getClientFailureDetectionTimeout() {
+        return clientFailureDetectionTimeout;
+    }
+
+    /**
+     * Sets failure detection timeout to use in {@link TcpDiscoverySpi} and {@link TcpCommunicationSpi}.
+     * <p>
+     * Failure detection timeout is used to determine how long the communication or discovery SPIs should wait before
+     * considering a remote connection failed.
+     *
+     * @param clientFailureDetectionTimeout Failure detection timeout in milliseconds.
+     * @return {@code this} for chaining.
+     */
+    public IgniteConfiguration setClientFailureDetectionTimeout(long clientFailureDetectionTimeout) {
+        this.clientFailureDetectionTimeout = clientFailureDetectionTimeout;
+
+        return this;
+    }
+
+    /**
      * Returns failure detection timeout used by {@link TcpDiscoverySpi} and {@link TcpCommunicationSpi}.
      * <p>
      * Default is {@link #DFLT_FAILURE_DETECTION_TIMEOUT}.
@@ -2151,22 +2122,22 @@ public class IgniteConfiguration {
     }
 
     /**
-     * Gets memory configuration.
+     * Gets page memory configuration.
      *
      * @return Memory configuration.
      */
     public MemoryConfiguration getMemoryConfiguration() {
-        return dbCfg;
+        return memCfg;
     }
 
     /**
-     * Sets memory configuration.
+     * Sets page memory configuration.
      *
-     * @param dbCfg Memory configuration.
+     * @param memCfg Memory configuration.
      * @return {@code this} for chaining.
      */
-    public IgniteConfiguration setMemoryConfiguration(MemoryConfiguration dbCfg) {
-        this.dbCfg = dbCfg;
+    public IgniteConfiguration setMemoryConfiguration(MemoryConfiguration memCfg) {
+        this.memCfg = memCfg;
 
         return this;
     }
@@ -2714,6 +2685,31 @@ public class IgniteConfiguration {
      */
     public IgniteConfiguration setLateAffinityAssignment(boolean lateAffAssignment) {
         this.lateAffAssignment = lateAffAssignment;
+
+        return this;
+    }
+
+    /**
+     * Gets custom executors for user compute tasks.
+     * <p>
+     * See {@link #setExecutorConfiguration(ExecutorConfiguration...)} for more information.
+     *
+     * @return Executor configurations.
+     */
+    public ExecutorConfiguration[] getExecutorConfiguration() {
+        return execCfgs;
+    }
+
+    /**
+     * Sets custom executors for user compute tasks.
+     * <p>
+     * See {@link IgniteCompute#withExecutor(String)} for more information.
+     *
+     * @param execCfgs Executor configurations.
+     * @return {@code this} for chaining.
+     */
+    public IgniteConfiguration setExecutorConfiguration(ExecutorConfiguration... execCfgs) {
+        this.execCfgs = execCfgs;
 
         return this;
     }

@@ -45,7 +45,6 @@ import org.apache.ignite.transactions.TransactionConcurrency;
 import org.apache.ignite.transactions.TransactionIsolation;
 import org.jetbrains.annotations.Nullable;
 
-import static org.apache.ignite.cache.CacheAtomicWriteOrderMode.PRIMARY;
 import static org.apache.ignite.cache.CacheAtomicityMode.TRANSACTIONAL;
 import static org.apache.ignite.cache.CacheMode.PARTITIONED;
 import static org.apache.ignite.cache.CacheWriteSynchronizationMode.FULL_SYNC;
@@ -330,7 +329,7 @@ public abstract class IgniteCacheInvokeReadThroughAbstractTest extends GridCommo
         CacheAtomicityMode atomicityMode,
         int backups,
         boolean nearCache) {
-        CacheConfiguration ccfg = new CacheConfiguration();
+        CacheConfiguration ccfg = new CacheConfiguration(DEFAULT_CACHE_NAME);
 
         ccfg.setReadThrough(true);
         ccfg.setWriteThrough(true);
@@ -339,7 +338,6 @@ public abstract class IgniteCacheInvokeReadThroughAbstractTest extends GridCommo
         ccfg.setAtomicityMode(atomicityMode);
         ccfg.setCacheMode(cacheMode);
         ccfg.setAffinity(new RendezvousAffinityFunction(false, 32));
-        ccfg.setAtomicWriteOrderMode(PRIMARY);
 
         if (nearCache)
             ccfg.setNearConfiguration(new NearCacheConfiguration());

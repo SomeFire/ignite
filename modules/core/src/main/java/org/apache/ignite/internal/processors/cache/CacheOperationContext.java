@@ -275,6 +275,10 @@ public class CacheOperationContext implements Serializable {
         return noRetries;
     }
 
+    /**
+     * @param allowInTx Allow in transactions flag.
+     * @return Operation context.
+     */
     public CacheOperationContext setAllowInTx(boolean allowInTx) {
         return new CacheOperationContext(
                 skipStore,
@@ -287,6 +291,9 @@ public class CacheOperationContext implements Serializable {
                 allowInTx);
     }
 
+    /**
+     * @return Allow in transactions flag.
+     */
     public boolean allowedInTx() {
         return allowInTx;
     }

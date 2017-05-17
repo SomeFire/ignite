@@ -295,7 +295,7 @@ public class IgniteCacheProxy<K, V> extends AsyncSupportAdapter<IgniteCache<K, V
 
         try {
             CacheOperationContext prj0 = opCtx != null ? opCtx.withExpiryPolicy(plc) :
-                new CacheOperationContext(false, null, false, plc, false, null, false);
+                new CacheOperationContext(false, null, false, plc, false, null, false, false);
 
             return new IgniteCacheProxy<>(ctx, delegate, prj0, isAsync(), lock);
         }
@@ -328,7 +328,7 @@ public class IgniteCacheProxy<K, V> extends AsyncSupportAdapter<IgniteCache<K, V
                 return this;
 
             CacheOperationContext opCtx0 = opCtx != null ? opCtx.setAllowInTx(true) :
-                    new CacheOperationContext(false, null, false, null, false, null, true);
+                    new CacheOperationContext(false, null, false, null, false, null, false, true);
 
             return new IgniteCacheProxy<>(ctx,
                     delegate,
@@ -2579,8 +2579,6 @@ public class IgniteCacheProxy<K, V> extends AsyncSupportAdapter<IgniteCache<K, V
                     opCtx != null && opCtx.noRetries(),
                     opCtx != null ? opCtx.dataCenterId() : null,
                     opCtx != null && opCtx.recovery(),
-                    opCtx != null && opCtx.allowedInTx());
-                    opCtx != null ? opCtx.dataCenterId() : null,
                     opCtx != null && opCtx.allowedInTx());
 
             return new IgniteCacheProxy<>((GridCacheContext<K1, V1>)ctx,

@@ -1465,6 +1465,13 @@ public class TcpDiscoverySpi extends IgniteSpiAdapter implements DiscoverySpi {
     }
 
     /**
+     * @param msg Message.
+     */
+    protected void startMessageProcess(TcpDiscoveryAbstractMessage msg) {
+        // No-op, intended for usage in tests.
+    }
+
+    /**
      * Writes message to the socket.
      *
      * @param sock Socket.
@@ -2336,6 +2343,10 @@ public class TcpDiscoverySpi extends IgniteSpiAdapter implements DiscoverySpi {
         /** {@inheritDoc} */
         @Override public long getCoordinatorSinceTimestamp() {
             return TcpDiscoverySpi.this.getCoordinatorSinceTimestamp();
+        }
+
+        @Override public void checkRingLatency(int maxHops) {
+            TcpDiscoverySpi.this.impl.checkRingLatency(maxHops);
         }
     }
 }

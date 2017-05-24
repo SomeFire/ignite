@@ -27,6 +27,7 @@ import org.apache.ignite.cache.query.SqlFieldsQuery;
 import org.apache.ignite.configuration.CacheConfiguration;
 import org.apache.ignite.configuration.NearCacheConfiguration;
 import org.apache.ignite.internal.processors.cache.IgniteCacheAbstractFieldsQuerySelfTest;
+import org.jetbrains.annotations.Nullable;
 
 import static org.apache.ignite.cache.CacheMode.PARTITIONED;
 
@@ -52,8 +53,8 @@ public class IgniteCachePartitionedFieldsQuerySelfTest extends IgniteCacheAbstra
     }
 
     /** {@inheritDoc} */
-    @Override protected CacheConfiguration cacheConfiguration() {
-        CacheConfiguration cc = super.cacheConfiguration();
+    @Override protected CacheConfiguration cache(@Nullable String name, boolean primitives) {
+        CacheConfiguration cc = super.cache(name, primitives);
 
         cc.setNearConfiguration(nearConfiguration());
 
@@ -62,20 +63,20 @@ public class IgniteCachePartitionedFieldsQuerySelfTest extends IgniteCacheAbstra
 
     /** @throws Exception If failed. */
     public void testLocalQuery() throws Exception {
-        IgniteCache<Integer, Integer> cache = jcache(Integer.class, Integer.class);
+        IgniteCache<Object, Object> cache = grid(0).cache( null);
 
         awaitPartitionMapExchange(true, true, null);
 
-        int exp = 0;
+        int expected = 0;
 
         for(Cache.Entry e: cache.localEntries(CachePeekMode.PRIMARY)){
             if(e.getValue() instanceof Integer)
-                exp++;
+                expected++;
         }
 
         QueryCursor<List<?>> qry = cache
             .query(new SqlFieldsQuery("select _key, _val from Integer").setLocal(true));
 
-        assertEquals(exp, qry.getAll().size());
+        assertEquals(expected, qry.getAll().size());
     }
 }

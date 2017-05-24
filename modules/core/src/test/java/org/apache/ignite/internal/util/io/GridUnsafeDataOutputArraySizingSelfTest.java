@@ -132,7 +132,9 @@ public class GridUnsafeDataOutputArraySizingSelfTest extends GridCommonAbstractT
             this.len = len;
         }
 
-        /** {@inheritDoc} */
+        /**
+         * {@inheritDoc}
+         */
         @Override public boolean apply() {
             try {
                 out.write(bytes);

@@ -159,7 +159,6 @@ public class TxLock implements Message {
                     return false;
 
                 writer.incrementState();
-
         }
 
         return true;
@@ -204,7 +203,6 @@ public class TxLock implements Message {
                     return false;
 
                 reader.incrementState();
-
         }
 
         return reader.afterMessageRead(TxLock.class);

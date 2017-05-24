@@ -236,7 +236,7 @@ public class BinaryTreeSelfTest extends GridCommonAbstractTest {
      * @return Cache.
      */
     private IgniteCache cache() {
-        return G.ignite(NODE_CLI).cache(DEFAULT_CACHE_NAME);
+        return G.ignite(NODE_CLI).cache(null);
     }
 
     /**
@@ -277,7 +277,7 @@ public class BinaryTreeSelfTest extends GridCommonAbstractTest {
 
         cfg.setDiscoverySpi(discoSpi);
 
-        CacheConfiguration ccfg = new CacheConfiguration(DEFAULT_CACHE_NAME);
+        CacheConfiguration ccfg = new CacheConfiguration();
 
         ccfg.setCacheMode(CacheMode.PARTITIONED);
 

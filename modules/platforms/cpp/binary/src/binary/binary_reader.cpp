@@ -163,7 +163,7 @@ namespace ignite
             return BinaryStringArrayReader(impl, id, size);
         }
 
-        CollectionType::Type BinaryReader::ReadCollectionType(const char* fieldName)
+        CollectionType BinaryReader::ReadCollectionType(const char* fieldName)
         {
             return impl->ReadCollectionType(fieldName);
         }

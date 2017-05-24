@@ -55,8 +55,9 @@ public class PlatformTestCachePluginProvider implements CachePluginProvider {
         // No-op.
     }
 
-    @Override public void validateRemote(CacheConfiguration locCfg, CacheConfiguration rmtCfg, ClusterNode rmtNode)
-        throws IgniteCheckedException {
+    /** {@inheritDoc} */
+    @Override public void validateRemote(CacheConfiguration locCfg, CachePluginConfiguration locPluginCcfg,
+                                         CacheConfiguration rmtCfg, ClusterNode rmtNode) throws IgniteCheckedException {
         // No-op.
     }
 

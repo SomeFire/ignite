@@ -82,7 +82,7 @@ namespace ignite
              * @param dataBuf Application data buffer.
              * @return Operation result.
              */
-            SqlResult::Type ReadToBuffer(ignite::impl::binary::BinaryReaderImpl& reader,
+            SqlResult ReadToBuffer(ignite::impl::binary::BinaryReaderImpl& reader,
                 app::ApplicationDataBuffer& dataBuf);
 
             /**

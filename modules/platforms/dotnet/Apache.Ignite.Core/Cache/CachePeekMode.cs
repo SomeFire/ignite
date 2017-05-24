@@ -58,6 +58,11 @@ namespace Apache.Ignite.Core.Cache
         /// <summary>
         /// Peeks value from the off-heap storage only, without loading off-heap value into cache.
         /// </summary>
-        Offheap = 0x20
+        Offheap = 0x20,
+
+        /// <summary>
+        /// Peeks value from the swap storage only, without loading swapped value into cache.
+        /// </summary>
+        Swap = 0x40
     }
 }

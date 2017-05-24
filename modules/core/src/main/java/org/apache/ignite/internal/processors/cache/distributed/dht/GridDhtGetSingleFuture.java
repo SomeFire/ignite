@@ -51,6 +51,9 @@ import org.jetbrains.annotations.Nullable;
  */
 public final class GridDhtGetSingleFuture<K, V> extends GridFutureAdapter<GridCacheEntryInfo>
     implements GridDhtFuture<GridCacheEntryInfo> {
+    /** */
+    private static final long serialVersionUID = 0L;
+
     /** Logger reference. */
     private static final AtomicReference<IgniteLogger> logRef = new AtomicReference<>();
 
@@ -102,9 +105,6 @@ public final class GridDhtGetSingleFuture<K, V> extends GridFutureAdapter<GridCa
     /** Skip values flag. */
     private boolean skipVals;
 
-    /** Recovery context flag. */
-    private final boolean recovery;
-
     /**
      * @param cctx Context.
      * @param msgId Message ID.
@@ -129,8 +129,7 @@ public final class GridDhtGetSingleFuture<K, V> extends GridFutureAdapter<GridCa
         @Nullable UUID subjId,
         int taskNameHash,
         @Nullable IgniteCacheExpiryPolicy expiryPlc,
-        boolean skipVals,
-        boolean recovery
+        boolean skipVals
     ) {
         assert reader != null;
         assert key != null;
@@ -146,7 +145,6 @@ public final class GridDhtGetSingleFuture<K, V> extends GridFutureAdapter<GridCa
         this.taskNameHash = taskNameHash;
         this.expiryPlc = expiryPlc;
         this.skipVals = skipVals;
-        this.recovery = recovery;
 
         futId = IgniteUuid.randomUuid();
 
@@ -361,8 +359,7 @@ public final class GridDhtGetSingleFuture<K, V> extends GridFutureAdapter<GridCa
                 taskName,
                 expiryPlc,
                 skipVals,
-                /*can remap*/true,
-                recovery);
+                /*can remap*/true);
         }
         else {
             final ReaderArguments args = readerArgs;
@@ -387,8 +384,7 @@ public final class GridDhtGetSingleFuture<K, V> extends GridFutureAdapter<GridCa
                                 taskName,
                                 expiryPlc,
                                 skipVals,
-                                /*can remap*/true,
-                                recovery);
+                                /*can remap*/true);
 
                         fut0.listen(createGetFutureListener());
                     }

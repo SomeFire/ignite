@@ -29,9 +29,6 @@ import org.apache.ignite.testframework.configvariations.Parameters;
  * Test.
  */
 public class ParametersTest extends TestCase {
-    /** */
-    private static final String DEFAULT_CACHE_NAME = "default";
-
     /**
      * @throws Exception If failed.
      */
@@ -43,7 +40,7 @@ public class ParametersTest extends TestCase {
         Set<CacheMode> res = new HashSet<>();
 
         for (ConfigParameter<CacheConfiguration> modeApplier : modes) {
-            CacheConfiguration cfg = new CacheConfiguration(DEFAULT_CACHE_NAME);
+            CacheConfiguration cfg = new CacheConfiguration();
 
             modeApplier.apply(cfg);
 
@@ -74,7 +71,7 @@ public class ParametersTest extends TestCase {
         for (int i = 1; i < cfgParam.length; i++) {
             ConfigParameter<CacheConfiguration> modeApplier = cfgParam[i];
 
-            CacheConfiguration cfg = new CacheConfiguration(DEFAULT_CACHE_NAME);
+            CacheConfiguration cfg = new CacheConfiguration();
 
             modeApplier.apply(cfg);
 

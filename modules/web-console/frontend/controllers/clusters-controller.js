@@ -48,6 +48,7 @@ export default ['clustersController', [
             sslContextFactory: {
                 trustManagers: []
             },
+            swapSpaceSpi: {},
             transactionConfiguration: {},
             collision: {}
         };
@@ -227,8 +228,12 @@ export default ['clustersController', [
             {value: 'GoogleStorage', label: 'Google cloud storage'},
             {value: 'Jdbc', label: 'JDBC'},
             {value: 'SharedFs', label: 'Shared filesystem'},
-            {value: 'ZooKeeper', label: 'Apache ZooKeeper'},
-            {value: 'Kubernetes', label: 'Kubernetes'}
+            {value: 'ZooKeeper', label: 'Apache ZooKeeper'}
+        ];
+
+        $scope.swapSpaceSpis = [
+            {value: 'FileSwapSpaceSpi', label: 'File-based swap'},
+            {value: null, label: 'Not set'}
         ];
 
         $scope.eventGroups = igniteEventGroups;
@@ -275,6 +280,9 @@ export default ['clustersController', [
 
                     if (!cluster.logger)
                         cluster.logger = {Log4j: { mode: 'Default'}};
+
+                    if (!cluster.eventStorage)
+                        cluster.eventStorage = { kind: 'Memory' };
 
                     if (!cluster.peerClassLoadingLocalClassPathExclude)
                         cluster.peerClassLoadingLocalClassPathExclude = [];
@@ -402,6 +410,7 @@ export default ['clustersController', [
                 communication: {tcpNoDelay: true},
                 connector: {noDelay: true},
                 collision: {kind: 'Noop', JobStealing: {stealingEnabled: true}, PriorityQueue: {starvationPreventionEnabled: true}},
+                eventStorage: {kind: 'Memory'},
                 failoverSpi: [],
                 logger: {Log4j: { mode: 'Default'}},
                 caches: linkId && _.find($scope.caches, {value: linkId}) ? [linkId] : [],
@@ -609,6 +618,26 @@ export default ['clustersController', [
             return true;
         }
 
+        function checkSwapConfiguration(item) {
+            const swapKind = item.swapSpaceSpi && item.swapSpaceSpi.kind;
+
+            if (swapKind && item.swapSpaceSpi[swapKind]) {
+                const swap = item.swapSpaceSpi[swapKind];
+
+                const sparsity = swap.maximumSparsity;
+
+                if (LegacyUtils.isDefined(sparsity) && (sparsity < 0 || sparsity >= 1))
+                    return ErrorPopover.show('maximumSparsityInput', 'Maximum sparsity should be more or equal 0 and less than 1!', $scope.ui, 'swap');
+
+                const readStripesNumber = swap.readStripesNumber;
+
+                if (readStripesNumber && !(readStripesNumber === -1 || (readStripesNumber & (readStripesNumber - 1)) === 0))
+                    return ErrorPopover.show('readStripesNumberInput', 'Read stripe size must be positive and power of two!', $scope.ui, 'swap');
+            }
+
+            return true;
+        }
+
         function checkSslConfiguration(item) {
             const r = item.connector;
 
@@ -672,6 +701,9 @@ export default ['clustersController', [
             if (!checkODBC(item))
                 return false;
 
+            if (!checkSwapConfiguration(item))
+                return false;
+
             if (!checkSslConfiguration(item))
                 return false;
 
@@ -725,6 +757,11 @@ export default ['clustersController', [
         // Save cluster.
         $scope.saveItem = function() {
             const item = $scope.backupItem;
+
+            const swapConfigured = item.swapSpaceSpi && item.swapSpaceSpi.kind;
+
+            if (!swapConfigured && _.find(clusterCaches(item), (cache) => cache.swapEnabled))
+                _.merge(item, {swapSpaceSpi: {kind: 'FileSwapSpaceSpi'}});
 
             if (validate(item))
                 save(item);

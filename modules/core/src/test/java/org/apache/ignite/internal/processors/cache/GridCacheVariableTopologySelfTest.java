@@ -130,7 +130,7 @@ public class GridCacheVariableTopologySelfTest extends GridCommonAbstractTest {
             @SuppressWarnings({"BusyWait"})
             @Override public void applyx() {
                 while (cnt++ < txCnt && !done.get()) {
-                    IgniteCache<Object, Object> cache = grid(0).cache(DEFAULT_CACHE_NAME);
+                    IgniteCache<Object, Object> cache = grid(0).cache(null);
 
                     if (cnt % logMod == 0)
                         info("Starting transaction: " + cnt);
@@ -177,7 +177,7 @@ public class GridCacheVariableTopologySelfTest extends GridCommonAbstractTest {
         GridFuture<?> debugFut = GridTestUtils.runMultiThreadedAsync(new Runnable() {
             @SuppressWarnings({"UnusedDeclaration"})
             @Override public void run() {
-                Cache<Object, Object> cache = ((IgniteKernal)grid(0)).cache(DEFAULT_CACHE_NAME);
+                Cache<Object, Object> cache = ((IgniteKernal)grid(0)).cache(null);
 
                 try {
                     Thread.sleep(15000);

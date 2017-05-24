@@ -19,7 +19,6 @@ package org.apache.ignite.internal.processors.cache.extras;
 
 import org.apache.ignite.internal.processors.cache.GridCacheMvcc;
 import org.apache.ignite.internal.processors.cache.version.GridCacheVersion;
-import org.apache.ignite.internal.util.typedef.internal.CU;
 import org.apache.ignite.internal.util.typedef.internal.S;
 
 /**
@@ -38,7 +37,7 @@ public class GridCacheMvccObsoleteEntryExtras extends GridCacheEntryExtrasAdapte
      * @param mvcc MVCC.
      * @param obsoleteVer Obsolete version.
      */
-    GridCacheMvccObsoleteEntryExtras(GridCacheMvcc mvcc, GridCacheVersion obsoleteVer) {
+    public GridCacheMvccObsoleteEntryExtras(GridCacheMvcc mvcc, GridCacheVersion obsoleteVer) {
         assert mvcc != null;
         assert obsoleteVer != null;
 
@@ -80,7 +79,7 @@ public class GridCacheMvccObsoleteEntryExtras extends GridCacheEntryExtrasAdapte
 
     /** {@inheritDoc} */
     @Override public GridCacheEntryExtras ttlAndExpireTime(long ttl, long expireTime) {
-        return expireTime != CU.EXPIRE_TIME_ETERNAL ? new GridCacheMvccObsoleteTtlEntryExtras(mvcc, obsoleteVer, ttl, expireTime) : this;
+        return ttl != 0 ? new GridCacheMvccObsoleteTtlEntryExtras(mvcc, obsoleteVer, ttl, expireTime) : this;
     }
 
     /** {@inheritDoc} */

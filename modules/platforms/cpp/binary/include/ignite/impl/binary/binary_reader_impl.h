@@ -55,7 +55,7 @@ namespace ignite
                  * @param pos Object position in the stream.
                  * @param usrType user type flag.
                  * @param typeId Type ID.
-                 * @param hashCode Hash code.
+                 * @param hashcode Hash code.
                  * @param len Length in bytes.
                  * @param rawOff Raw data offset.
                  * @param footerBegin Footer beginning absolute position in stream.
@@ -63,7 +63,7 @@ namespace ignite
                  */
                 BinaryReaderImpl(interop::InteropInputStream* stream, BinaryIdResolver* idRslvr,
                     int32_t pos, bool usrType, int32_t typeId, int32_t hashCode, int32_t len, int32_t rawOff,
-                    int32_t footerBegin, int32_t footerEnd, BinaryOffsetType::Type schemaType);
+                    int32_t footerBegin, int32_t footerEnd, BinaryOffsetType schemaType);
 
                 /**
                  * Constructor used to construct light-weight reader allowing only raw operations 
@@ -632,7 +632,7 @@ namespace ignite
                  * @param size Collection size.
                  * @return Read session ID.
                  */
-                int32_t ReadCollection(ignite::binary::CollectionType::Type* typ, int32_t* size);
+                int32_t ReadCollection(ignite::binary::CollectionType* typ, int32_t* size);
 
                 /**
                  * Start collection read.
@@ -642,8 +642,7 @@ namespace ignite
                  * @param size Collection size.
                  * @return Read session ID.
                  */
-                int32_t ReadCollection(const char* fieldName,
-                    ignite::binary::CollectionType::Type* typ, int32_t* size);
+                int32_t ReadCollection(const char* fieldName, ignite::binary::CollectionType* typ, int32_t* size);
 
                 /**
                  * Read values and insert them to specified position.
@@ -714,7 +713,7 @@ namespace ignite
                  * @param size Map size.
                  * @return Read session ID.
                  */
-                int32_t ReadMap(ignite::binary::MapType::Type* typ, int32_t* size);
+                int32_t ReadMap(ignite::binary::MapType* typ, int32_t* size);
 
                 /**
                  * Start map read.
@@ -724,14 +723,14 @@ namespace ignite
                  * @param size Map size.
                  * @return Read session ID.
                  */
-                int32_t ReadMap(const char* fieldName, ignite::binary::MapType::Type* typ, int32_t* size);
+                int32_t ReadMap(const char* fieldName, ignite::binary::MapType* typ, int32_t* size);
 
                 /**
                  * Read type of the collection.
                  *
                  * @return Collection type.
                  */
-                ignite::binary::CollectionType::Type ReadCollectionType();
+                ignite::binary::CollectionType ReadCollectionType();
 
                 /**
                  * Read type of the collection.
@@ -739,7 +738,7 @@ namespace ignite
                  * @param fieldName Field name.
                  * @return Collection type.
                  */
-                ignite::binary::CollectionType::Type ReadCollectionType(const char* fieldName);
+                ignite::binary::CollectionType ReadCollectionType(const char* fieldName);
 
                 /**
                  * Read size of the collection.
@@ -951,14 +950,14 @@ namespace ignite
                             else
                                 footerBegin = pos + len;
 
-                            BinaryOffsetType::Type schemaType;
+                            BinaryOffsetType schemaType;
 
                             if (flags & IGNITE_BINARY_FLAG_OFFSET_ONE_BYTE)
-                                schemaType = BinaryOffsetType::ONE_BYTE;
+                                schemaType = OFFSET_TYPE_ONE_BYTE;
                             else if (flags & IGNITE_BINARY_FLAG_OFFSET_TWO_BYTES)
-                                schemaType = BinaryOffsetType::TWO_BYTES;
+                                schemaType = OFFSET_TYPE_TWO_BYTES;
                             else
-                                schemaType = BinaryOffsetType::FOUR_BYTES;
+                                schemaType = OFFSET_TYPE_FOUR_BYTES;
 
                             int32_t footerEnd;
 
@@ -1067,7 +1066,7 @@ namespace ignite
                 int32_t footerEnd;
 
                 /** Object schema type. */
-                BinaryOffsetType::Type schemaType;
+                BinaryOffsetType schemaType;
 
                 IGNITE_NO_COPY_ASSIGNMENT(BinaryReaderImpl)
                     
@@ -1352,7 +1351,7 @@ namespace ignite
                 /**
                  * Check whether session ID matches.
                  *
-                 * @param expSes Expected session ID.
+                 * @param ses Expected session ID.
                  */
                 void CheckSession(int32_t expSes) const;
 
@@ -1387,7 +1386,7 @@ namespace ignite
                  *
                  * @return Collection type.
                  */
-                ignite::binary::CollectionType::Type ReadCollectionTypeUnprotected();
+                ignite::binary::CollectionType ReadCollectionTypeUnprotected();
 
                 /**
                  * Read size of the collection. Do not preserve stream position.

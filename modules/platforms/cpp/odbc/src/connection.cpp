@@ -76,14 +76,14 @@ namespace ignite
             IGNITE_ODBC_API_CALL(InternalGetInfo(type, buf, buflen, reslen));
         }
 
-        SqlResult::Type Connection::InternalGetInfo(config::ConnectionInfo::InfoType type, void* buf, short buflen, short* reslen)
+        SqlResult Connection::InternalGetInfo(config::ConnectionInfo::InfoType type, void* buf, short buflen, short* reslen)
         {
             const config::ConnectionInfo& info = GetInfo();
 
-            SqlResult::Type res = info.GetInfo(type, buf, buflen, reslen);
+            SqlResult res = info.GetInfo(type, buf, buflen, reslen);
 
-            if (res != SqlResult::AI_SUCCESS)
-                AddStatusRecord(SqlState::SHYC00_OPTIONAL_FEATURE_NOT_IMPLEMENTED, "Not implemented.");
+            if (res != SQL_RESULT_SUCCESS)
+                AddStatusRecord(SQL_STATE_HYC00_OPTIONAL_FEATURE_NOT_IMPLEMENTED, "Not implemented.");
 
             return res;
         }
@@ -93,7 +93,7 @@ namespace ignite
             IGNITE_ODBC_API_CALL(InternalEstablish(connectStr));
         }
 
-        SqlResult::Type Connection::InternalEstablish(const std::string& connectStr)
+        SqlResult Connection::InternalEstablish(const std::string& connectStr)
         {
             config::Configuration config;
 
@@ -103,9 +103,9 @@ namespace ignite
             }
             catch (IgniteError& e)
             {
-                AddStatusRecord(SqlState::SHY000_GENERAL_ERROR, e.GetText());
+                AddStatusRecord(SQL_STATE_HY000_GENERAL_ERROR, e.GetText());
 
-                return SqlResult::AI_ERROR;
+                return SQL_RESULT_ERROR;
             }
 
             return InternalEstablish(config);
@@ -116,24 +116,24 @@ namespace ignite
             IGNITE_ODBC_API_CALL(InternalEstablish(cfg));
         }
 
-        SqlResult::Type Connection::InternalEstablish(const config::Configuration cfg)
+        SqlResult Connection::InternalEstablish(const config::Configuration cfg)
         {
             config = cfg;
 
             if (connected)
             {
-                AddStatusRecord(SqlState::S08002_ALREADY_CONNECTED, "Already connected.");
+                AddStatusRecord(SQL_STATE_08002_ALREADY_CONNECTED, "Already connected.");
 
-                return SqlResult::AI_ERROR;
+                return SQL_RESULT_ERROR;
             }
 
             connected = socket.Connect(cfg.GetHost().c_str(), cfg.GetTcpPort());
 
             if (!connected)
             {
-                AddStatusRecord(SqlState::S08001_CANNOT_CONNECT, "Failed to establish connection with the host.");
+                AddStatusRecord(SQL_STATE_08001_CANNOT_CONNECT, "Failed to establish connection with the host.");
 
-                return SqlResult::AI_ERROR;
+                return SQL_RESULT_ERROR;
             }
 
             return MakeRequestHandshake();
@@ -144,20 +144,20 @@ namespace ignite
             IGNITE_ODBC_API_CALL(InternalRelease());
         }
 
-        SqlResult::Type Connection::InternalRelease()
+        SqlResult Connection::InternalRelease()
         {
             if (!connected)
             {
-                AddStatusRecord(SqlState::S08003_NOT_CONNECTED, "Connection is not open.");
+                AddStatusRecord(SQL_STATE_08003_NOT_CONNECTED, "Connection is not open.");
 
-                return SqlResult::AI_ERROR;
+                return SQL_RESULT_ERROR;
             }
 
             socket.Close();
 
             connected = false;
 
-            return SqlResult::AI_SUCCESS;
+            return SQL_RESULT_SUCCESS;
         }
 
         Statement* Connection::CreateStatement()
@@ -169,18 +169,18 @@ namespace ignite
             return statement;
         }
 
-        SqlResult::Type Connection::InternalCreateStatement(Statement*& statement)
+        SqlResult Connection::InternalCreateStatement(Statement*& statement)
         {
             statement = new Statement(*this);
 
             if (!statement)
             {
-                AddStatusRecord(SqlState::SHY001_MEMORY_ALLOCATION, "Not enough memory.");
+                AddStatusRecord(SQL_STATE_HY001_MEMORY_ALLOCATION, "Not enough memory.");
 
-                return SqlResult::AI_ERROR;
+                return SQL_RESULT_ERROR;
             }
 
-            return SqlResult::AI_SUCCESS;
+            return SQL_RESULT_SUCCESS;
         }
 
         void Connection::Send(const int8_t* data, size_t len)
@@ -255,8 +255,6 @@ namespace ignite
 
                 IGNITE_ERROR_1(IgniteError::IGNITE_ERR_GENERIC, "Can not receive message body");
             }
-
-            LOG_MSG("Message received: " << utility::HexDump(&msg[0], msg.size()));
         }
 
         size_t Connection::ReceiveAll(void* dst, size_t len)
@@ -290,7 +288,7 @@ namespace ignite
             return config;
         }
 
-        diagnostic::DiagnosticRecord Connection::CreateStatusRecord(SqlState::Type sqlState,
+        diagnostic::DiagnosticRecord Connection::CreateStatusRecord(SqlState sqlState,
             const std::string& message, int32_t rowNum, int32_t columnNum)
         {
             return diagnostic::DiagnosticRecord(sqlState, message, "", "", rowNum, columnNum);
@@ -301,9 +299,9 @@ namespace ignite
             IGNITE_ODBC_API_CALL(InternalTransactionCommit());
         }
 
-        SqlResult::Type Connection::InternalTransactionCommit()
+        SqlResult Connection::InternalTransactionCommit()
         {
-            return SqlResult::AI_SUCCESS;
+            return SQL_RESULT_SUCCESS;
         }
 
         void Connection::TransactionRollback()
@@ -311,38 +309,31 @@ namespace ignite
             IGNITE_ODBC_API_CALL(InternalTransactionRollback());
         }
 
-        SqlResult::Type Connection::InternalTransactionRollback()
+        SqlResult Connection::InternalTransactionRollback()
         {
-            AddStatusRecord(SqlState::SHYC00_OPTIONAL_FEATURE_NOT_IMPLEMENTED,
+            AddStatusRecord(SQL_STATE_HYC00_OPTIONAL_FEATURE_NOT_IMPLEMENTED,
                 "Rollback operation is not supported.");
 
-            return SqlResult::AI_ERROR;
+            return SQL_RESULT_ERROR;
         }
 
-        SqlResult::Type Connection::MakeRequestHandshake()
+        SqlResult Connection::MakeRequestHandshake()
         {
             bool distributedJoins = false;
             bool enforceJoinOrder = false;
-            ProtocolVersion protocolVersion;
+            int64_t protocolVersion = 0;
 
             try
             {
                 distributedJoins = config.IsDistributedJoins();
                 enforceJoinOrder = config.IsEnforceJoinOrder();
-                protocolVersion = config.GetProtocolVersion();
+                protocolVersion = config.GetProtocolVersion().GetIntValue();
             }
             catch (const IgniteError& err)
             {
-                AddStatusRecord(SqlState::S01S00_INVALID_CONNECTION_STRING_ATTRIBUTE, err.GetText());
+                AddStatusRecord(SQL_STATE_01S00_INVALID_CONNECTION_STRING_ATTRIBUTE, err.GetText());
 
-                return SqlResult::AI_ERROR;
-            }
-
-            if (!protocolVersion.IsSupported())
-            {
-                AddStatusRecord(SqlState::S01S00_INVALID_CONNECTION_STRING_ATTRIBUTE, "Protocol version is not supported: " + protocolVersion.ToString());
-
-                return SqlResult::AI_ERROR;
+                return SQL_RESULT_ERROR;
             }
 
             HandshakeRequest req(protocolVersion, distributedJoins, enforceJoinOrder);
@@ -354,9 +345,20 @@ namespace ignite
             }
             catch (const IgniteError& err)
             {
-                AddStatusRecord(SqlState::SHYT01_CONNECTIOIN_TIMEOUT, err.GetText());
+                AddStatusRecord(SQL_STATE_HYT01_CONNECTIOIN_TIMEOUT, err.GetText());
 
-                return SqlResult::AI_ERROR;
+                return SQL_RESULT_ERROR;
+            }
+
+            if (rsp.GetStatus() != RESPONSE_STATUS_SUCCESS)
+            {
+                LOG_MSG("Error: " << rsp.GetError().c_str());
+
+                AddStatusRecord(SQL_STATE_08001_CANNOT_CONNECT, rsp.GetError());
+
+                InternalRelease();
+
+                return SQL_RESULT_ERROR;
             }
 
             if (!rsp.IsAccepted())
@@ -365,22 +367,19 @@ namespace ignite
 
                 std::stringstream constructor;
 
-                constructor << "Node rejected handshake message. ";
+                constructor << "Node rejected handshake message. "
+                    << "Current node Apache Ignite version: " << rsp.CurrentVer() << ", "
+                    << "node protocol version introduced in version: " << rsp.ProtoVerSince() << ", "
+                    << "driver protocol version introduced in version: " << config.GetProtocolVersion().ToString() << ".";
 
-                if (!rsp.GetError().empty())
-                    constructor << "Additional info: " << rsp.GetError();
-
-                constructor << "Current node Apache Ignite version: " << rsp.GetCurrentVer().ToString() << ", "
-                            << "driver protocol version introduced in version: " << config.GetProtocolVersion().ToString() << ".";
-
-                AddStatusRecord(SqlState::S08001_CANNOT_CONNECT, constructor.str());
+                AddStatusRecord(SQL_STATE_08001_CANNOT_CONNECT, constructor.str());
 
                 InternalRelease();
 
-                return SqlResult::AI_ERROR;
+                return SQL_RESULT_ERROR;
             }
 
-            return SqlResult::AI_SUCCESS;
+            return SQL_RESULT_SUCCESS;
         }
     }
 }

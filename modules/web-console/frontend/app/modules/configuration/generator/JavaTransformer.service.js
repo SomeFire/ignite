@@ -778,9 +778,6 @@ export default class IgniteJavaTransformer extends AbstractTransformer {
                     if (this._isBean(prop.typeClsName))
                         _.forEach(prop.items, (item) => imports.push(...this.collectBeanImports(item)));
 
-                    if (prop.typeClsName === 'java.lang.Class')
-                        _.forEach(prop.items, (item) => imports.push(item));
-
                     break;
                 case 'COLLECTION':
                     imports.push(prop.typeClsName);

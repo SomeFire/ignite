@@ -31,15 +31,13 @@ import org.apache.ignite.internal.GridKernalContext;
 import org.apache.ignite.internal.processors.cache.CacheConflictResolutionManager;
 import org.apache.ignite.internal.processors.cache.CacheOsConflictResolutionManager;
 import org.apache.ignite.internal.processors.cache.GridCacheManagerAdapter;
-import org.apache.ignite.internal.processors.cache.IgniteCacheOffheapManager;
-import org.apache.ignite.internal.processors.cache.IgniteCacheOffheapManagerImpl;
 import org.apache.ignite.internal.processors.cache.dr.GridCacheDrManager;
 import org.apache.ignite.internal.processors.cache.dr.GridOsCacheDrManager;
 import org.apache.ignite.internal.processors.cache.store.CacheOsStoreManager;
 import org.apache.ignite.internal.processors.cache.store.CacheStoreManager;
+import org.apache.ignite.plugin.CachePluginConfiguration;
 import org.apache.ignite.plugin.CachePluginContext;
 import org.apache.ignite.plugin.CachePluginProvider;
-import org.apache.ignite.plugin.PluginProvider;
 import org.jetbrains.annotations.Nullable;
 
 import javax.cache.Cache;
@@ -67,13 +65,13 @@ public class CachePluginManager extends GridCacheManagerAdapter {
     public CachePluginManager(GridKernalContext ctx, CacheConfiguration cfg) {
         this.ctx = ctx;
         this.cfg = cfg;
+        
+        if (cfg.getPluginConfigurations() != null) {
+            for (CachePluginConfiguration cachePluginCfg : cfg.getPluginConfigurations()) {
+                CachePluginContext pluginCtx = new GridCachePluginContext(ctx, cfg, cachePluginCfg);
 
-        for (PluginProvider p : ctx.plugins().allProviders()) {
-            CachePluginContext pluginCtx = new GridCachePluginContext(ctx, cfg);
+                CachePluginProvider provider = cachePluginCfg.createProvider(pluginCtx);
 
-            CachePluginProvider provider = p.createCacheProvider(pluginCtx);
-
-            if (provider != null) {
                 providersList.add(provider);
                 providersMap.put(pluginCtx, provider);
             }
@@ -99,7 +97,7 @@ public class CachePluginManager extends GridCacheManagerAdapter {
     }
 
     /** {@inheritDoc} */
-    @Override protected void stop0(boolean cancel, boolean destroy) {
+    @Override protected void stop0(boolean cancel) {
         for (int i = providersList.size() - 1; i >= 0; i--)
             providersList.get(i).stop(cancel);
     }
@@ -131,8 +129,6 @@ public class CachePluginManager extends GridCacheManagerAdapter {
         }
         else if (cls.equals(CacheStoreManager.class))
             return (T)new CacheOsStoreManager(ctx, cfg);
-        else if (cls.equals(IgniteCacheOffheapManager.class))
-            return (T)new IgniteCacheOffheapManagerImpl();
 
         throw new IgniteException("Unsupported component type: " + cls);
     }
@@ -182,7 +178,7 @@ public class CachePluginManager extends GridCacheManagerAdapter {
             CachePluginContext cctx = entry.getKey();
             CachePluginProvider provider = entry.getValue();
             
-            provider.validateRemote(cctx.igniteCacheConfiguration(), rmtCfg, rmtNode);
+            provider.validateRemote(cctx.igniteCacheConfiguration(), cctx.cacheConfiguration(), rmtCfg, rmtNode);
         }
     }
 }

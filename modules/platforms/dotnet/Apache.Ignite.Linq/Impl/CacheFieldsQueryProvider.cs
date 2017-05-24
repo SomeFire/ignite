@@ -168,7 +168,7 @@ namespace Apache.Ignite.Linq.Impl
         /// </summary>
         private void ValidateTableName()
         {
-            var validTableNames = GetValidTableNames().Select(x => EscapeTableName(x)).ToArray();
+            var validTableNames = GetValidTableNames();
 
             if (!validTableNames.Contains(_tableName, StringComparer.OrdinalIgnoreCase))
             {
@@ -201,7 +201,7 @@ namespace Apache.Ignite.Linq.Impl
         /// </summary>
         private static string GetTableName(QueryEntity e)
         {
-            return e.TableName ?? e.ValueTypeName;
+            return e.TableName ?? e.ValueTypeName.Split('.').Last();
         }
 
         /// <summary>
@@ -213,31 +213,17 @@ namespace Apache.Ignite.Linq.Impl
             var validTableNames = GetValidTableNames();
 
             if (validTableNames.Length == 1)
-            {
-                return EscapeTableName(validTableNames[0]);
-            }
+                return validTableNames[0];
 
-            var valueTypeName = cacheValueType.FullName;
+            var valueTypeName = cacheValueType.Name;
 
             if (validTableNames.Contains(valueTypeName, StringComparer.OrdinalIgnoreCase))
-            {
-                return EscapeTableName(valueTypeName);
-            }
+                return valueTypeName;
 
             throw new CacheException(string.Format("Table name cannot be inferred for cache '{0}', " +
                                                    "please use AsCacheQueryable overload with tableName parameter. " +
                                                    "Valid table names: {1}", _cacheConfiguration.Name ?? "null",
                                                     validTableNames.Aggregate((x, y) => x + ", " + y)));
-        }
-
-        /// <summary>
-        /// Escapes the name of the table: strips namespace and nested class qualifiers.
-        /// </summary>
-        private static string EscapeTableName(string valueTypeName)
-        {
-            var nsIndex = Math.Max(valueTypeName.LastIndexOf('.'), valueTypeName.LastIndexOf('+'));
-
-            return nsIndex > 0 ? valueTypeName.Substring(nsIndex + 1) : valueTypeName;
         }
 
         /// <summary>

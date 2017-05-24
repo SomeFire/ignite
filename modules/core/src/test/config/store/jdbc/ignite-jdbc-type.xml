@@ -28,7 +28,6 @@
                            http://www.springframework.org/schema/util
                            http://www.springframework.org/schema/util/spring-util.xsd">
     <bean class="org.apache.ignite.cache.store.jdbc.JdbcType">
-        <property name="cacheName" value="default"/>
         <property name="databaseSchema" value="PUBLIC"/>
         <property name="databaseTable" value="ORGANIZATION"/>
         <property name="keyType" value="org.apache.ignite.cache.store.jdbc.model.OrganizationKey"/>
@@ -76,7 +75,6 @@
     </bean>
 
     <bean class="org.apache.ignite.cache.store.jdbc.JdbcType">
-        <property name="cacheName" value="default"/>
         <property name="databaseSchema" value="PUBLIC"/>
         <property name="databaseTable" value="PERSON"/>
         <property name="keyType" value="org.apache.ignite.cache.store.jdbc.model.PersonKey"/>
@@ -124,7 +122,6 @@
     </bean>
 
     <bean class="org.apache.ignite.cache.store.jdbc.JdbcType">
-        <property name="cacheName" value="default"/>
         <property name="databaseSchema" value="PUBLIC"/>
         <property name="databaseTable" value="PERSON_COMPLEX"/>
         <property name="keyType" value="org.apache.ignite.cache.store.jdbc.model.PersonComplexKey"/>
@@ -196,7 +193,6 @@
     </bean>
 
     <bean class="org.apache.ignite.cache.store.jdbc.JdbcType">
-        <property name="cacheName" value="default"/>
         <property name="databaseSchema" value="PUBLIC"/>
         <property name="databaseTable" value="STRING_ENTRIES"/>
         <property name="keyType" value="java.lang.String"/>
@@ -224,7 +220,6 @@
     </bean>
 
     <bean class="org.apache.ignite.cache.store.jdbc.JdbcType">
-        <property name="cacheName" value="default"/>
         <property name="databaseSchema" value="PUBLIC"/>
         <property name="databaseTable" value="UUID_ENTRIES"/>
         <property name="keyType" value="java.util.UUID"/>
@@ -254,7 +249,6 @@
     </bean>
 
     <bean class="org.apache.ignite.cache.store.jdbc.JdbcType">
-        <property name="cacheName" value="default"/>
         <property name="databaseSchema" value="PUBLIC"/>
         <property name="databaseTable" value="TIMESTAMP_ENTRIES"/>
         <property name="keyType" value="java.sql.Timestamp"/>

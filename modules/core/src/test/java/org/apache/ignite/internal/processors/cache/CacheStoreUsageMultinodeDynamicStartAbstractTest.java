@@ -157,12 +157,12 @@ public abstract class CacheStoreUsageMultinodeDynamicStartAbstractTest extends C
 
         try {
             if (nearCache)
-                client.createNearCache(DEFAULT_CACHE_NAME, new NearCacheConfiguration<>());
+                client.createNearCache(null, new NearCacheConfiguration<>());
 
             checkStoreUpdate(true);
         }
         finally {
-            cache = srv.cache(DEFAULT_CACHE_NAME);
+            cache = srv.cache(null);
 
             if (cache != null)
                 cache.destroy();

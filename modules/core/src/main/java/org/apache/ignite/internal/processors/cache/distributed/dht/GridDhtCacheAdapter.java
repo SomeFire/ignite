@@ -241,14 +241,19 @@ public abstract class GridDhtCacheAdapter<K, V> extends GridDistributedCacheAdap
     /**
      * @return Cache map entry factory.
      */
-    @Override protected GridCacheMapEntryFactory entryFactory() {
+    protected GridCacheMapEntryFactory entryFactory() {
         return new GridCacheMapEntryFactory() {
             @Override public GridCacheMapEntry create(
                 GridCacheContext ctx,
                 AffinityTopologyVersion topVer,
-                KeyCacheObject key
+                KeyCacheObject key,
+                int hash,
+                CacheObject val
             ) {
-                return new GridDhtCacheEntry(ctx, topVer, key);
+                if (ctx.useOffheapEntry())
+                    return new GridDhtOffHeapCacheEntry(ctx, topVer, key, hash, val);
+
+                return new GridDhtCacheEntry(ctx, topVer, key, hash, val);
             }
         };
     }
@@ -396,6 +401,16 @@ public abstract class GridDhtCacheAdapter<K, V> extends GridDistributedCacheAdap
      *
      * @throws GridDhtInvalidPartitionException If partition for the key is no longer valid.
      */
+    @Override public GridCacheEntryEx entryEx(KeyCacheObject key, boolean touch)
+        throws GridDhtInvalidPartitionException {
+        return super.entryEx(key, touch);
+    }
+
+    /**
+     * {@inheritDoc}
+     *
+     * @throws GridDhtInvalidPartitionException If partition for the key is no longer valid.
+     */
     @Override public GridCacheEntryEx entryEx(KeyCacheObject key,
         AffinityTopologyVersion topVer) throws GridDhtInvalidPartitionException {
         return super.entryEx(key, topVer);
@@ -426,7 +441,7 @@ public abstract class GridDhtCacheAdapter<K, V> extends GridDistributedCacheAdap
      * @return Cache entry.
      */
     protected GridDistributedCacheEntry createEntry(KeyCacheObject key) {
-        return new GridDhtDetachedCacheEntry(ctx, key);
+        return new GridDhtDetachedCacheEntry(ctx, key, key.hashCode(), null, null, 0);
     }
 
     /** {@inheritDoc} */
@@ -531,7 +546,7 @@ public abstract class GridDhtCacheAdapter<K, V> extends GridDistributedCacheAdap
 
                     CacheObject cacheVal = ctx.toCacheObject(val);
 
-                    entry = entryEx(key);
+                    entry = entryEx(key, false);
 
                     entry.initialValue(cacheVal,
                         ver,
@@ -567,21 +582,6 @@ public abstract class GridDhtCacheAdapter<K, V> extends GridDistributedCacheAdap
     }
 
     /** {@inheritDoc} */
-    @Override public int size() {
-        return (int)sizeLong();
-    }
-
-    /** {@inheritDoc} */
-    @Override public long sizeLong() {
-        long sum = 0;
-
-        for (GridDhtLocalPartition p : topology().currentLocalPartitions())
-            sum += p.dataStore().size();
-
-        return sum;
-    }
-
-    /** {@inheritDoc} */
     @Override public int primarySize() {
         return (int)primarySizeLong();
     }
@@ -594,7 +594,7 @@ public abstract class GridDhtCacheAdapter<K, V> extends GridDistributedCacheAdap
 
         for (GridDhtLocalPartition p : topology().currentLocalPartitions()) {
             if (p.primary(topVer))
-                sum += p.dataStore().size();
+                sum += p.publicSize();
         }
 
         return sum;
@@ -602,12 +602,14 @@ public abstract class GridDhtCacheAdapter<K, V> extends GridDistributedCacheAdap
 
     /**
      * This method is used internally. Use
-     * {@link #getDhtAsync(UUID, long, Map, boolean, AffinityTopologyVersion, UUID, int, IgniteCacheExpiryPolicy, boolean, boolean)}
+     * {@link #getDhtAsync(UUID, long, Map, boolean, AffinityTopologyVersion, UUID, int, IgniteCacheExpiryPolicy, boolean)}
      * method instead to retrieve DHT value.
-     *  @param keys {@inheritDoc}
+     *
+     * @param keys {@inheritDoc}
      * @param forcePrimary {@inheritDoc}
      * @param skipTx {@inheritDoc}
-     * @param needVer Need version.  @return {@inheritDoc}
+     * @param needVer Need version.
+     * @return {@inheritDoc}
      */
     @Override public IgniteInternalFuture<Map<K, V>> getAllAsync(
         @Nullable Collection<? extends K> keys,
@@ -616,7 +618,6 @@ public abstract class GridDhtCacheAdapter<K, V> extends GridDistributedCacheAdap
         @Nullable UUID subjId,
         String taskName,
         boolean deserializeBinary,
-        boolean recovery,
         boolean skipVals,
         boolean canRemap,
         boolean needVer
@@ -630,7 +631,6 @@ public abstract class GridDhtCacheAdapter<K, V> extends GridDistributedCacheAdap
             subjId,
             taskName,
             deserializeBinary,
-            opCtx != null && opCtx.recovery(),
             forcePrimary,
             null,
             skipVals,
@@ -657,8 +657,7 @@ public abstract class GridDhtCacheAdapter<K, V> extends GridDistributedCacheAdap
         String taskName,
         @Nullable IgniteCacheExpiryPolicy expiry,
         boolean skipVals,
-        boolean canRemap,
-        boolean recovery
+        boolean canRemap
     ) {
         return getAllAsync0(keys,
             readerArgs,
@@ -670,7 +669,6 @@ public abstract class GridDhtCacheAdapter<K, V> extends GridDistributedCacheAdap
             expiry,
             skipVals,
             /*keep cache objects*/true,
-            recovery,
             canRemap,
             /*need version*/true);
     }
@@ -695,8 +693,7 @@ public abstract class GridDhtCacheAdapter<K, V> extends GridDistributedCacheAdap
         @Nullable UUID subjId,
         int taskNameHash,
         @Nullable IgniteCacheExpiryPolicy expiry,
-        boolean skipVals,
-        boolean recovery
+        boolean skipVals
     ) {
         GridDhtGetFuture<K, V> fut = new GridDhtGetFuture<>(ctx,
             msgId,
@@ -707,8 +704,7 @@ public abstract class GridDhtCacheAdapter<K, V> extends GridDistributedCacheAdap
             subjId,
             taskNameHash,
             expiry,
-            skipVals,
-            recovery);
+            skipVals);
 
         fut.init();
 
@@ -738,8 +734,7 @@ public abstract class GridDhtCacheAdapter<K, V> extends GridDistributedCacheAdap
         @Nullable UUID subjId,
         int taskNameHash,
         @Nullable IgniteCacheExpiryPolicy expiry,
-        boolean skipVals,
-        boolean recovery
+        boolean skipVals
     ) {
         GridDhtGetSingleFuture<K, V> fut = new GridDhtGetSingleFuture<>(
             ctx,
@@ -752,8 +747,7 @@ public abstract class GridDhtCacheAdapter<K, V> extends GridDistributedCacheAdap
             subjId,
             taskNameHash,
             expiry,
-            skipVals,
-            recovery);
+            skipVals);
 
         fut.init();
 
@@ -780,8 +774,7 @@ public abstract class GridDhtCacheAdapter<K, V> extends GridDistributedCacheAdap
                 req.subjectId(),
                 req.taskNameHash(),
                 expiryPlc,
-                req.skipValues(),
-                req.recovery());
+                req.skipValues());
 
         fut.listen(new CI1<IgniteInternalFuture<GridCacheEntryInfo>>() {
             @Override public void apply(IgniteInternalFuture<GridCacheEntryInfo> f) {
@@ -879,8 +872,7 @@ public abstract class GridDhtCacheAdapter<K, V> extends GridDistributedCacheAdap
                 req.subjectId(),
                 req.taskNameHash(),
                 expiryPlc,
-                req.skipValues(),
-                req.recovery());
+                req.skipValues());
 
         fut.listen(new CI1<IgniteInternalFuture<Collection<GridCacheEntryInfo>>>() {
             @Override public void apply(IgniteInternalFuture<Collection<GridCacheEntryInfo>> f) {
@@ -1033,6 +1025,8 @@ public abstract class GridDhtCacheAdapter<K, V> extends GridDistributedCacheAdap
 
         int size = keys.size();
 
+        boolean swap = cache.context().isSwapOrOffheapEnabled();
+
         for (int i = 0; i < size; i++) {
             try {
                 GridCacheEntryEx entry = null;
@@ -1040,15 +1034,21 @@ public abstract class GridDhtCacheAdapter<K, V> extends GridDistributedCacheAdap
                 try {
                     while (true) {
                         try {
-                            entry = cache.entryEx(keys.get(i));
+                            if (swap) {
+                                entry = cache.entryEx(keys.get(i));
 
-                            entry.unswap(false);
+                                entry.unswap(false);
+                            }
+                            else
+                                entry = cache.peekEx(keys.get(i));
 
-                            entry.updateTtl(vers.get(i), ttl);
+                            if (entry != null)
+                                entry.updateTtl(vers.get(i), ttl);
 
                             break;
                         }
                         catch (GridCacheEntryRemovedException ignore) {
+                            // Retry
                             if (log.isDebugEnabled())
                                 log.debug("Got removed entry: " + entry);
                         }
@@ -1077,8 +1077,99 @@ public abstract class GridDhtCacheAdapter<K, V> extends GridDistributedCacheAdap
     }
 
     /** {@inheritDoc} */
+    @Override public Set<Cache.Entry<K, V>> entrySet(int part) {
+        return new PartitionEntrySet(part);
+    }
+
+    /** {@inheritDoc} */
     @Override public String toString() {
         return S.toString(GridDhtCacheAdapter.class, this, super.toString());
+    }
+
+    /**
+     *
+     */
+    private class PartitionEntrySet extends AbstractSet<Cache.Entry<K, V>> {
+        /** */
+        private int partId;
+
+        /**
+         * @param partId Partition id.
+         */
+        private PartitionEntrySet(int partId) {
+            this.partId = partId;
+        }
+
+        /** {@inheritDoc} */
+        @NotNull @Override public Iterator<Cache.Entry<K, V>> iterator() {
+            final GridDhtLocalPartition part = ctx.topology().localPartition(partId,
+                ctx.discovery().topologyVersionEx(), false);
+
+            Iterator<GridCacheMapEntry> partIt = part == null ? null : part.entries().iterator();
+
+            return new PartitionEntryIterator(partIt);
+        }
+
+        /** {@inheritDoc} */
+        @Override public boolean remove(Object o) {
+            if (!(o instanceof Cache.Entry))
+                return false;
+
+            Cache.Entry<K, V> entry = (Cache.Entry<K, V>)o;
+
+            K key = entry.getKey();
+            V val = entry.getValue();
+
+            if (val == null)
+                return false;
+
+            try {
+                // Cannot use remove(key, val) since we may be in DHT cache and should go through near.
+                return GridDhtCacheAdapter.this.remove(key, val);
+            }
+            catch (IgniteCheckedException e) {
+                throw new IgniteException(e);
+            }
+        }
+
+        /** {@inheritDoc} */
+        @Override public boolean removeAll(Collection<?> c) {
+            boolean rmv = false;
+
+            for (Object o : c)
+                rmv |= remove(o);
+
+            return rmv;
+        }
+
+        /** {@inheritDoc} */
+        @Override public boolean contains(Object o) {
+            if (!(o instanceof Cache.Entry))
+                return false;
+
+            Cache.Entry<K, V> entry = (Cache.Entry<K, V>)o;
+
+            try {
+                return partId == ctx.affinity().partition(entry.getKey()) &&
+                    F.eq(entry.getValue(), localPeek(entry.getKey(), CachePeekModes.ONHEAP_ONLY, null));
+            }
+            catch (IgniteCheckedException e) {
+                throw new IgniteException(e);
+            }
+        }
+
+        /** {@inheritDoc} */
+        @Override public int size() {
+            GridDhtLocalPartition part = ctx.topology().localPartition(partId,
+                ctx.discovery().topologyVersionEx(), false);
+
+            return part != null ? part.publicSize() : 0;
+        }
+
+        /** {@inheritDoc} */
+        @Override public String toString() {
+            return S.toString(PartitionEntrySet.class, this, "super", super.toString(), true);
+        }
     }
 
     /** {@inheritDoc} */
@@ -1232,10 +1323,84 @@ public abstract class GridDhtCacheAdapter<K, V> extends GridDistributedCacheAdap
     }
 
     /**
+     * Complex partition iterator for both partition and swap iteration.
+     */
+    private class PartitionEntryIterator extends GridIteratorAdapter<Cache.Entry<K, V>> {
+        /** */
+        private static final long serialVersionUID = 0L;
+
+        /** Next entry. */
+        private Cache.Entry<K, V> entry;
+
+        /** Last seen entry to support remove. */
+        private Cache.Entry<K, V> last;
+
+        /** Partition iterator. */
+        private final Iterator<GridCacheMapEntry> partIt;
+
+        /**
+         * @param partIt Partition iterator.
+         */
+        private PartitionEntryIterator(@Nullable Iterator<GridCacheMapEntry> partIt) {
+            this.partIt = partIt;
+
+            advance();
+        }
+
+        /** {@inheritDoc} */
+        @Override public boolean hasNextX() {
+            return entry != null;
+        }
+
+        /** {@inheritDoc} */
+        @Override public Cache.Entry<K, V> nextX() throws IgniteCheckedException {
+            if (!hasNext())
+                throw new NoSuchElementException();
+
+            last = entry;
+
+            advance();
+
+            return last;
+        }
+
+        /** {@inheritDoc} */
+        @Override public void removeX() throws IgniteCheckedException {
+            if (last == null)
+                throw new IllegalStateException();
+
+            ctx.grid().cache(ctx.name()).remove(last.getKey(), last.getValue());
+        }
+
+        /**
+         *
+         */
+        private void advance() {
+            if (partIt != null) {
+                while (partIt.hasNext()) {
+                    GridCacheEntryEx next = partIt.next();
+
+                    if (next instanceof GridCacheMapEntry && (!((GridCacheMapEntry)next).visitable(CU.empty0())))
+                        continue;
+
+                    entry = next.wrapLazyValue(ctx.keepBinary());
+
+                    return;
+                }
+            }
+
+            entry = null;
+        }
+    }
+
+    /**
      * Multi update future.
      */
     @SuppressWarnings("TypeMayBeWeakened")
     private static class MultiUpdateFuture extends GridFutureAdapter<IgniteUuid> {
+        /** */
+        private static final long serialVersionUID = 0L;
+
         /** Topology version. */
         private AffinityTopologyVersion topVer;
 

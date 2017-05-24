@@ -90,7 +90,7 @@ public class BinaryEnumsSelfTest extends GridCommonAbstractTest {
 
         cfg.setMarshaller(new BinaryMarshaller());
 
-        CacheConfiguration ccfg = new CacheConfiguration(DEFAULT_CACHE_NAME);
+        CacheConfiguration ccfg = new CacheConfiguration();
         ccfg.setName(CACHE_NAME);
         ccfg.setCacheMode(CacheMode.PARTITIONED);
 
@@ -114,8 +114,6 @@ public class BinaryEnumsSelfTest extends GridCommonAbstractTest {
         node2 = startGrid(1);
         cache2 = node2.cache(CACHE_NAME);
         cacheBinary2 = cache2.withKeepBinary();
-
-        awaitPartitionMapExchange();
     }
 
     /**

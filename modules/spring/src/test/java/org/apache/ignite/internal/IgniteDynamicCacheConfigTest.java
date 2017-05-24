@@ -66,13 +66,15 @@ public class IgniteDynamicCacheConfigTest extends GridCommonAbstractTest {
         stopAllGrids();
     }
 
-    /** {@inheritDoc} */
+    /**
+     * {@inheritDoc}
+     */
     @Override protected IgniteConfiguration getConfiguration(String igniteInstanceName) throws Exception {
         IgniteConfiguration cfg = super.getConfiguration(igniteInstanceName);
 
         cfg.setUserAttributes(F.asMap(TEST_ATTRIBUTE_NAME, testAttribute));
 
-        CacheConfiguration cacheCfg = new CacheConfiguration(DEFAULT_CACHE_NAME);
+        CacheConfiguration cacheCfg = new CacheConfiguration();
 
         cacheCfg.setCacheMode(CacheMode.REPLICATED);
 

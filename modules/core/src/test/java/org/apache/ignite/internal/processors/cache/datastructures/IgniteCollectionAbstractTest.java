@@ -19,6 +19,7 @@ package org.apache.ignite.internal.processors.cache.datastructures;
 
 import org.apache.ignite.IgniteQueue;
 import org.apache.ignite.cache.CacheAtomicityMode;
+import org.apache.ignite.cache.CacheMemoryMode;
 import org.apache.ignite.cache.CacheMode;
 import org.apache.ignite.configuration.CacheConfiguration;
 import org.apache.ignite.configuration.CollectionConfiguration;
@@ -76,6 +77,7 @@ public abstract class IgniteCollectionAbstractTest extends GridCommonAbstractTes
 
         colCfg.setCacheMode(collectionCacheMode());
         colCfg.setAtomicityMode(collectionCacheAtomicityMode());
+        colCfg.setMemoryMode(collectionMemoryMode());
         colCfg.setOffHeapMaxMemory(collectionOffHeapMaxMemory());
 
         if (colCfg.getCacheMode() == PARTITIONED)
@@ -93,6 +95,11 @@ public abstract class IgniteCollectionAbstractTest extends GridCommonAbstractTes
      * @return Collection cache mode.
      */
     protected abstract CacheMode collectionCacheMode();
+
+    /**
+     * @return Collection cache memory mode.
+     */
+    protected abstract CacheMemoryMode collectionMemoryMode();
 
     /**
      * @return Collection cache atomicity mode.

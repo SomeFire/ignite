@@ -18,6 +18,7 @@
 package org.apache.ignite.internal.processors.cache;
 
 import org.apache.ignite.cache.CacheAtomicityMode;
+import org.apache.ignite.cache.CacheMemoryMode;
 
 /**
  *
@@ -26,5 +27,10 @@ public class GridCacheInterceptorAtomicRebalanceTest extends GridAbstractCacheIn
     /** {@inheritDoc} */
     @Override protected CacheAtomicityMode atomicityMode() {
         return CacheAtomicityMode.ATOMIC;
+    }
+
+    /** {@inheritDoc} */
+    @Override protected CacheMemoryMode memoryMode() {
+        return CacheMemoryMode.ONHEAP_TIERED;
     }
 }

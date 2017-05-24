@@ -49,6 +49,9 @@ import static org.apache.ignite.events.EventType.EVT_CACHE_OBJECT_UNLOCKED;
  */
 public abstract class GridCacheMultiNodeLockAbstractTest extends GridCommonAbstractTest {
     /** */
+    private static final String CACHE1 = null;
+
+    /** */
     private static final String CACHE2 = "cache2";
 
     /** Grid 1. */
@@ -80,7 +83,7 @@ public abstract class GridCacheMultiNodeLockAbstractTest extends GridCommonAbstr
 
         cfg.setDiscoverySpi(disco);
 
-        CacheConfiguration ccfg1 = cacheConfiguration().setName(DEFAULT_CACHE_NAME);
+        CacheConfiguration ccfg1 = cacheConfiguration().setName(CACHE1);
         CacheConfiguration ccfg2 = cacheConfiguration().setName(CACHE2);
 
         cfg.setCacheConfiguration(ccfg1, ccfg2);
@@ -127,7 +130,7 @@ public abstract class GridCacheMultiNodeLockAbstractTest extends GridCommonAbstr
             jcache(i).clear();
 
             assertTrue(
-                "Cache isn't empty [i=" + i + ", entries=" + ((IgniteKernal)grid(i)).internalCache(DEFAULT_CACHE_NAME).entries() + "]",
+                "Cache isn't empty [i=" + i + ", entries=" + ((IgniteKernal)grid(i)).internalCache().entries() + "]",
                 jcache(i).localSize() == 0);
         }
     }
@@ -228,7 +231,7 @@ public abstract class GridCacheMultiNodeLockAbstractTest extends GridCommonAbstr
      * @throws Exception If test failed.
      */
     public void testBasicLock() throws Exception {
-        IgniteCache<Integer, String> cache = ignite1.cache(DEFAULT_CACHE_NAME);
+        IgniteCache<Integer, String> cache = ignite1.cache(null);
 
         Lock lock = cache.lock(1);
 
@@ -261,16 +264,16 @@ public abstract class GridCacheMultiNodeLockAbstractTest extends GridCommonAbstr
                 ", de2=" + dht2.peekEx(key) + ']';
         }
 
-        return "Entries [e1=" + "(" + key + ", " + ((IgniteKernal)ignite1).internalCache(DEFAULT_CACHE_NAME).get(key) + ")"
-            + ", e2=" + "(" + key + ", " + ((IgniteKernal)ignite2).internalCache(DEFAULT_CACHE_NAME).get(key) + ")" + ']';
+        return "Entries [e1=" + "(" + key + ", " + ((IgniteKernal)ignite1).internalCache(null).get(key) + ")"
+            + ", e2=" + "(" + key + ", " + ((IgniteKernal)ignite2).internalCache(null).get(key) + ")" + ']';
     }
 
     /**
      * @throws Exception If test fails.
      */
     public void testMultiNodeLock() throws Exception {
-        IgniteCache<Integer, String> cache1 = ignite1.cache(DEFAULT_CACHE_NAME);
-        IgniteCache<Integer, String> cache2 = ignite2.cache(DEFAULT_CACHE_NAME);
+        IgniteCache<Integer, String> cache1 = ignite1.cache(null);
+        IgniteCache<Integer, String> cache2 = ignite2.cache(null);
 
         Lock lock1_1 = cache1.lock(1);
         Lock lock2_1 = cache2.lock(1);
@@ -327,8 +330,8 @@ public abstract class GridCacheMultiNodeLockAbstractTest extends GridCommonAbstr
      * @throws Exception If test fails.
      */
     public void testMultiNodeLockWithKeyLists() throws Exception {
-        IgniteCache<Integer, String> cache1 = ignite1.cache(DEFAULT_CACHE_NAME);
-        IgniteCache<Integer, String> cache2 = ignite2.cache(DEFAULT_CACHE_NAME);
+        IgniteCache<Integer, String> cache1 = ignite1.cache(null);
+        IgniteCache<Integer, String> cache2 = ignite2.cache(null);
 
         Collection<Integer> keys1 = Arrays.asList(1, 2, 3);
         Collection<Integer> keys2 = Arrays.asList(2, 3, 4);
@@ -404,7 +407,7 @@ public abstract class GridCacheMultiNodeLockAbstractTest extends GridCommonAbstr
      * @throws IgniteCheckedException If test failed.
      */
     public void testLockReentry() throws IgniteCheckedException {
-        IgniteCache<Integer, String> cache = ignite1.cache(DEFAULT_CACHE_NAME);
+        IgniteCache<Integer, String> cache = ignite1.cache(null);
 
         Lock lock = cache.lock(1);
 
@@ -432,7 +435,7 @@ public abstract class GridCacheMultiNodeLockAbstractTest extends GridCommonAbstr
      * @throws Exception If test failed.
      */
     public void testLockMultithreaded() throws Exception {
-        final IgniteCache<Integer, String> cache = ignite1.cache(DEFAULT_CACHE_NAME);
+        final IgniteCache<Integer, String> cache = ignite1.cache(null);
 
         final CountDownLatch l1 = new CountDownLatch(1);
         final CountDownLatch l2 = new CountDownLatch(1);
@@ -550,7 +553,7 @@ public abstract class GridCacheMultiNodeLockAbstractTest extends GridCommonAbstr
      * @throws Exception If failed.
      */
     public void testTwoCaches() throws Exception {
-        IgniteCache<Integer, String> cache1 = ignite1.cache(DEFAULT_CACHE_NAME);
+        IgniteCache<Integer, String> cache1 = ignite1.cache(CACHE1);
         IgniteCache<Integer, String> cache2 = ignite1.cache(CACHE2);
 
         final Integer key = primaryKey(cache1);

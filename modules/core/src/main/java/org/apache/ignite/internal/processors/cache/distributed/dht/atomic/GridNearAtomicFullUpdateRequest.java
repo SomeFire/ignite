@@ -87,6 +87,7 @@ public class GridNearAtomicFullUpdateRequest extends GridNearAtomicAbstractUpdat
 
     /** Conflict expire times. */
     private GridLongList conflictExpireTimes;
+
     /** Optional arguments for entry processor. */
     @GridDirectTransient
     private Object[] invokeArgs;
@@ -117,7 +118,8 @@ public class GridNearAtomicFullUpdateRequest extends GridNearAtomicAbstractUpdat
 
     /**
      * Constructor.
-     *  @param cacheId Cache ID.
+     *
+     * @param cacheId Cache ID.
      * @param nodeId Node ID.
      * @param futId Future ID.
      * @param topVer Topology version.
@@ -153,7 +155,6 @@ public class GridNearAtomicFullUpdateRequest extends GridNearAtomicAbstractUpdat
         boolean needPrimaryRes,
         boolean skipStore,
         boolean keepBinary,
-        boolean recovery,
         boolean addDepInfo,
         int maxEntryCnt
     ) {
@@ -170,7 +171,6 @@ public class GridNearAtomicFullUpdateRequest extends GridNearAtomicAbstractUpdat
             needPrimaryRes,
             skipStore,
             keepBinary,
-            recovery,
             addDepInfo);
         this.expiryPlc = expiryPlc;
         this.invokeArgs = invokeArgs;

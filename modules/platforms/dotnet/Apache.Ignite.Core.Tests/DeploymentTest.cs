@@ -79,7 +79,6 @@ namespace Apache.Ignite.Core.Tests
             {
                 "-springConfigUrl=" + springFile,
                 "-jvmClasspath=" + classpath,
-                "-assembly=" + Path.GetFileName(GetType().Assembly.Location),
                 "-J-ea",
                 "-J-Xms512m",
                 "-J-Xmx512m"
@@ -126,9 +125,11 @@ namespace Apache.Ignite.Core.Tests
         /// </summary>
         private static void VerifyNodeStarted(string exePath)
         {
-            using (var ignite = Ignition.Start(new IgniteConfiguration(TestUtils.GetTestConfiguration())
+            using (var ignite = Ignition.Start(new IgniteConfiguration
             {
                 SpringConfigUrl = "config\\compute\\compute-grid1.xml",
+                JvmClasspath = TestUtils.CreateTestClasspath(),
+                JvmOptions = TestUtils.TestJavaOptions()
             }))
             {
                 Assert.IsTrue(ignite.WaitTopology(2));

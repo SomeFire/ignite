@@ -83,7 +83,7 @@ public class IgniteClientReconnectStopTest extends IgniteClientReconnectAbstract
         IgniteFuture<?> reconnectFut = null;
 
         try {
-            client.getOrCreateCache(new CacheConfiguration<>(DEFAULT_CACHE_NAME));
+            client.getOrCreateCache(new CacheConfiguration<>());
 
             fail();
         }

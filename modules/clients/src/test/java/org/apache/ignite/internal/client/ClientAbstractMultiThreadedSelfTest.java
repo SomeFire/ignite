@@ -47,7 +47,6 @@ import org.apache.ignite.spi.discovery.tcp.TcpDiscoverySpi;
 import org.apache.ignite.spi.discovery.tcp.ipfinder.TcpDiscoveryIpFinder;
 import org.apache.ignite.spi.discovery.tcp.ipfinder.vm.TcpDiscoveryVmIpFinder;
 import org.apache.ignite.testframework.junits.common.GridCommonAbstractTest;
-import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import static org.apache.ignite.cache.CacheAtomicityMode.TRANSACTIONAL;
@@ -180,7 +179,7 @@ public abstract class ClientAbstractMultiThreadedSelfTest extends GridCommonAbst
 
         c.setDiscoverySpi(disco);
 
-        c.setCacheConfiguration(cacheConfiguration(DEFAULT_CACHE_NAME), cacheConfiguration(PARTITIONED_CACHE_NAME),
+        c.setCacheConfiguration(cacheConfiguration(null), cacheConfiguration(PARTITIONED_CACHE_NAME),
             cacheConfiguration(REPLICATED_CACHE_NAME), cacheConfiguration(PARTITIONED_ASYNC_BACKUP_CACHE_NAME),
             cacheConfiguration(REPLICATED_ASYNC_CACHE_NAME));
 
@@ -192,35 +191,31 @@ public abstract class ClientAbstractMultiThreadedSelfTest extends GridCommonAbst
      * @return Cache configuration.
      * @throws Exception In case of error.
      */
-    private CacheConfiguration cacheConfiguration(@NotNull String cacheName) throws Exception {
+    private CacheConfiguration cacheConfiguration(@Nullable String cacheName) throws Exception {
         CacheConfiguration cfg = defaultCacheConfiguration();
 
         cfg.setAffinity(new RendezvousAffinityFunction());
 
         cfg.setAtomicityMode(TRANSACTIONAL);
 
-        switch (cacheName) {
-            case DEFAULT_CACHE_NAME:
-                cfg.setCacheMode(LOCAL);
-                break;
-            case PARTITIONED_CACHE_NAME:
-                cfg.setCacheMode(PARTITIONED);
+        if (cacheName == null)
+            cfg.setCacheMode(LOCAL);
+        else if (PARTITIONED_CACHE_NAME.equals(cacheName)) {
+            cfg.setCacheMode(PARTITIONED);
 
-                cfg.setBackups(0);
-                break;
-            case PARTITIONED_ASYNC_BACKUP_CACHE_NAME:
-                cfg.setCacheMode(PARTITIONED);
-
-                cfg.setBackups(1);
-                break;
-            default:
-                cfg.setCacheMode(REPLICATED);
-                break;
+            cfg.setBackups(0);
         }
+        else if (PARTITIONED_ASYNC_BACKUP_CACHE_NAME.equals(cacheName)) {
+            cfg.setCacheMode(PARTITIONED);
+
+            cfg.setBackups(1);
+        }
+        else
+            cfg.setCacheMode(REPLICATED);
 
         cfg.setName(cacheName);
 
-        if (!DEFAULT_CACHE_NAME.equals(cacheName) && !cacheName.contains("async"))
+        if (cacheName != null && !cacheName.contains("async"))
             cfg.setWriteSynchronizationMode(FULL_SYNC);
 
         return cfg;

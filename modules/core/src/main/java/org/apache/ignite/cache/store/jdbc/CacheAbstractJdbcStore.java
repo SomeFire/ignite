@@ -48,6 +48,7 @@ import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteCheckedException;
 import org.apache.ignite.IgniteException;
 import org.apache.ignite.IgniteLogger;
+import org.apache.ignite.binary.BinaryObject;
 import org.apache.ignite.cache.store.CacheStore;
 import org.apache.ignite.cache.store.CacheStoreSession;
 import org.apache.ignite.cache.store.jdbc.dialect.BasicJdbcDialect;
@@ -57,7 +58,6 @@ import org.apache.ignite.cache.store.jdbc.dialect.JdbcDialect;
 import org.apache.ignite.cache.store.jdbc.dialect.MySQLDialect;
 import org.apache.ignite.cache.store.jdbc.dialect.OracleDialect;
 import org.apache.ignite.cache.store.jdbc.dialect.SQLServerDialect;
-import org.apache.ignite.internal.binary.BinaryEnumObjectImpl;
 import org.apache.ignite.internal.binary.BinaryMarshaller;
 import org.apache.ignite.internal.util.tostring.GridToStringExclude;
 import org.apache.ignite.internal.util.typedef.C1;
@@ -69,7 +69,6 @@ import org.apache.ignite.lifecycle.LifecycleAware;
 import org.apache.ignite.resources.CacheStoreSessionResource;
 import org.apache.ignite.resources.IgniteInstanceResource;
 import org.apache.ignite.resources.LoggerResource;
-import org.apache.ignite.thread.IgniteThreadFactory;
 import org.apache.ignite.transactions.Transaction;
 import org.jetbrains.annotations.Nullable;
 
@@ -122,9 +121,6 @@ public abstract class CacheAbstractJdbcStore<K, V> implements CacheStore<K, V>, 
     /** Connection attribute property name. */
     protected static final String ATTR_CONN_PROP = "JDBC_STORE_CONNECTION";
 
-    /** Thread name. */
-    private static final String CACHE_LOADER_THREAD_NAME = "jdbc-cache-loader";
-
     /** Built in Java types names. */
     protected static final Collection<String> BUILT_IN_TYPES = new HashSet<>();
 
@@ -162,7 +158,7 @@ public abstract class CacheAbstractJdbcStore<K, V> implements CacheStore<K, V>, 
     private final Lock cacheMappingsLock = new ReentrantLock();
 
     /** Data source. */
-    protected volatile DataSource dataSrc;
+    protected DataSource dataSrc;
 
     /** Cache with entry mapping description. (cache name, (key id, mapping description)). */
     protected volatile Map<String, Map<Object, EntryMapping>> cacheMappings = Collections.emptyMap();
@@ -424,13 +420,8 @@ public abstract class CacheAbstractJdbcStore<K, V> implements CacheStore<K, V>, 
      * @param fetchSize Number of rows to fetch from DB.
      * @return Callable for pool submit.
      */
-    private Callable<Void> loadCacheRange(
-        final EntryMapping em,
-        final IgniteBiInClosure<K, V> clo,
-        @Nullable final Object[] lowerBound,
-        @Nullable final Object[] upperBound,
-        final int fetchSize
-    ) {
+    private Callable<Void> loadCacheRange(final EntryMapping em, final IgniteBiInClosure<K, V> clo,
+        @Nullable final Object[] lowerBound, @Nullable final Object[] upperBound, final int fetchSize) {
         return new Callable<Void>() {
             @Override public Void call() throws Exception {
                 Connection conn = null;
@@ -541,33 +532,20 @@ public abstract class CacheAbstractJdbcStore<K, V> implements CacheStore<K, V>, 
 
     /**
      * @param type Type name to check.
-     * @param binarySupported True if binary marshaller enable.
      * @return {@code True} if class not found.
      */
-    protected TypeKind kindForName(String type, boolean binarySupported) {
+    protected TypeKind kindForName(String type) {
         if (BUILT_IN_TYPES.contains(type))
             return TypeKind.BUILT_IN;
-
-        if (binarySupported)
-            return TypeKind.BINARY;
 
         try {
             Class.forName(type);
 
             return TypeKind.POJO;
         }
-        catch (ClassNotFoundException e) {
-            throw new CacheException("Failed to find class " + type +
-                " (make sure the class is present in classPath or use BinaryMarshaller)", e);
+        catch(ClassNotFoundException ignored) {
+            return TypeKind.BINARY;
         }
-    }
-
-    /**
-     * @param type Type name to check.
-     * @return {@code True} if class not found.
-     */
-    protected TypeKind kindForName(String type) {
-        return kindForName(type, ignite.configuration().getMarshaller() instanceof BinaryMarshaller);
     }
 
     /**
@@ -604,7 +582,11 @@ public abstract class CacheAbstractJdbcStore<K, V> implements CacheStore<K, V>, 
                     String keyType = type.getKeyType();
                     String valType = type.getValueType();
 
-                    TypeKind keyKind = kindForName(keyType, binarySupported);
+                    TypeKind keyKind = kindForName(keyType);
+
+                    if (!binarySupported && keyKind == TypeKind.BINARY)
+                        throw new CacheException("Key type has no class [cache=" + U.maskName(cacheName) +
+                            ", type=" + keyType + "]");
 
                     checkTypeConfiguration(cacheName, keyKind, keyType, type.getKeyFields());
 
@@ -614,11 +596,21 @@ public abstract class CacheAbstractJdbcStore<K, V> implements CacheStore<K, V>, 
                         throw new CacheException("Key type must be unique in type metadata [cache=" +
                             U.maskName(cacheName) + ", type=" + keyType + "]");
 
-                    TypeKind valKind = kindForName(valType, binarySupported);
+                    TypeKind valKind = kindForName(valType);
 
                     checkTypeConfiguration(cacheName, valKind, valType, type.getValueFields());
 
                     entryMappings.put(keyTypeId, new EntryMapping(cacheName, dialect, type, keyKind, valKind, sqlEscapeAll));
+
+                    // Add one more binding to binary typeId for POJOs,
+                    // because object could be passed to store in binary format.
+                    if (binarySupported && keyKind == TypeKind.POJO) {
+                        keyTypeId = typeIdForTypeName(TypeKind.BINARY, keyType);
+
+                        valKind = valKind == TypeKind.POJO ? TypeKind.BINARY : valKind;
+
+                        entryMappings.put(keyTypeId, new EntryMapping(cacheName, dialect, type, TypeKind.BINARY, valKind, sqlEscapeAll));
+                    }
                 }
 
                 Map<String, Map<Object, EntryMapping>> mappings = new HashMap<>(cacheMappings);
@@ -684,7 +676,7 @@ public abstract class CacheAbstractJdbcStore<K, V> implements CacheStore<K, V>, 
         String cacheName = session().cacheName();
 
         try {
-            pool = Executors.newFixedThreadPool(maxPoolSize, new IgniteThreadFactory(ignite.name(), CACHE_LOADER_THREAD_NAME));
+            pool = Executors.newFixedThreadPool(maxPoolSize);
 
             Collection<Future<?>> futs = new ArrayList<>();
 
@@ -706,34 +698,17 @@ public abstract class CacheAbstractJdbcStore<K, V> implements CacheStore<K, V>, 
                         }
                     }))
                         throw new CacheLoaderException("Provided key type is not found in store or cache configuration " +
-                            "[cache=" + U.maskName(cacheName) + ", key=" + keyType + ']');
+                            "[cache=" + U.maskName(cacheName) + ", key=" + keyType + "]");
+
+                    String qry = args[i + 1].toString();
 
                     EntryMapping em = entryMapping(cacheName, typeIdForTypeName(kindForName(keyType), keyType));
 
-                    Object arg = args[i + 1];
+                    if (log.isInfoEnabled())
+                        log.info("Started load cache using custom query [cache=" + U.maskName(cacheName) +
+                            ", keyType=" + keyType + ", query=" + qry + "]");
 
-                    LoadCacheCustomQueryWorker<K, V> task;
-
-                    if (arg instanceof PreparedStatement) {
-                        PreparedStatement stmt = (PreparedStatement)arg;
-
-                        if (log.isInfoEnabled())
-                            log.info("Started load cache using custom statement [cache=" + U.maskName(cacheName) +
-                                      ", keyType=" + keyType + ", stmt=" + stmt + ']');
-
-                        task = new LoadCacheCustomQueryWorker<>(em, stmt, clo);
-                    }
-                    else {
-                        String qry = arg.toString();
-
-                        if (log.isInfoEnabled())
-                              log.info("Started load cache using custom query [cache=" + U.maskName(cacheName) +
-                                  ", keyType=" + keyType + ", query=" + qry + ']');
-
-                        task = new LoadCacheCustomQueryWorker<>(em, qry, clo);
-                    }
-
-                    futs.add(pool.submit(task));
+                    futs.add(pool.submit(new LoadCacheCustomQueryWorker<>(em, qry, clo)));
                 }
             }
             else {
@@ -748,7 +723,7 @@ public abstract class CacheAbstractJdbcStore<K, V> implements CacheStore<K, V>, 
                     processedKeyTypes.add(keyType);
 
                     if (log.isInfoEnabled())
-                        log.info("Started load cache [cache=" + U.maskName(cacheName) + ", keyType=" + keyType + ']');
+                        log.info("Started load cache [cache=" + U.maskName(cacheName) + ", keyType=" + keyType + "]");
 
                     if (parallelLoadCacheMinThreshold > 0) {
                         Connection conn = null;
@@ -765,7 +740,7 @@ public abstract class CacheAbstractJdbcStore<K, V> implements CacheStore<K, V>, 
                             if (rs.next()) {
                                 if (log.isDebugEnabled())
                                     log.debug("Multithread loading entries from db [cache=" + U.maskName(cacheName) +
-                                        ", keyType=" + keyType + ']');
+                                        ", keyType=" + keyType + "]");
 
                                 int keyCnt = em.keyCols.size();
 
@@ -794,7 +769,7 @@ public abstract class CacheAbstractJdbcStore<K, V> implements CacheStore<K, V>, 
                         }
                         catch (SQLException e) {
                             log.warning("Failed to load entries from db in multithreaded mode, will try in single thread " +
-                                "[cache=" + U.maskName(cacheName) + ", keyType=" + keyType + ']', e);
+                                "[cache=" + U.maskName(cacheName) + ", keyType=" + keyType + " ]", e);
                         }
                         finally {
                             U.closeQuiet(conn);
@@ -803,7 +778,7 @@ public abstract class CacheAbstractJdbcStore<K, V> implements CacheStore<K, V>, 
 
                     if (log.isDebugEnabled())
                         log.debug("Single thread loading entries from db [cache=" + U.maskName(cacheName) +
-                            ", keyType=" + keyType + ']');
+                            ", keyType=" + keyType + "]");
 
                     futs.add(pool.submit(loadCacheFull(em, clo)));
                 }
@@ -830,7 +805,7 @@ public abstract class CacheAbstractJdbcStore<K, V> implements CacheStore<K, V>, 
         EntryMapping em = entryMapping(session().cacheName(), typeIdForObject(key));
 
         if (log.isDebugEnabled())
-            log.debug("Load value from db [table= " + em.fullTableName() + ", key=" + key + ']');
+            log.debug("Load value from db [table= " + em.fullTableName() + ", key=" + key + "]");
 
         Connection conn = null;
 
@@ -1369,17 +1344,10 @@ public abstract class CacheAbstractJdbcStore<K, V> implements CacheStore<K, V>, 
                             // No-op.
                     }
                 }
-                else if (field.getJavaFieldType().isEnum()) {
-                    if (fieldVal instanceof Enum) {
-                        Enum val = (Enum)fieldVal;
+                else if (field.getJavaFieldType().isEnum() && fieldVal instanceof Enum) {
+                    Enum val = (Enum)fieldVal;
 
-                        fieldVal = NUMERIC_TYPES.contains(field.getDatabaseFieldType()) ? val.ordinal() : val.name();
-                    }
-                    else if (fieldVal instanceof BinaryEnumObjectImpl) {
-                        BinaryEnumObjectImpl val = (BinaryEnumObjectImpl)fieldVal;
-
-                        fieldVal = val.enumOrdinal();
-                    }
+                    fieldVal = NUMERIC_TYPES.contains(field.getDatabaseFieldType()) ? val.ordinal() : val.name();
                 }
 
                 stmt.setObject(idx, fieldVal);
@@ -1431,14 +1399,14 @@ public abstract class CacheAbstractJdbcStore<K, V> implements CacheStore<K, V>, 
      */
     protected int fillValueParameters(PreparedStatement stmt, int idx, EntryMapping em, Object val)
         throws CacheWriterException {
+        TypeKind valKind = em.valueKind();
+
+        // Object could be passed by cache in binary format in case of cache configured with setStoreKeepBinary(true).
+        if (valKind == TypeKind.POJO && val instanceof BinaryObject)
+            valKind = TypeKind.BINARY;
+
         for (JdbcTypeField field : em.uniqValFlds) {
-            Object fieldVal = extractParameter(
-                em.cacheName,
-                em.valueType(),
-                em.valueKind(),
-                field.getJavaFieldName(),
-                val
-            );
+            Object fieldVal = extractParameter(em.cacheName, em.valueType(), valKind, field.getJavaFieldName(), val);
 
             fillParameter(stmt, idx++, field, fieldVal);
         }
@@ -1931,25 +1899,11 @@ public abstract class CacheAbstractJdbcStore<K, V> implements CacheStore<K, V>, 
         /** Entry mapping description. */
         private final EntryMapping em;
 
-        /** User statement. */
-        private PreparedStatement stmt;
-
         /** User query. */
-        private String qry;
+        private final String qry;
 
         /** Closure for loaded values. */
         private final IgniteBiInClosure<K1, V1> clo;
-
-        /**
-         * @param em Entry mapping description.
-         * @param stmt User statement.
-         * @param clo Closure for loaded values.
-         */
-        private LoadCacheCustomQueryWorker(EntryMapping em, PreparedStatement stmt, IgniteBiInClosure<K1, V1> clo) {
-            this.em = em;
-            this.stmt = stmt;
-            this.clo = clo;
-        }
 
         /**
          * @param em Entry mapping description.
@@ -1966,12 +1920,12 @@ public abstract class CacheAbstractJdbcStore<K, V> implements CacheStore<K, V>, 
         @Override public Void call() throws Exception {
             Connection conn = null;
 
-            try {
-                if (stmt == null) {
-                    conn = openConnection(true);
+            PreparedStatement stmt = null;
 
-                    stmt = conn.prepareStatement(qry);
-                }
+            try {
+                conn = openConnection(true);
+
+                stmt = conn.prepareStatement(qry);
 
                 stmt.setFetchSize(dialect.getFetchSize());
 
@@ -1997,11 +1951,9 @@ public abstract class CacheAbstractJdbcStore<K, V> implements CacheStore<K, V>, 
                 throw new CacheLoaderException("Failed to execute custom query for load cache", e);
             }
             finally {
-                if (conn != null) {
-                    U.closeQuiet(stmt);
+                U.closeQuiet(stmt);
 
-                    U.closeQuiet(conn);
-                }
+                U.closeQuiet(conn);
             }
         }
     }

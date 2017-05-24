@@ -32,7 +32,6 @@ import org.apache.ignite.internal.processors.cache.CacheEntryPredicate;
 import org.apache.ignite.internal.processors.cache.GridCacheContext;
 import org.apache.ignite.internal.processors.cache.GridCacheEntryEx;
 import org.apache.ignite.internal.processors.cache.GridCacheEntryRemovedException;
-import org.apache.ignite.internal.processors.cache.GridCacheFutureAdapter;
 import org.apache.ignite.internal.processors.cache.GridCacheMvccCandidate;
 import org.apache.ignite.internal.processors.cache.GridCacheMvccFuture;
 import org.apache.ignite.internal.processors.cache.KeyCacheObject;
@@ -42,6 +41,7 @@ import org.apache.ignite.internal.processors.cache.transactions.TxDeadlock;
 import org.apache.ignite.internal.processors.cache.version.GridCacheVersion;
 import org.apache.ignite.internal.processors.timeout.GridTimeoutObjectAdapter;
 import org.apache.ignite.transactions.TransactionDeadlockException;
+import org.apache.ignite.internal.util.future.GridFutureAdapter;
 import org.apache.ignite.internal.util.tostring.GridToStringExclude;
 import org.apache.ignite.internal.util.tostring.GridToStringInclude;
 import org.apache.ignite.internal.util.typedef.internal.S;
@@ -53,8 +53,11 @@ import org.jetbrains.annotations.Nullable;
 /**
  * Cache lock future.
  */
-public final class GridLocalLockFuture<K, V> extends GridCacheFutureAdapter<Boolean>
+public final class GridLocalLockFuture<K, V> extends GridFutureAdapter<Boolean>
     implements GridCacheMvccFuture<Boolean> {
+    /** */
+    private static final long serialVersionUID = 0L;
+
     /** Logger reference. */
     private static final AtomicReference<IgniteLogger> logRef = new AtomicReference<>();
 
@@ -132,7 +135,7 @@ public final class GridLocalLockFuture<K, V> extends GridCacheFutureAdapter<Bool
         this.filter = filter;
         this.tx = tx;
 
-        ignoreInterrupts();
+        ignoreInterrupts(true);
 
         threadId = tx == null ? Thread.currentThread().getId() : tx.threadId();
 
@@ -144,51 +147,12 @@ public final class GridLocalLockFuture<K, V> extends GridCacheFutureAdapter<Bool
 
         if (log == null)
             log = U.logger(cctx.kernalContext(), logRef, GridLocalLockFuture.class);
-    }
-
-    /**
-     * @param keys Keys.
-     * @return {@code False} in case of error.
-     * @throws IgniteCheckedException If failed.
-     */
-    public boolean addEntries(Collection<KeyCacheObject> keys) throws IgniteCheckedException {
-        for (KeyCacheObject key : keys) {
-            while (true) {
-                GridLocalCacheEntry entry = null;
-
-                try {
-                    entry = cache.entryExx(key);
-
-                    entry.unswap(false);
-
-                    if (!cctx.isAll(entry, filter)) {
-                        onFailed();
-
-                        return false;
-                    }
-
-                    // Removed exception may be thrown here.
-                    GridCacheMvccCandidate cand = addEntry(entry);
-
-                    if (cand == null && isDone())
-                        return false;
-
-                    break;
-                }
-                catch (GridCacheEntryRemovedException ignored) {
-                    if (log.isDebugEnabled())
-                        log.debug("Got removed entry in lockAsync(..) method (will retry): " + entry);
-                }
-            }
-        }
 
         if (timeout > 0) {
             timeoutObj = new LockTimeoutObject();
 
             cctx.time().addTimeoutObject(timeoutObj);
         }
-
-        return true;
     }
 
     /** {@inheritDoc} */
@@ -255,7 +219,7 @@ public final class GridLocalLockFuture<K, V> extends GridCacheFutureAdapter<Bool
      * @return Lock candidate.
      * @throws GridCacheEntryRemovedException If entry was removed.
      */
-    private @Nullable GridCacheMvccCandidate addEntry(GridLocalCacheEntry entry)
+    @Nullable GridCacheMvccCandidate addEntry(GridLocalCacheEntry entry)
         throws GridCacheEntryRemovedException {
         // Add local lock first, as it may throw GridCacheEntryRemovedException.
         GridCacheMvccCandidate c = entry.addLocal(

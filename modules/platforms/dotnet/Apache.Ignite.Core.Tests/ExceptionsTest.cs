@@ -340,7 +340,7 @@ namespace Apache.Ignite.Core.Tests
         {
             using (var grid = StartGrid())
             {
-                var cache = grid.GetOrCreateCache<TK, int>("partitioned_atomic").WithNoRetries();
+                var cache = grid.GetCache<TK, int>("partitioned_atomic").WithNoRetries();
 
                 if (typeof (TK) == typeof (IBinaryObject))
                     cache = cache.WithKeepBinary<TK, int>();
@@ -416,8 +416,11 @@ namespace Apache.Ignite.Core.Tests
         /// </summary>
         private static IIgnite StartGrid(string gridName = null)
         {
-            return Ignition.Start(new IgniteConfiguration(TestUtils.GetTestConfiguration())
+            return Ignition.Start(new IgniteConfiguration
             {
+                SpringConfigUrl = "config\\native-client-test-cache.xml",
+                JvmOptions = TestUtils.TestJavaOptions(),
+                JvmClasspath = TestUtils.CreateTestClasspath(),
                 IgniteInstanceName = gridName,
                 BinaryConfiguration = new BinaryConfiguration
                 {
@@ -455,8 +458,7 @@ namespace Apache.Ignite.Core.Tests
             /** <inheritDoc /> */
             public override bool Equals(object obj)
             {
-                var entry = obj as BinarizableEntry;
-                return entry != null && entry._val == _val;
+                return obj is BinarizableEntry && ((BinarizableEntry)obj)._val == _val;
             }
         }
 
@@ -487,8 +489,7 @@ namespace Apache.Ignite.Core.Tests
             /** <inheritDoc /> */
             public override bool Equals(object obj)
             {
-                var entry = obj as SerializableEntry;
-                return entry != null && entry._val == _val;
+                return obj is SerializableEntry && ((SerializableEntry)obj)._val == _val;
             }
         }
     }

@@ -33,10 +33,7 @@ public enum GridDhtPartitionState {
     RENTING,
 
     /** Partition has been evicted from cache. */
-    EVICTED,
-
-    /** Partition state is invalid, partition should not be used. */
-    LOST;
+    EVICTED;
 
     /** Enum values. */
     private static final GridDhtPartitionState[] VALS = values();

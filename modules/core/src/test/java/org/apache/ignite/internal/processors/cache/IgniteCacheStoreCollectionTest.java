@@ -47,12 +47,12 @@ public class IgniteCacheStoreCollectionTest extends GridCommonAbstractTest {
 
         ((TcpDiscoverySpi)cfg.getDiscoverySpi()).setIpFinder(ipFinder);
 
-        CacheConfiguration<Object, Object> ccfg1 = new CacheConfiguration<>(DEFAULT_CACHE_NAME);
+        CacheConfiguration<Object, Object> ccfg1 = new CacheConfiguration<>();
         ccfg1.setName("cache1");
         ccfg1.setAtomicityMode(ATOMIC);
         ccfg1.setWriteSynchronizationMode(FULL_SYNC);
 
-        CacheConfiguration<Object, Object> ccfg2 = new CacheConfiguration<>(DEFAULT_CACHE_NAME);
+        CacheConfiguration<Object, Object> ccfg2 = new CacheConfiguration<>();
         ccfg2.setName("cache2");
         ccfg2.setAtomicityMode(TRANSACTIONAL);
         ccfg2.setWriteSynchronizationMode(FULL_SYNC);

@@ -21,7 +21,6 @@ import org.apache.ignite.IgniteCheckedException;
 import org.apache.ignite.cluster.ClusterNode;
 import org.apache.ignite.internal.IgniteEx;
 import org.apache.ignite.internal.processors.platform.PlatformPluginExtension;
-import org.apache.ignite.platform.plugin.cache.PlatformTestCachePluginProvider;
 import org.apache.ignite.plugin.*;
 import org.jetbrains.annotations.Nullable;
 
@@ -94,10 +93,5 @@ public class PlatformTestPluginProvider implements PluginProvider<PlatformTestPl
     /** {@inheritDoc} */
     @Override public <T extends IgnitePlugin> T plugin() {
         return (T)new PlatformTestPlugin();
-    }
-
-    /** {@inheritDoc} */
-    @Override public CachePluginProvider createCacheProvider(CachePluginContext ctx) {
-        return new PlatformTestCachePluginProvider();
     }
 }

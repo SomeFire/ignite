@@ -34,6 +34,7 @@ import org.apache.ignite.configuration.CacheConfiguration;
 import org.apache.ignite.configuration.IgniteConfiguration;
 import org.apache.ignite.internal.IgniteKernal;
 import org.apache.ignite.internal.TestRecordingCommunicationSpi;
+import org.apache.ignite.internal.managers.communication.GridIoMessage;
 import org.apache.ignite.internal.processors.cache.GridCacheMessage;
 import org.apache.ignite.internal.processors.cache.distributed.dht.preloader.GridDhtPartitionSupplyMessage;
 import org.apache.ignite.internal.util.lang.GridAbsPredicate;
@@ -41,9 +42,8 @@ import org.apache.ignite.internal.util.typedef.F;
 import org.apache.ignite.internal.util.typedef.G;
 import org.apache.ignite.internal.util.typedef.internal.CU;
 import org.apache.ignite.internal.util.typedef.internal.U;
-import org.apache.ignite.lang.IgniteBiPredicate;
 import org.apache.ignite.lang.IgniteFuture;
-import org.apache.ignite.plugin.extensions.communication.Message;
+import org.apache.ignite.lang.IgnitePredicate;
 import org.apache.ignite.spi.discovery.tcp.TcpDiscoverySpi;
 import org.apache.ignite.spi.discovery.tcp.ipfinder.TcpDiscoveryIpFinder;
 import org.apache.ignite.spi.discovery.tcp.ipfinder.vm.TcpDiscoveryVmIpFinder;
@@ -82,7 +82,7 @@ public class IgniteCacheAtomicProtocolTest extends GridCommonAbstractTest {
         cfg.setConsistentId(gridName);
 
         ((TcpDiscoverySpi)cfg.getDiscoverySpi()).setIpFinder(ipFinder);
-        cfg.setClientFailureDetectionTimeout(Integer.MAX_VALUE);
+        ((TcpDiscoverySpi)cfg.getDiscoverySpi()).setMaxMissedClientHeartbeats(1000);
 
         TestRecordingCommunicationSpi commSpi = new TestRecordingCommunicationSpi();
 
@@ -101,10 +101,12 @@ public class IgniteCacheAtomicProtocolTest extends GridCommonAbstractTest {
      */
     private void blockRebalance() {
         for (Ignite node : G.allGrids()) {
-            testSpi(node).blockMessages(new IgniteBiPredicate<ClusterNode, Message>() {
-                @Override public boolean apply(ClusterNode node, Message msg) {
-                    return (msg instanceof GridDhtPartitionSupplyMessage)
-                        && ((GridCacheMessage)msg).cacheId() == CU.cacheId(TEST_CACHE);
+            testSpi(node).blockMessages(new IgnitePredicate<GridIoMessage>() {
+                @Override public boolean apply(GridIoMessage msg) {
+                    Object msg0 = msg.message();
+
+                    return (msg0 instanceof GridDhtPartitionSupplyMessage)
+                        && ((GridCacheMessage)msg0).cacheId() == CU.cacheId(TEST_CACHE);
                 }
             });
         }
@@ -355,7 +357,7 @@ public class IgniteCacheAtomicProtocolTest extends GridCommonAbstractTest {
 
         final IgniteCache<Integer, Integer> nearCache = clientNode.createCache(cacheConfiguration(1, FULL_ASYNC));
 
-        List<Integer> keys = movingKeysAfterJoin(srv0, TEST_CACHE, putAll ? 10 : 1);
+        List<Integer> keys = primaryKeys(srv0.cache(TEST_CACHE), putAll ? 3 : 1);
 
         testSpi(clientNode).blockMessages(GridNearAtomicSingleUpdateRequest.class, srv0.name());
         testSpi(clientNode).blockMessages(GridNearAtomicFullUpdateRequest.class, srv0.name());
@@ -370,18 +372,30 @@ public class IgniteCacheAtomicProtocolTest extends GridCommonAbstractTest {
         else
             nearCache.put(keys.get(0), map.get(keys.get(0)));
 
+        int nodeIdx = 2;
+
         Affinity<Object> aff = clientNode.affinity(TEST_CACHE);
 
-        startGrid(2);
+        int keysMoved;
 
-        awaitPartitionMapExchange();
+        do {
+            startGrid(nodeIdx);
 
-        int keysMoved = 0;
+            awaitPartitionMapExchange();
 
-        for (Integer key : keys) {
-            if (!aff.isPrimary(srv0.cluster().localNode(), key))
-                keysMoved++;
+            keysMoved = 0;
+
+            for (Integer key : keys) {
+                if (!aff.isPrimary(srv0.cluster().localNode(), key))
+                    keysMoved++;
+            }
+
+            if (keysMoved == keys.size())
+                break;
+
+            nodeIdx++;
         }
+        while (nodeIdx < 10);
 
         assertEquals(keys.size(), keysMoved);
 
@@ -650,9 +664,9 @@ public class IgniteCacheAtomicProtocolTest extends GridCommonAbstractTest {
 
         IgniteCache<Integer, Integer> nearCache = client.cache(TEST_CACHE);
 
-        testSpi(ignite(0)).blockMessages(new IgniteBiPredicate<ClusterNode, Message>() {
-            @Override public boolean apply(ClusterNode node, Message msg) {
-                return msg instanceof GridDhtAtomicAbstractUpdateRequest;
+        testSpi(ignite(0)).blockMessages(new IgnitePredicate<GridIoMessage>() {
+            @Override public boolean apply(GridIoMessage msg) {
+                return msg.message() instanceof GridDhtAtomicAbstractUpdateRequest;
             }
         });
 
@@ -706,16 +720,16 @@ public class IgniteCacheAtomicProtocolTest extends GridCommonAbstractTest {
         IgniteCache<Integer, Integer> nearCache = client.cache(TEST_CACHE);
 
         if (fail0) {
-            testSpi(ignite(0)).blockMessages(new IgniteBiPredicate<ClusterNode, Message>() {
-                @Override public boolean apply(ClusterNode node, Message msg) {
-                    return msg instanceof GridDhtAtomicAbstractUpdateRequest;
+            testSpi(ignite(0)).blockMessages(new IgnitePredicate<GridIoMessage>() {
+                @Override public boolean apply(GridIoMessage msg) {
+                    return msg.message() instanceof GridDhtAtomicAbstractUpdateRequest;
                 }
             });
         }
         if (fail1) {
-            testSpi(ignite(2)).blockMessages(new IgniteBiPredicate<ClusterNode, Message>() {
-                @Override public boolean apply(ClusterNode node, Message msg) {
-                    return msg instanceof GridDhtAtomicAbstractUpdateRequest;
+            testSpi(ignite(2)).blockMessages(new IgnitePredicate<GridIoMessage>() {
+                @Override public boolean apply(GridIoMessage msg) {
+                    return msg.message() instanceof GridDhtAtomicAbstractUpdateRequest;
                 }
             });
         }
@@ -749,7 +763,21 @@ public class IgniteCacheAtomicProtocolTest extends GridCommonAbstractTest {
      * @param expData Expected cache data.
      */
     private void checkData(Map<Integer, Integer> expData) {
-        checkCacheData(expData, TEST_CACHE);
+        assert !expData.isEmpty();
+
+        List<Ignite> nodes = G.allGrids();
+
+        assertFalse(nodes.isEmpty());
+
+        for (Ignite node : nodes) {
+            IgniteCache<Integer, Integer> cache = node.cache(TEST_CACHE);
+
+            for (Map.Entry<Integer, Integer> e : expData.entrySet()) {
+                assertEquals("Invalid value [key=" + e.getKey() + ", node=" + node.name() + ']',
+                    e.getValue(),
+                    cache.get(e.getKey()));
+            }
+        }
     }
 
     /**
@@ -785,7 +813,7 @@ public class IgniteCacheAtomicProtocolTest extends GridCommonAbstractTest {
      */
     private CacheConfiguration<Integer, Integer> cacheConfiguration(int backups,
         CacheWriteSynchronizationMode writeSync) {
-        CacheConfiguration<Integer, Integer> ccfg = new CacheConfiguration<>(DEFAULT_CACHE_NAME);
+        CacheConfiguration<Integer, Integer> ccfg = new CacheConfiguration<>();
 
         ccfg.setName(TEST_CACHE);
         ccfg.setAtomicityMode(ATOMIC);

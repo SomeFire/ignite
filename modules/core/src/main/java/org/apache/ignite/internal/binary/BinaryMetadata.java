@@ -58,7 +58,6 @@ public class BinaryMetadata implements Externalizable {
     private String affKeyFieldName;
 
     /** Schemas associated with type. */
-    @GridToStringInclude
     private Collection<BinarySchema> schemas;
 
     /** Schema IDs registered for this type */

@@ -22,7 +22,6 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentMap;
 import org.apache.ignite.internal.client.GridClient;
 import org.apache.ignite.internal.client.GridClientClosedException;
-import org.apache.ignite.internal.client.GridClientClusterState;
 import org.apache.ignite.internal.client.GridClientCompute;
 import org.apache.ignite.internal.client.GridClientConfiguration;
 import org.apache.ignite.internal.client.GridClientData;
@@ -188,11 +187,6 @@ public class GridRouterClientImpl implements GridClient {
     /** {@inheritDoc} */
     @Override public GridClientCompute compute() {
         return clientImpl.compute();
-    }
-
-    /** {@inheritDoc} */
-    @Override public GridClientClusterState state() {
-        return clientImpl.state();
     }
 
     /** {@inheritDoc} */

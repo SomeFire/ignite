@@ -47,12 +47,8 @@ namespace Apache.Ignite.Core.Impl.Unmanaged
             var ptr = NativeMethods.LoadLibrary(path);
 
             if (ptr == IntPtr.Zero)
-            {
-                var err = Marshal.GetLastWin32Error();
-
-                throw new IgniteException(string.Format("Failed to load {0} from {1}: [{2}]",
-                    IgniteUtils.FileIgniteJniDll, path, IgniteUtils.FormatWin32Error(err)));
-            }
+                throw new IgniteException(string.Format("Failed to load {0}: {1}", 
+                    IgniteUtils.FileIgniteJniDll, Marshal.GetLastWin32Error()));
 
             AppDomain.CurrentDomain.DomainUnload += CurrentDomain_DomainUnload;
 

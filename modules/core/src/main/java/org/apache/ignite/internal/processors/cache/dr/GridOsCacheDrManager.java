@@ -42,7 +42,7 @@ public class GridOsCacheDrManager implements GridCacheDrManager {
     }
 
     /** {@inheritDoc} */
-    @Override public void stop(boolean cancel, boolean destroy) {
+    @Override public void stop(boolean cancel) {
         // No-op.
     }
 

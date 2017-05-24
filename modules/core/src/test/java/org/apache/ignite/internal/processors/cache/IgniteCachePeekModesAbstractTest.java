@@ -29,6 +29,7 @@ import javax.cache.Cache;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteCache;
 import org.apache.ignite.IgniteCheckedException;
+import org.apache.ignite.cache.CacheMemoryMode;
 import org.apache.ignite.cache.CachePeekMode;
 import org.apache.ignite.cache.affinity.Affinity;
 import org.apache.ignite.cache.eviction.fifo.FifoEvictionPolicy;
@@ -38,10 +39,11 @@ import org.apache.ignite.configuration.IgniteConfiguration;
 import org.apache.ignite.configuration.NearCacheConfiguration;
 import org.apache.ignite.internal.IgniteEx;
 import org.apache.ignite.internal.IgniteKernal;
-import org.apache.ignite.internal.util.GridEmptyCloseableIterator;
 import org.apache.ignite.internal.processors.affinity.AffinityTopologyVersion;
 import org.apache.ignite.internal.util.typedef.T2;
 import org.apache.ignite.spi.IgniteSpiCloseableIterator;
+import org.apache.ignite.spi.swapspace.SwapSpaceSpi;
+import org.apache.ignite.spi.swapspace.file.FileSwapSpaceSpi;
 
 import static org.apache.ignite.cache.CacheMode.LOCAL;
 import static org.apache.ignite.cache.CacheMode.PARTITIONED;
@@ -52,6 +54,7 @@ import static org.apache.ignite.cache.CachePeekMode.NEAR;
 import static org.apache.ignite.cache.CachePeekMode.OFFHEAP;
 import static org.apache.ignite.cache.CachePeekMode.ONHEAP;
 import static org.apache.ignite.cache.CachePeekMode.PRIMARY;
+import static org.apache.ignite.cache.CachePeekMode.SWAP;
 
 /**
  * Tests for methods using {@link CachePeekMode}:
@@ -64,13 +67,26 @@ import static org.apache.ignite.cache.CachePeekMode.PRIMARY;
  */
 public abstract class IgniteCachePeekModesAbstractTest extends IgniteCacheAbstractTest {
     /** */
+    private static final String SPACE_NAME = "gg-swap-cache-dflt";
+
+    /** */
     private static final int HEAP_ENTRIES = 30;
 
     /** {@inheritDoc} */
     @Override protected IgniteConfiguration getConfiguration(String igniteInstanceName) throws Exception {
         IgniteConfiguration cfg = super.getConfiguration(igniteInstanceName);
 
+        cfg.setSwapSpaceSpi(spi());
+
         return cfg;
+    }
+
+    /**
+     * Creates a SwapSpaceSpi.
+     * @return the Spi
+     */
+    protected SwapSpaceSpi spi() {
+        return new FileSwapSpaceSpi();
     }
 
     /** {@inheritDoc} */
@@ -89,6 +105,10 @@ public abstract class IgniteCachePeekModesAbstractTest extends IgniteCacheAbstra
     @Override protected CacheConfiguration cacheConfiguration(String igniteInstanceName) throws Exception {
         CacheConfiguration ccfg = super.cacheConfiguration(igniteInstanceName);
 
+        ccfg.setMemoryMode(CacheMemoryMode.ONHEAP_TIERED);
+
+        ccfg.setOffHeapMaxMemory(512);
+
         ccfg.setBackups(1);
 
         if (hasNearCache())
@@ -98,9 +118,13 @@ public abstract class IgniteCachePeekModesAbstractTest extends IgniteCacheAbstra
         plc.setMaxSize(HEAP_ENTRIES);
 
         ccfg.setEvictionPolicy(plc);
-        ccfg.setOnheapCacheEnabled(true);
 
         return ccfg;
+    }
+
+    /** {@inheritDoc} */
+    @Override protected boolean swapEnabled() {
+        return true;
     }
 
     /**
@@ -189,7 +213,7 @@ public abstract class IgniteCachePeekModesAbstractTest extends IgniteCacheAbstra
                 assertNull(cache0.localPeek(key, BACKUP));
             }
 
-            Affinity<Integer> aff = ignite(0).affinity(DEFAULT_CACHE_NAME);
+            Affinity<Integer> aff = ignite(0).affinity(null);
 
             for (int i = 0; i < gridCount(); i++) {
                 if (i == nodeIdx)
@@ -230,9 +254,6 @@ public abstract class IgniteCachePeekModesAbstractTest extends IgniteCacheAbstra
      * @throws Exception If failed.
      */
     private void checkStorage(int nodeIdx) throws Exception {
-        if (true) // TODO GG-11148.
-            return;
-
         IgniteCache<Integer, String> cache0 = jcache(nodeIdx);
 
         List<Integer> keys = primaryKeys(cache0, 100, 10_000);
@@ -245,19 +266,16 @@ public abstract class IgniteCachePeekModesAbstractTest extends IgniteCacheAbstra
 
             Ignite ignite = ignite(nodeIdx);
 
+            SwapSpaceSpi swap = ignite.configuration().getSwapSpaceSpi();
+
             GridCacheAdapter<Integer, String> internalCache =
-                ((IgniteKernal)ignite).context().cache().internalCache(DEFAULT_CACHE_NAME);
+                ((IgniteKernal)ignite).context().cache().internalCache();
 
             CacheObjectContext coctx = internalCache.context().cacheObjectContext();
 
             Set<Integer> swapKeys = new HashSet<>();
 
-// TODO GG-11148.
-//            SwapSpaceSpi swap = ignite.configuration().getSwapSpaceSpi();
-//
-//            IgniteSpiCloseableIterator<KeyCacheObject> it = swap.keyIterator(SPACE_NAME, null);
-
-            IgniteSpiCloseableIterator<KeyCacheObject> it = new GridEmptyCloseableIterator<>();
+            IgniteSpiCloseableIterator<KeyCacheObject> it = swap.keyIterator(SPACE_NAME, null);
 
             assertNotNull(it);
 
@@ -273,13 +291,12 @@ public abstract class IgniteCachePeekModesAbstractTest extends IgniteCacheAbstra
 
             Set<Integer> offheapKeys = new HashSet<>();
 
-// TODO GG-11148.
-            Iterator<Map.Entry<Integer, String>> offheapIt = Collections.EMPTY_MAP.entrySet().iterator();
+            Iterator<Map.Entry<Integer, String>> offheapIt;
 
-//            if (internalCache.context().isNear())
-//                offheapIt = internalCache.context().near().dht().context().swap().lazyOffHeapIterator(false);
-//            else
-//                offheapIt = internalCache.context().swap().lazyOffHeapIterator(false);
+            if (internalCache.context().isNear())
+                offheapIt = internalCache.context().near().dht().context().swap().lazyOffHeapIterator(false);
+            else
+                offheapIt = internalCache.context().swap().lazyOffHeapIterator(false);
 
             while (offheapIt.hasNext()) {
                 Map.Entry<Integer, String> e = offheapIt.next();
@@ -305,20 +322,20 @@ public abstract class IgniteCachePeekModesAbstractTest extends IgniteCacheAbstra
             assertEquals(100, swapKeys.size() + offheapKeys.size() + heapKeys.size());
 
             for (Integer key : swapKeys) {
-                assertEquals(val, cache0.localPeek(key));
-                assertEquals(val, cache0.localPeek(key, PRIMARY));
-                assertEquals(val, cache0.localPeek(key, ONHEAP));
-                assertEquals(val, cache0.localPeek(key, ONHEAP, OFFHEAP));
-                assertEquals(val, cache0.localPeek(key, PRIMARY, ONHEAP));
-                assertEquals(val, cache0.localPeek(key, PRIMARY, ONHEAP, OFFHEAP));
+                assertEquals(val, cache0.localPeek(key, SWAP));
+                assertEquals(val, cache0.localPeek(key, PRIMARY, SWAP));
+                assertEquals(val, cache0.localPeek(key, ONHEAP, SWAP));
+                assertEquals(val, cache0.localPeek(key, ONHEAP, OFFHEAP, SWAP));
+                assertEquals(val, cache0.localPeek(key, PRIMARY, ONHEAP, SWAP));
+                assertEquals(val, cache0.localPeek(key, PRIMARY, ONHEAP, OFFHEAP, SWAP));
 
                 if (cacheMode() == LOCAL) {
-                    assertEquals(val, cache0.localPeek(key, BACKUP));
-                    assertEquals(val, cache0.localPeek(key, NEAR));
+                    assertEquals(val, cache0.localPeek(key, SWAP, BACKUP));
+                    assertEquals(val, cache0.localPeek(key, SWAP, NEAR));
                 }
                 else {
-                    assertNull(cache0.localPeek(key, BACKUP));
-                    assertNull(cache0.localPeek(key, NEAR));
+                    assertNull(cache0.localPeek(key, SWAP, BACKUP));
+                    assertNull(cache0.localPeek(key, SWAP, NEAR));
                 }
 
                 assertNull(cache0.localPeek(key, ONHEAP));
@@ -328,7 +345,7 @@ public abstract class IgniteCachePeekModesAbstractTest extends IgniteCacheAbstra
             for (Integer key : offheapKeys) {
                 assertEquals(val, cache0.localPeek(key, OFFHEAP));
                 assertEquals(val, cache0.localPeek(key, ONHEAP, OFFHEAP));
-                assertEquals(val, cache0.localPeek(key, ONHEAP, OFFHEAP));
+                assertEquals(val, cache0.localPeek(key, ONHEAP, SWAP, OFFHEAP));
                 assertEquals(val, cache0.localPeek(key, PRIMARY, OFFHEAP));
 
                 if (cacheMode() == LOCAL) {
@@ -341,13 +358,13 @@ public abstract class IgniteCachePeekModesAbstractTest extends IgniteCacheAbstra
                 }
 
                 assertNull(cache0.localPeek(key, ONHEAP));
-                assertNull(cache0.localPeek(key));
+                assertNull(cache0.localPeek(key, SWAP));
             }
 
             for (Integer key : heapKeys) {
                 assertEquals(val, cache0.localPeek(key, ONHEAP));
-                assertEquals(val, cache0.localPeek(key, ONHEAP));
-                assertEquals(val, cache0.localPeek(key, OFFHEAP, ONHEAP));
+                assertEquals(val, cache0.localPeek(key, SWAP, ONHEAP));
+                assertEquals(val, cache0.localPeek(key, SWAP, OFFHEAP, ONHEAP));
                 assertEquals(val, cache0.localPeek(key, PRIMARY, ONHEAP));
 
                 if (cacheMode() == LOCAL) {
@@ -359,7 +376,7 @@ public abstract class IgniteCachePeekModesAbstractTest extends IgniteCacheAbstra
                     assertNull(cache0.localPeek(key, ONHEAP, NEAR));
                 }
 
-                assertNull(cache0.localPeek(key));
+                assertNull(cache0.localPeek(key, SWAP));
                 assertNull(cache0.localPeek(key, OFFHEAP));
             }
         }
@@ -421,9 +438,6 @@ public abstract class IgniteCachePeekModesAbstractTest extends IgniteCacheAbstra
 
             checkEmpty();
 
-            if (true) // TODO GG-11148.
-                return;
-
             Set<Integer> keys = new HashSet<>();
 
             for (int i = 0; i < 200; i++) {
@@ -450,15 +464,19 @@ public abstract class IgniteCachePeekModesAbstractTest extends IgniteCacheAbstra
                 assertEquals(totalKeys, cache0.localSize(ALL));
 
                 assertEquals(totalOffheap, cache0.localSize(OFFHEAP));
+                assertEquals(totalSwap, cache0.localSize(SWAP));
                 assertEquals(totalKeys - (totalSwap + totalOffheap), cache0.localSize(ONHEAP));
 
                 assertEquals(totalOffheap, cache0.size(OFFHEAP));
+                assertEquals(totalSwap, cache0.size(SWAP));
                 assertEquals(totalKeys - (totalSwap + totalOffheap), cache0.size(ONHEAP));
 
                 assertEquals(totalOffheap, cache0.localSize(OFFHEAP, PRIMARY));
+                assertEquals(totalSwap, cache0.localSize(SWAP, PRIMARY));
                 assertEquals(totalKeys - (totalSwap + totalOffheap), cache0.localSize(ONHEAP, PRIMARY));
 
                 assertEquals(totalOffheap, cache0.localSize(OFFHEAP, BACKUP));
+                assertEquals(totalSwap, cache0.localSize(SWAP, BACKUP));
                 assertEquals(totalKeys - (totalSwap + totalOffheap), cache0.localSize(ONHEAP, BACKUP));
             }
             finally {
@@ -535,9 +553,6 @@ public abstract class IgniteCachePeekModesAbstractTest extends IgniteCacheAbstra
      * @throws InterruptedException If failed.
      */
     public void testLocalPartitionSizeFlags() throws InterruptedException {
-        if (true) // TODO GG-11148.
-            return;
-
         if (cacheMode() != LOCAL)
             return;
 
@@ -572,19 +587,19 @@ public abstract class IgniteCachePeekModesAbstractTest extends IgniteCacheAbstra
             assertEquals(totalKeys, cache0.localSizeLong(part, ALL));
 
             assertEquals(totalOffheap, cache0.localSizeLong(part, OFFHEAP));
-            assertEquals(totalSwap, cache0.localSizeLong(part));
+            assertEquals(totalSwap, cache0.localSizeLong(part, SWAP));
             assertEquals(totalKeys - (totalSwap + totalOffheap), cache0.localSizeLong(part, ONHEAP));
 
             assertEquals(totalOffheap, cache0.sizeLong(part, OFFHEAP));
-            assertEquals(totalSwap, cache0.sizeLong(part));
+            assertEquals(totalSwap, cache0.sizeLong(part, SWAP));
             assertEquals(totalKeys - (totalSwap + totalOffheap), cache0.sizeLong(part, ONHEAP));
 
             assertEquals(totalOffheap, cache0.localSizeLong(part, OFFHEAP, PRIMARY));
-            assertEquals(totalSwap, cache0.localSizeLong(part, PRIMARY));
+            assertEquals(totalSwap, cache0.localSizeLong(part, SWAP, PRIMARY));
             assertEquals(totalKeys - (totalSwap + totalOffheap), cache0.localSizeLong(part, ONHEAP, PRIMARY));
 
             assertEquals(totalOffheap, cache0.localSizeLong(part, OFFHEAP, BACKUP));
-            assertEquals(totalSwap, cache0.localSizeLong(part, BACKUP));
+            assertEquals(totalSwap, cache0.localSizeLong(part, SWAP, BACKUP));
             assertEquals(totalKeys - (totalSwap + totalOffheap), cache0.localSizeLong(part, ONHEAP, BACKUP));
         }
         finally {
@@ -596,9 +611,6 @@ public abstract class IgniteCachePeekModesAbstractTest extends IgniteCacheAbstra
      * @throws Exception If failed.
      */
     public void testNonLocalPartitionSize() throws Exception {
-        if (true) // TODO GG-11148.
-            return;
-
         if (cacheMode() == LOCAL)
             return;
 
@@ -687,7 +699,7 @@ public abstract class IgniteCachePeekModesAbstractTest extends IgniteCacheAbstra
 
             checkPrimarySize(PUT_KEYS);
 
-            Affinity<Integer> aff = ignite(0).affinity(DEFAULT_CACHE_NAME);
+            Affinity<Integer> aff = ignite(0).affinity(null);
 
             for (int i = 0; i < gridCount(); i++) {
                 if (i == nodeIdx)
@@ -761,7 +773,7 @@ public abstract class IgniteCachePeekModesAbstractTest extends IgniteCacheAbstra
                 int partSize = 0;
 
                 for (Integer key : keys){
-                    int keyPart = ignite(nodeIdx).affinity(DEFAULT_CACHE_NAME).partition(key);
+                    int keyPart = ignite(nodeIdx).affinity(null).partition(key);
                     if (keyPart == part)
                         partSize++;
                 }
@@ -791,7 +803,7 @@ public abstract class IgniteCachePeekModesAbstractTest extends IgniteCacheAbstra
                 int partSize = 0;
 
                 for (Integer key :keys){
-                    int keyPart = ignite(nodeIdx).affinity(DEFAULT_CACHE_NAME).partition(key);
+                    int keyPart = ignite(nodeIdx).affinity(null).partition(key);
                     if(keyPart == part)
                         partSize++;
                 }
@@ -831,7 +843,7 @@ public abstract class IgniteCachePeekModesAbstractTest extends IgniteCacheAbstra
 
             checkPrimarySize(PUT_KEYS);
 
-            Affinity<Integer> aff = ignite(0).affinity(DEFAULT_CACHE_NAME);
+            Affinity<Integer> aff = ignite(0).affinity(null);
 
             for (int i = 0; i < gridCount(); i++) {
                 if (i == nodeIdx)
@@ -922,22 +934,20 @@ public abstract class IgniteCachePeekModesAbstractTest extends IgniteCacheAbstra
      * @return Tuple with primary and backup keys.
      */
     private T2<List<Integer>, List<Integer>> swapKeys(int nodeIdx) {
-// TODO: GG-11148.
-//        SwapSpaceSpi swap = ignite(nodeIdx).configuration().getSwapSpaceSpi();
-//
-//        IgniteSpiCloseableIterator<KeyCacheObject> it = swap.keyIterator(SPACE_NAME, null);
-        IgniteSpiCloseableIterator<KeyCacheObject> it = new GridEmptyCloseableIterator<>();
+        SwapSpaceSpi swap = ignite(nodeIdx).configuration().getSwapSpaceSpi();
+
+        IgniteSpiCloseableIterator<KeyCacheObject> it = swap.keyIterator(SPACE_NAME, null);
 
         assertNotNull(it);
 
-        Affinity aff = ignite(nodeIdx).affinity(DEFAULT_CACHE_NAME);
+        Affinity aff = ignite(nodeIdx).affinity(null);
 
         ClusterNode node = ignite(nodeIdx).cluster().localNode();
 
         List<Integer> primary = new ArrayList<>();
         List<Integer> backups = new ArrayList<>();
 
-        CacheObjectContext coctx = ((IgniteEx)ignite(nodeIdx)).context().cache().internalCache(DEFAULT_CACHE_NAME)
+        CacheObjectContext coctx = ((IgniteEx)ignite(nodeIdx)).context().cache().internalCache()
             .context().cacheObjectContext();
 
         while (it.hasNext()) {
@@ -967,20 +977,46 @@ public abstract class IgniteCachePeekModesAbstractTest extends IgniteCacheAbstra
 
     /**
      * @param nodeIdx Node index.
+     * @param part Cache partition
+     * @return Tuple with number of primary and backup keys (one or both will be zero).
+     * @throws IgniteCheckedException If failed.
+     */
+    private T2<Integer, Integer> swapKeysCount(int nodeIdx, int part) throws IgniteCheckedException {
+        GridCacheContext ctx = ((IgniteEx)ignite(nodeIdx)).context().cache().internalCache().context();
+        // Swap and offheap are disabled for near cache.
+        GridCacheSwapManager swapMgr = ctx.isNear() ? ctx.near().dht().context().swap() : ctx.swap();
+        //First count entries...
+        int cnt = (int)swapMgr.swapEntriesCount(part);
+
+        GridCacheAffinityManager affinity = ctx.affinity();
+        AffinityTopologyVersion topVer = affinity.affinityTopologyVersion();
+
+        //And then find out whether they are primary or backup ones.
+        int primaryCnt = 0;
+        int backupCnt = 0;
+        if (affinity.primaryByPartition(ctx.localNode(), part, topVer))
+            primaryCnt = cnt;
+        else if (affinity.primaryByPartition(ctx.localNode(), part, topVer))
+            backupCnt = cnt;
+        return new T2<>(primaryCnt, backupCnt);
+    }
+
+    /**
+     * @param nodeIdx Node index.
      * @return Tuple with primary and backup keys.
      */
     private T2<List<Integer>, List<Integer>> offheapKeys(int nodeIdx) {
         GridCacheAdapter<Integer, String> internalCache =
-            ((IgniteKernal)ignite(nodeIdx)).context().cache().internalCache(DEFAULT_CACHE_NAME);
+            ((IgniteKernal)ignite(nodeIdx)).context().cache().internalCache();
 
-// TODO GG-11148.
-        Iterator<Map.Entry<Integer, String>> offheapIt = Collections.EMPTY_MAP.entrySet().iterator();
-//        if (internalCache.context().isNear())
-//            offheapIt = internalCache.context().near().dht().context().swap().lazyOffHeapIterator(false);
-//        else
-//            offheapIt = internalCache.context().swap().lazyOffHeapIterator(false);
+        Iterator<Map.Entry<Integer, String>> offheapIt;
 
-        Affinity aff = ignite(nodeIdx).affinity(DEFAULT_CACHE_NAME);
+        if (internalCache.context().isNear())
+            offheapIt = internalCache.context().near().dht().context().swap().lazyOffHeapIterator(false);
+        else
+            offheapIt = internalCache.context().swap().lazyOffHeapIterator(false);
+
+        Affinity aff = ignite(nodeIdx).affinity(null);
 
         ClusterNode node = ignite(nodeIdx).cluster().localNode();
 
@@ -1018,11 +1054,11 @@ public abstract class IgniteCachePeekModesAbstractTest extends IgniteCacheAbstra
      * @return Tuple with number of primary and backup keys (one or both will be zero).
      */
     private T2<Integer, Integer> offheapKeysCount(int nodeIdx, int part) throws IgniteCheckedException {
-        GridCacheContext ctx = ((IgniteEx)ignite(nodeIdx)).context().cache().internalCache(DEFAULT_CACHE_NAME).context();
+        GridCacheContext ctx = ((IgniteEx)ignite(nodeIdx)).context().cache().internalCache().context();
         // Swap and offheap are disabled for near cache.
-        IgniteCacheOffheapManager offheapManager = ctx.isNear() ? ctx.near().dht().context().offheap() : ctx.offheap();
+        GridCacheSwapManager swapMgr = ctx.isNear() ? ctx.near().dht().context().swap() : ctx.swap();
         //First count entries...
-        int cnt = (int)offheapManager.entriesCount(part);
+        int cnt = (int)swapMgr.offheapEntriesCount(part);
 
         GridCacheAffinityManager affinity = ctx.affinity();
         AffinityTopologyVersion topVer = affinity.affinityTopologyVersion();
@@ -1042,9 +1078,6 @@ public abstract class IgniteCachePeekModesAbstractTest extends IgniteCacheAbstra
      * @throws Exception If failed.
      */
     private void checkSizeStorageFilter(int nodeIdx) throws Exception {
-        if (true) // TODO GG-11148.
-            return;
-
         IgniteCache<Integer, String> cache0 = jcache(nodeIdx);
 
         List<Integer> primaryKeys = primaryKeys(cache0, 100, 10_000);
@@ -1080,20 +1113,20 @@ public abstract class IgniteCachePeekModesAbstractTest extends IgniteCacheAbstra
             assertEquals(primaryKeys.size(), cache0.localSize());
             assertEquals(totalKeys, cache0.localSize(ALL));
             assertEquals(totalOffheap, cache0.localSize(PRIMARY, BACKUP, NEAR, OFFHEAP));
-            assertEquals(totalSwap, cache0.localSize(PRIMARY, BACKUP, NEAR));
+            assertEquals(totalSwap, cache0.localSize(PRIMARY, BACKUP, NEAR, SWAP));
             assertEquals(totalKeys - (totalOffheap + totalSwap), cache0.localSize(PRIMARY, BACKUP, NEAR, ONHEAP));
-            assertEquals(totalKeys, cache0.localSize(PRIMARY, BACKUP, NEAR, OFFHEAP, ONHEAP));
+            assertEquals(totalKeys, cache0.localSize(PRIMARY, BACKUP, NEAR, SWAP, OFFHEAP, ONHEAP));
 
-            assertEquals(swapKeys.get1(), (Integer)cache0.localSize(PRIMARY));
-            assertEquals(swapKeys.get2(), (Integer)cache0.localSize(BACKUP));
+            assertEquals(swapKeys.get1(), (Integer)cache0.localSize(SWAP, PRIMARY));
+            assertEquals(swapKeys.get2(), (Integer)cache0.localSize(SWAP, BACKUP));
 
             assertEquals(offheapKeys.get1(), (Integer)cache0.localSize(OFFHEAP, PRIMARY));
             assertEquals(offheapKeys.get2(), (Integer)cache0.localSize(OFFHEAP, BACKUP));
 
-            assertEquals(swapKeys.get1() + offheapKeys.get1(), cache0.localSize(OFFHEAP, PRIMARY));
-            assertEquals(swapKeys.get2() + offheapKeys.get2(), cache0.localSize(OFFHEAP, BACKUP));
+            assertEquals(swapKeys.get1() + offheapKeys.get1(), cache0.localSize(SWAP, OFFHEAP, PRIMARY));
+            assertEquals(swapKeys.get2() + offheapKeys.get2(), cache0.localSize(SWAP, OFFHEAP, BACKUP));
 
-            assertEquals(totalSwap + totalOffheap, cache0.localSize(PRIMARY, BACKUP, NEAR, OFFHEAP));
+            assertEquals(totalSwap + totalOffheap, cache0.localSize(PRIMARY, BACKUP, NEAR, SWAP, OFFHEAP));
 
             int globalSwapPrimary = 0;
             int globalSwapBackup = 0;
@@ -1135,20 +1168,20 @@ public abstract class IgniteCachePeekModesAbstractTest extends IgniteCacheAbstra
 
                 assertEquals(totalKeys, cache.size(PRIMARY));
                 assertEquals(globalTotal, cache.size(ALL));
-                assertEquals(globalTotal, cache.size(PRIMARY, BACKUP, NEAR, ONHEAP, OFFHEAP));
-                assertEquals(globalTotal, cache.size(ONHEAP, OFFHEAP, PRIMARY, BACKUP));
+                assertEquals(globalTotal, cache.size(PRIMARY, BACKUP, NEAR, ONHEAP, OFFHEAP, SWAP));
+                assertEquals(globalTotal, cache.size(ONHEAP, OFFHEAP, SWAP, PRIMARY, BACKUP));
 
-                assertEquals(globalTotalSwap, cache.size(PRIMARY, BACKUP, NEAR));
-                assertEquals(globalSwapPrimary, cache.size(PRIMARY));
-                assertEquals(globalSwapBackup, cache.size(BACKUP));
+                assertEquals(globalTotalSwap, cache.size(PRIMARY, BACKUP, NEAR, SWAP));
+                assertEquals(globalSwapPrimary, cache.size(SWAP, PRIMARY));
+                assertEquals(globalSwapBackup, cache.size(SWAP, BACKUP));
 
                 assertEquals(globalTotalOffheap, cache.size(PRIMARY, BACKUP, NEAR, OFFHEAP));
                 assertEquals(globalOffheapPrimary, cache.size(OFFHEAP, PRIMARY));
                 assertEquals(globalOffheapBackup, cache.size(OFFHEAP, BACKUP));
 
-                assertEquals(globalTotalSwap + globalTotalOffheap, cache.size(PRIMARY, BACKUP, NEAR, OFFHEAP));
-                assertEquals(globalSwapPrimary + globalOffheapPrimary, cache.size(OFFHEAP, PRIMARY));
-                assertEquals(globalSwapBackup + globalOffheapBackup, cache.size(OFFHEAP, BACKUP));
+                assertEquals(globalTotalSwap + globalTotalOffheap, cache.size(PRIMARY, BACKUP, NEAR, SWAP, OFFHEAP));
+                assertEquals(globalSwapPrimary + globalOffheapPrimary, cache.size(SWAP, OFFHEAP, PRIMARY));
+                assertEquals(globalSwapBackup + globalOffheapBackup, cache.size(SWAP, OFFHEAP, BACKUP));
 
                 assertEquals(globalTotal - (globalTotalOffheap + globalTotalSwap), cache.size(PRIMARY, BACKUP, NEAR, ONHEAP));
             }
@@ -1184,20 +1217,31 @@ public abstract class IgniteCachePeekModesAbstractTest extends IgniteCacheAbstra
 
             int totalKeys = 200;
 
+            T2<Integer, Integer> swapKeys = swapKeysCount(nodeIdx, part);
+
             T2<Integer, Integer> offheapKeys = offheapKeysCount(nodeIdx, part);
 
+            int totalSwap = swapKeys.get1() + swapKeys.get2();
             int totalOffheap = offheapKeys.get1() + offheapKeys.get2();
 
-            log.info("Local keys [total=" + totalKeys + ", offheap=" + offheapKeys + ']');
+            log.info("Local keys [total=" + totalKeys + ", offheap=" + offheapKeys + ", swap=" + swapKeys + ']');
 
-            assertTrue(totalOffheap < totalKeys);
+            assertTrue(totalSwap + totalOffheap < totalKeys);
 
             assertEquals(primaryKeys.size(), cache0.localSize());
             assertEquals(totalKeys, cache0.localSize(ALL));
             assertEquals(totalOffheap, cache0.localSizeLong(part, PRIMARY, BACKUP, NEAR, OFFHEAP));
+            assertEquals(totalSwap, cache0.localSizeLong(part, PRIMARY, BACKUP, NEAR, SWAP));
+            assertEquals((long)swapKeys.get1(), cache0.localSizeLong(part, SWAP, PRIMARY));
+            assertEquals((long)swapKeys.get2(), cache0.localSizeLong(part, SWAP, BACKUP));
 
             assertEquals((long)offheapKeys.get1(), cache0.localSizeLong(part, OFFHEAP, PRIMARY));
             assertEquals((long)offheapKeys.get2(), cache0.localSizeLong(part, OFFHEAP, BACKUP));
+
+            assertEquals(swapKeys.get1() + offheapKeys.get1(), cache0.localSizeLong(part, SWAP, OFFHEAP, PRIMARY));
+            assertEquals(swapKeys.get2() + offheapKeys.get2(), cache0.localSizeLong(part, SWAP, OFFHEAP, BACKUP));
+
+            assertEquals(totalSwap + totalOffheap, cache0.localSizeLong(part, PRIMARY, BACKUP, NEAR, SWAP, OFFHEAP));
 
             int globalParitionSwapPrimary = 0;
             int globalPartSwapBackup = 0;
@@ -1206,6 +1250,11 @@ public abstract class IgniteCachePeekModesAbstractTest extends IgniteCacheAbstra
             int globalPartOffheapBackup = 0;
 
             for (int i = 0; i < gridCount(); i++) {
+                T2<Integer, Integer> swap = swapKeysCount(i, part);
+
+                globalParitionSwapPrimary += swap.get1();
+                globalPartSwapBackup += swap.get2();
+
                 T2<Integer, Integer> offheap = offheapKeysCount(i, part);
 
                 globalPartOffheapPrimary += offheap.get1();
@@ -1234,20 +1283,20 @@ public abstract class IgniteCachePeekModesAbstractTest extends IgniteCacheAbstra
 
                 assertEquals(totalKeys, cache.size(PRIMARY));
                 assertEquals(globalTotal, cache.size(ALL));
-                assertEquals(globalTotal, cache.size(PRIMARY, BACKUP, NEAR, ONHEAP, OFFHEAP));
-                assertEquals(globalTotal, cache.size(ONHEAP, OFFHEAP, PRIMARY, BACKUP));
+                assertEquals(globalTotal, cache.size(PRIMARY, BACKUP, NEAR, ONHEAP, OFFHEAP, SWAP));
+                assertEquals(globalTotal, cache.size(ONHEAP, OFFHEAP, SWAP, PRIMARY, BACKUP));
 
-                assertEquals(globalPartTotalSwap, cache.sizeLong(part, PRIMARY, BACKUP, NEAR));
-                assertEquals(globalParitionSwapPrimary, cache.sizeLong(part, PRIMARY));
-                assertEquals(globalPartSwapBackup, cache.sizeLong(part, BACKUP));
+                assertEquals(globalPartTotalSwap, cache.sizeLong(part, PRIMARY, BACKUP, NEAR, SWAP));
+                assertEquals(globalParitionSwapPrimary, cache.sizeLong(part, SWAP, PRIMARY));
+                assertEquals(globalPartSwapBackup, cache.sizeLong(part, SWAP, BACKUP));
 
                 assertEquals(globalPartTotalOffheap, cache.sizeLong(part, PRIMARY, BACKUP, NEAR, OFFHEAP));
                 assertEquals(globalPartOffheapPrimary, cache.sizeLong(part, OFFHEAP, PRIMARY));
                 assertEquals(globalPartOffheapBackup, cache.sizeLong(part, OFFHEAP, BACKUP));
 
-                assertEquals(globalPartTotalSwap + globalPartTotalOffheap, cache.sizeLong(part, PRIMARY, BACKUP, NEAR, OFFHEAP));
-                assertEquals(globalParitionSwapPrimary + globalPartOffheapPrimary, cache.sizeLong(part, OFFHEAP, PRIMARY));
-                assertEquals(globalPartSwapBackup + globalPartOffheapBackup, cache.sizeLong(part, OFFHEAP, BACKUP));
+                assertEquals(globalPartTotalSwap + globalPartTotalOffheap, cache.sizeLong(part, PRIMARY, BACKUP, NEAR, SWAP, OFFHEAP));
+                assertEquals(globalParitionSwapPrimary + globalPartOffheapPrimary, cache.sizeLong(part, SWAP, OFFHEAP, PRIMARY));
+                assertEquals(globalPartSwapBackup + globalPartOffheapBackup, cache.sizeLong(part, SWAP, OFFHEAP, BACKUP));
             }
         }
         finally {
@@ -1305,9 +1354,6 @@ public abstract class IgniteCachePeekModesAbstractTest extends IgniteCacheAbstra
 
             checkLocalEntries(cache0.localEntries());
 
-            if (true) // TODO GG-11148.
-                return;
-
             final String val = "test-val-";
 
             keys = new HashSet<>();
@@ -1356,15 +1402,19 @@ public abstract class IgniteCachePeekModesAbstractTest extends IgniteCacheAbstra
                 checkLocalEntries(cache0.localEntries(ALL), val, keys);
 
                 checkLocalEntries(cache0.localEntries(OFFHEAP), val, offheap);
+                checkLocalEntries(cache0.localEntries(SWAP), val, swap);
                 checkLocalEntries(cache0.localEntries(ONHEAP), val, heap);
 
                 checkLocalEntries(cache0.localEntries(OFFHEAP, PRIMARY), val, offheap);
+                checkLocalEntries(cache0.localEntries(SWAP, PRIMARY), val, swap);
                 checkLocalEntries(cache0.localEntries(ONHEAP, PRIMARY), val, heap);
 
                 checkLocalEntries(cache0.localEntries(OFFHEAP, BACKUP), val, offheap);
+                checkLocalEntries(cache0.localEntries(SWAP, BACKUP), val, swap);
                 checkLocalEntries(cache0.localEntries(ONHEAP, BACKUP), val, heap);
 
                 checkLocalEntries(cache0.localEntries(OFFHEAP, NEAR), val, offheap);
+                checkLocalEntries(cache0.localEntries(SWAP, NEAR), val, swap);
                 checkLocalEntries(cache0.localEntries(ONHEAP, NEAR), val, heap);
             }
             finally {
@@ -1387,9 +1437,6 @@ public abstract class IgniteCachePeekModesAbstractTest extends IgniteCacheAbstra
      * @throws Exception If failed.
      */
     private void checkLocalEntriesStorageFilter(int nodeIdx) throws Exception {
-        if (true) // TODO GG-11148.
-            return;
-
         IgniteCache<Integer, String> cache0 = jcache(nodeIdx);
 
         List<Integer> primaryKeys = primaryKeys(cache0, 100, 10_000);
@@ -1445,23 +1492,23 @@ public abstract class IgniteCachePeekModesAbstractTest extends IgniteCacheAbstra
 
             checkLocalEntries(cache0.localEntries(), val, primaryKeys, backupKeys);
             checkLocalEntries(cache0.localEntries(ALL), val, primaryKeys, backupKeys);
-            checkLocalEntries(cache0.localEntries(ONHEAP, OFFHEAP), val, primaryKeys, backupKeys);
+            checkLocalEntries(cache0.localEntries(ONHEAP, OFFHEAP, SWAP), val, primaryKeys, backupKeys);
 
-            checkLocalEntries(cache0.localEntries(), val, swap);
+            checkLocalEntries(cache0.localEntries(SWAP), val, swap);
             checkLocalEntries(cache0.localEntries(OFFHEAP), val, offheap);
             checkLocalEntries(cache0.localEntries(ONHEAP), val, heap);
 
-            checkLocalEntries(cache0.localEntries(OFFHEAP), val, swap, offheap);
-            checkLocalEntries(cache0.localEntries(ONHEAP), val, swap, heap);
+            checkLocalEntries(cache0.localEntries(SWAP, OFFHEAP), val, swap, offheap);
+            checkLocalEntries(cache0.localEntries(SWAP, ONHEAP), val, swap, heap);
 
-            checkLocalEntries(cache0.localEntries(PRIMARY), val, swapKeys.get1());
-            checkLocalEntries(cache0.localEntries(BACKUP), val, swapKeys.get2());
+            checkLocalEntries(cache0.localEntries(SWAP, PRIMARY), val, swapKeys.get1());
+            checkLocalEntries(cache0.localEntries(SWAP, BACKUP), val, swapKeys.get2());
             checkLocalEntries(cache0.localEntries(OFFHEAP, PRIMARY), val, offheapKeys.get1());
             checkLocalEntries(cache0.localEntries(OFFHEAP, BACKUP), val, offheapKeys.get2());
 
-            checkLocalEntries(cache0.localEntries(OFFHEAP, PRIMARY), val, swapKeys.get1(), offheapKeys.get1());
-            checkLocalEntries(cache0.localEntries(OFFHEAP, BACKUP), val, swapKeys.get2(), offheapKeys.get2());
-            checkLocalEntries(cache0.localEntries(OFFHEAP, PRIMARY, BACKUP), val, swap, offheap);
+            checkLocalEntries(cache0.localEntries(SWAP, OFFHEAP, PRIMARY), val, swapKeys.get1(), offheapKeys.get1());
+            checkLocalEntries(cache0.localEntries(SWAP, OFFHEAP, BACKUP), val, swapKeys.get2(), offheapKeys.get2());
+            checkLocalEntries(cache0.localEntries(SWAP, OFFHEAP, PRIMARY, BACKUP), val, swap, offheap);
         }
         finally {
             cache0.removeAll(new HashSet<>(primaryKeys));

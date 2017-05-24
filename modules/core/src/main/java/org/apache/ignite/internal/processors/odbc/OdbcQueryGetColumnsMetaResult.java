@@ -24,19 +24,19 @@ import java.util.Collection;
  */
 public class OdbcQueryGetColumnsMetaResult {
     /** Query result rows. */
-    private final Collection<SqlListenerColumnMeta> meta;
+    private final Collection<OdbcColumnMeta> meta;
 
     /**
      * @param meta Column metadata.
      */
-    public OdbcQueryGetColumnsMetaResult(Collection<SqlListenerColumnMeta> meta) {
+    public OdbcQueryGetColumnsMetaResult(Collection<OdbcColumnMeta> meta) {
         this.meta = meta;
     }
 
     /**
      * @return Query result rows.
      */
-    public Collection<SqlListenerColumnMeta> meta() {
+    public Collection<OdbcColumnMeta> meta() {
         return meta;
     }
 }

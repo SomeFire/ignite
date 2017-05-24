@@ -29,16 +29,10 @@
 
 namespace ignite
 {
-    namespace impl
-    {
-        namespace binary
-        {
-            class BinaryWriterImpl;
-        }
-    }
-
     namespace binary
     {
+        class BinaryArrayIdentityResolver;
+
         /**
          * Binary object.
          *
@@ -47,7 +41,7 @@ namespace ignite
          */
         class IGNITE_IMPORT_EXPORT BinaryObject
         {
-            friend class ignite::impl::binary::BinaryWriterImpl;
+            friend class BinaryArrayIdentityResolver;
         public:
             /// @cond INTERNAL
             /**

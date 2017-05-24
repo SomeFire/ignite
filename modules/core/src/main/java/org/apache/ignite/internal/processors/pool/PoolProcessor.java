@@ -18,9 +18,7 @@
 package org.apache.ignite.internal.processors.pool;
 
 import java.util.Arrays;
-import java.util.Map;
 import java.util.concurrent.Executor;
-import java.util.concurrent.ExecutorService;
 import org.apache.ignite.IgniteCheckedException;
 import org.apache.ignite.IgniteException;
 import org.apache.ignite.internal.GridKernalContext;
@@ -28,7 +26,6 @@ import org.apache.ignite.internal.managers.communication.GridIoPolicy;
 import org.apache.ignite.internal.processors.GridProcessorAdapter;
 import org.apache.ignite.internal.processors.plugin.IgnitePluginProcessor;
 import org.apache.ignite.plugin.extensions.communication.IoPool;
-import org.jetbrains.annotations.Nullable;
 
 /**
  * Processor which abstracts out thread pool management.
@@ -36,9 +33,6 @@ import org.jetbrains.annotations.Nullable;
 public class PoolProcessor extends GridProcessorAdapter {
     /** Map of {@link IoPool}-s injected by Ignite plugins. */
     private final IoPool[] extPools = new IoPool[128];
-
-    /** Custom named pools. */
-    private final Map<String, ? extends ExecutorService> customExecs;
 
     /**
      * Constructor.
@@ -78,8 +72,6 @@ public class PoolProcessor extends GridProcessorAdapter {
                 }
             }
         }
-
-        customExecs = ctx.customExecutors();
     }
 
     /** {@inheritDoc} */
@@ -145,11 +137,6 @@ public class PoolProcessor extends GridProcessorAdapter {
 
                 return ctx.getQueryExecutorService();
 
-            case GridIoPolicy.SCHEMA_POOL:
-                assert ctx.getSchemaExecutorService() != null : "Query pool is not configured.";
-
-                return ctx.getSchemaExecutorService();
-
             default: {
                 if (plc < 0)
                     throw new IgniteCheckedException("Policy cannot be negative: " + plc);
@@ -172,22 +159,5 @@ public class PoolProcessor extends GridProcessorAdapter {
                 return res;
             }
         }
-    }
-
-    /**
-     * Gets executor service for custom policy by executor name.
-     *
-     * @param name Executor name.
-     * @return Executor service.
-     */
-    @Nullable public Executor customExecutor(String name) {
-        assert name != null;
-
-        Executor exec = null;
-
-        if (customExecs != null)
-            exec = customExecs.get(name);
-
-        return exec;
     }
 }

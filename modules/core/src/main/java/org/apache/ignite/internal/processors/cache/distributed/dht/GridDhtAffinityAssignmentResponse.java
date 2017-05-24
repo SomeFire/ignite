@@ -44,9 +44,6 @@ public class GridDhtAffinityAssignmentResponse extends GridCacheMessage {
     /** */
     private static final long serialVersionUID = 0L;
 
-    /** */
-    private long futId;
-
     /** Topology version. */
     private AffinityTopologyVersion topVer;
 
@@ -72,28 +69,17 @@ public class GridDhtAffinityAssignmentResponse extends GridCacheMessage {
     }
 
     /**
-     * @param futId Future ID.
      * @param cacheId Cache ID.
      * @param topVer Topology version.
      * @param affAssignment Affinity assignment.
      */
-    public GridDhtAffinityAssignmentResponse(
-        long futId,
-        int cacheId,
+    public GridDhtAffinityAssignmentResponse(int cacheId,
         @NotNull AffinityTopologyVersion topVer,
         List<List<ClusterNode>> affAssignment) {
-        this.futId = futId;
         this.cacheId = cacheId;
         this.topVer = topVer;
 
         affAssignmentIds = ids(affAssignment);
-    }
-
-    /**
-     * @return Future ID.
-     */
-    public long futureId() {
-        return futId;
     }
 
     /** {@inheritDoc} */
@@ -195,7 +181,7 @@ public class GridDhtAffinityAssignmentResponse extends GridCacheMessage {
 
     /** {@inheritDoc} */
     @Override public byte fieldsCount() {
-        return 7;
+        return 6;
     }
 
     /**
@@ -253,18 +239,12 @@ public class GridDhtAffinityAssignmentResponse extends GridCacheMessage {
                 writer.incrementState();
 
             case 4:
-                if (!writer.writeLong("futId", futId))
-                    return false;
-
-                writer.incrementState();
-
-            case 5:
                 if (!writer.writeByteArray("idealAffAssignmentBytes", idealAffAssignmentBytes))
                     return false;
 
                 writer.incrementState();
 
-            case 6:
+            case 5:
                 if (!writer.writeMessage("topVer", topVer))
                     return false;
 
@@ -295,14 +275,6 @@ public class GridDhtAffinityAssignmentResponse extends GridCacheMessage {
                 reader.incrementState();
 
             case 4:
-                futId = reader.readLong("futId");
-
-                if (!reader.isLastRead())
-                    return false;
-
-                reader.incrementState();
-
-            case 5:
                 idealAffAssignmentBytes = reader.readByteArray("idealAffAssignmentBytes");
 
                 if (!reader.isLastRead())
@@ -310,7 +282,7 @@ public class GridDhtAffinityAssignmentResponse extends GridCacheMessage {
 
                 reader.incrementState();
 
-            case 6:
+            case 5:
                 topVer = reader.readMessage("topVer");
 
                 if (!reader.isLastRead())

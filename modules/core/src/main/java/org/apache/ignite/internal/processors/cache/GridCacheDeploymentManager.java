@@ -268,13 +268,15 @@ public class GridCacheDeploymentManager<K, V> extends GridCacheSharedManagerAdap
             cacheCtx.near().dht().clearLocally(keys, true);
 
         // Examine swap for entries to undeploy.
-        int swapUndeployCnt = cacheCtx.offheap().onUndeploy(ldr);
+        int swapUndeployCnt = cacheCtx.isNear() ?
+            cacheCtx.near().dht().context().swap().onUndeploy(ldr) :
+            cacheCtx.swap().onUndeploy(ldr);
 
         if (cacheCtx.userCache() && (!keys.isEmpty() || swapUndeployCnt != 0)) {
             U.quietAndWarn(log, "");
             U.quietAndWarn(
                 log,
-                "Cleared all cache entries for undeployed class loader [cacheName=" + cacheCtx.name() +
+                "Cleared all cache entries for undeployed class loader [cacheName=" + cacheCtx.namexx() +
                     ", undeployCnt=" + keys.size() + ", swapUndeployCnt=" + swapUndeployCnt +
                     ", clsLdr=" + ldr.getClass().getName() + ']');
             U.quietAndWarn(
@@ -324,7 +326,7 @@ public class GridCacheDeploymentManager<K, V> extends GridCacheSharedManagerAdap
         Object val0;
 
         try {
-            CacheObject v = entry.peek(null);
+            CacheObject v = entry.peek(true, false, false, null);
 
             key0 = key.value(cache.context().cacheObjectContext(), false);
 

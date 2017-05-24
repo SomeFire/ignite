@@ -590,6 +590,9 @@ public class GridAffinityAssignmentCache {
      */
     private class AffinityReadyFuture extends GridFutureAdapter<AffinityTopologyVersion> {
         /** */
+        private static final long serialVersionUID = 0L;
+
+        /** */
         private AffinityTopologyVersion reqTopVer;
 
         /**

@@ -17,6 +17,7 @@
 
 package org.apache.ignite.internal.visor.cache;
 
+import java.util.Collection;
 import java.util.Map;
 import org.apache.ignite.internal.processors.task.GridInternal;
 import org.apache.ignite.internal.visor.VisorOneNodeTask;
@@ -27,12 +28,12 @@ import org.apache.ignite.lang.IgniteUuid;
  */
 @GridInternal
 public class VisorCacheConfigurationCollectorTask
-    extends VisorOneNodeTask<VisorCacheConfigurationCollectorTaskArg, Map<IgniteUuid, VisorCacheConfiguration>> {
+    extends VisorOneNodeTask<Collection<IgniteUuid>, Map<IgniteUuid, VisorCacheConfiguration>> {
     /** */
     private static final long serialVersionUID = 0L;
 
     /** {@inheritDoc} */
-    @Override protected VisorCacheConfigurationCollectorJob job(VisorCacheConfigurationCollectorTaskArg arg) {
+    @Override protected VisorCacheConfigurationCollectorJob job(Collection<IgniteUuid> arg) {
         return new VisorCacheConfigurationCollectorJob(arg, debug);
     }
 }

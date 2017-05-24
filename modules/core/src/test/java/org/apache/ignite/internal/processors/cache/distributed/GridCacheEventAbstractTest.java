@@ -247,20 +247,19 @@ public abstract class GridCacheEventAbstractTest extends GridCacheAbstractSelfTe
                 String key = e.getKey();
                 Integer val = e.getValue();
 
-                try (Transaction tx = cache.unwrap(Ignite.class).transactions().txStart()) {
+                Transaction tx = cache.unwrap(Ignite.class).transactions().txStart();
 
-                    assert cache.getAndPut(key, val) == null;
+                assert cache.getAndPut(key, val) == null;
 
-                    assert cache.containsKey(key);
+                assert cache.containsKey(key);
 
-                    assert val.equals(cache.get(key));
+                assert val.equals(cache.get(key));
 
-                    assert val.equals(cache.getAndRemove(key));
+                assert val.equals(cache.getAndRemove(key));
 
-                    assert !cache.containsKey(key);
+                assert !cache.containsKey(key);
 
-                    tx.commit();
-                }
+                tx.commit();
 
                 assert !cache.containsKey(key);
             }
@@ -280,24 +279,23 @@ public abstract class GridCacheEventAbstractTest extends GridCacheAbstractSelfTe
                 String key = e.getKey();
                 Integer val = e.getValue();
 
-                try (Transaction tx = cache.unwrap(Ignite.class).transactions().txStart()) {
+                Transaction tx = cache.unwrap(Ignite.class).transactions().txStart();
 
-                    assert cache.getAndPut(key, val) == null;
+                assert cache.getAndPut(key, val) == null;
 
-                    assert cache.containsKey(key);
+                assert cache.containsKey(key);
 
-                    assert val.equals(cache.get(key));
+                assert val.equals(cache.get(key));
 
-                    assert val.equals(cache.getAndRemove(key));
+                assert val.equals(cache.getAndRemove(key));
 
-                    assert !cache.containsKey(key);
+                assert !cache.containsKey(key);
 
-                    cache.put(key, val);
+                cache.put(key, val);
 
-                    assert cache.containsKey(key);
+                assert cache.containsKey(key);
 
-                    tx.commit();
-                }
+                tx.commit();
 
                 assert cache.containsKey(key);
             }
@@ -346,20 +344,19 @@ public abstract class GridCacheEventAbstractTest extends GridCacheAbstractSelfTe
                 String key = e.getKey();
                 Integer val = e.getValue();
 
-                try (Transaction tx = cache.unwrap(Ignite.class).transactions().txStart()) {
+                Transaction tx = cache.unwrap(Ignite.class).transactions().txStart();
 
-                    assert cache.getAndPutAsync(key, val).get() == null;
+                assert cache.getAndPutAsync(key, val).get() == null;
 
-                    assert cache.containsKey(key);
+                assert cache.containsKey(key);
 
-                    assert val.equals(cache.getAsync(key).get());
+                assert val.equals(cache.getAsync(key).get());
 
-                    assert val.equals(cache.getAndRemoveAsync(key).get());
+                assert val.equals(cache.getAndRemoveAsync(key).get());
 
-                    assert !cache.containsKey(key);
+                assert !cache.containsKey(key);
 
-                    tx.commit();
-                }
+                tx.commit();
 
                 assert !cache.containsKey(key);
             }
@@ -379,24 +376,23 @@ public abstract class GridCacheEventAbstractTest extends GridCacheAbstractSelfTe
                 String key = e.getKey();
                 Integer val = e.getValue();
 
-                try (Transaction tx = cache.unwrap(Ignite.class).transactions().txStart()) {
+                Transaction tx = cache.unwrap(Ignite.class).transactions().txStart();
 
-                    assert cache.getAndPutAsync(key, val).get() == null;
+                assert cache.getAndPutAsync(key, val).get() == null;
 
-                    assert cache.containsKey(key);
+                assert cache.containsKey(key);
 
-                    assert val.equals(cache.getAsync(key).get());
+                assert val.equals(cache.getAsync(key).get());
 
-                    assert val.equals(cache.getAndRemoveAsync(key).get());
+                assert val.equals(cache.getAndRemoveAsync(key).get());
 
-                    assert !cache.containsKey(key);
+                assert !cache.containsKey(key);
 
-                    assert cache.getAndPutAsync(key, val).get() == null;
+                assert cache.getAndPutAsync(key, val).get() == null;
 
-                    assert cache.containsKey(key);
+                assert cache.containsKey(key);
 
-                    tx.commit();
-                }
+                tx.commit();
 
                 assert cache.containsKey(key);
             }
@@ -440,17 +436,17 @@ public abstract class GridCacheEventAbstractTest extends GridCacheAbstractSelfTe
                 String key = e.getKey();
                 Integer val = e.getValue();
 
-                try (Transaction tx = cache.unwrap(Ignite.class).transactions().txStart()) {
-                    cache.put(key, val);
+                Transaction tx = cache.unwrap(Ignite.class).transactions().txStart();
 
-                    assert cache.containsKey(key);
+                cache.put(key, val);
 
-                    assert cache.remove(key);
+                assert cache.containsKey(key);
 
-                    assert !cache.containsKey(key);
+                assert cache.remove(key);
 
-                    tx.commit();
-                }
+                assert !cache.containsKey(key);
+
+                tx.commit();
 
                 assert !cache.containsKey(key);
             }
@@ -470,22 +466,21 @@ public abstract class GridCacheEventAbstractTest extends GridCacheAbstractSelfTe
                 String key = e.getKey();
                 Integer val = e.getValue();
 
-                try (Transaction tx = cache.unwrap(Ignite.class).transactions().txStart()) {
+                Transaction tx = cache.unwrap(Ignite.class).transactions().txStart();
 
-                    cache.put(key, val);
+                cache.put(key, val);
 
-                    assert cache.containsKey(key);
+                assert cache.containsKey(key);
 
-                    assert cache.remove(key);
+                assert cache.remove(key);
 
-                    assert !cache.containsKey(key);
+                assert !cache.containsKey(key);
 
-                    cache.put(key, val);
+                cache.put(key, val);
 
-                    assert cache.containsKey(key);
+                assert cache.containsKey(key);
 
-                    tx.commit();
-                }
+                tx.commit();
 
                 assert cache.containsKey(key);
             }
@@ -505,8 +500,8 @@ public abstract class GridCacheEventAbstractTest extends GridCacheAbstractSelfTe
                 String key = e.getKey();
                 Integer val = e.getValue();
 
-                assertNull(cache.getAndPutIfAbsent(key, val));
-                assertEquals(val, cache.getAndPutIfAbsent(key, val));
+                assert cache.getAndPutIfAbsent(key, val) == null;
+                assert val.equals(cache.getAndPutIfAbsent(key, val));
 
                 assert cache.containsKey(key);
 

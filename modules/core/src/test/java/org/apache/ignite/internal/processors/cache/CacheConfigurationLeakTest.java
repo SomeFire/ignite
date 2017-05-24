@@ -21,9 +21,6 @@ import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteCache;
 import org.apache.ignite.cache.eviction.lru.LruEvictionPolicy;
 import org.apache.ignite.configuration.CacheConfiguration;
-import org.apache.ignite.configuration.IgniteConfiguration;
-import org.apache.ignite.configuration.MemoryConfiguration;
-import org.apache.ignite.configuration.MemoryPolicyConfiguration;
 import org.apache.ignite.lang.IgniteInClosure;
 import org.apache.ignite.testframework.GridTestUtils;
 import org.apache.ignite.testframework.junits.common.GridCommonAbstractTest;
@@ -39,25 +36,6 @@ public class CacheConfigurationLeakTest extends GridCommonAbstractTest {
         super(true);
     }
 
-    /** {@inheritDoc} */
-    @Override protected IgniteConfiguration getConfiguration() throws Exception {
-        IgniteConfiguration cfg = super.getConfiguration();
-
-        MemoryConfiguration memCfg = new MemoryConfiguration();
-
-        MemoryPolicyConfiguration plc = new MemoryPolicyConfiguration();
-
-        plc.setName("dfltPlc");
-        plc.setMaxSize(MemoryConfiguration.DFLT_MEMORY_POLICY_MAX_SIZE * 10);
-
-        memCfg.setDefaultMemoryPolicyName("dfltPlc");
-        memCfg.setMemoryPolicies(plc);
-
-        cfg.setMemoryConfiguration(memCfg);
-
-        return cfg;
-    }
-
     /**
      * @throws Exception If failed.
      */
@@ -67,12 +45,11 @@ public class CacheConfigurationLeakTest extends GridCommonAbstractTest {
         GridTestUtils.runMultiThreaded(new IgniteInClosure<Integer>() {
             @Override public void apply(Integer idx) {
                 for (int i = 0; i < 100; i++) {
-                    CacheConfiguration<Object, Object> ccfg = new CacheConfiguration<>(DEFAULT_CACHE_NAME);
+                    CacheConfiguration ccfg = new CacheConfiguration();
                     ccfg.setName("cache-" + idx + "-" + i);
                     ccfg.setEvictionPolicy(new LruEvictionPolicy(1000));
-                    ccfg.setOnheapCacheEnabled(true);
 
-                    IgniteCache<Object, Object> cache = ignite.createCache(ccfg);
+                    IgniteCache cache = ignite.createCache(ccfg);
 
                     for (int k = 0; k < 5000; k++)
                         cache.put(k, new byte[1024]);

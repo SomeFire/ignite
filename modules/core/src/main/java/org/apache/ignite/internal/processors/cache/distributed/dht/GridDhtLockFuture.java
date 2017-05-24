@@ -38,8 +38,6 @@ import org.apache.ignite.internal.processors.affinity.AffinityTopologyVersion;
 import org.apache.ignite.internal.processors.cache.CacheEntryPredicate;
 import org.apache.ignite.internal.processors.cache.CacheLockCandidates;
 import org.apache.ignite.internal.processors.cache.CacheObject;
-import org.apache.ignite.internal.processors.cache.GridCacheAdapter;
-import org.apache.ignite.internal.processors.cache.GridCacheCompoundIdentityFuture;
 import org.apache.ignite.internal.processors.cache.GridCacheContext;
 import org.apache.ignite.internal.processors.cache.GridCacheEntryEx;
 import org.apache.ignite.internal.processors.cache.GridCacheEntryInfo;
@@ -51,12 +49,12 @@ import org.apache.ignite.internal.processors.cache.KeyCacheObject;
 import org.apache.ignite.internal.processors.cache.distributed.GridCacheMappedVersion;
 import org.apache.ignite.internal.processors.cache.distributed.GridDistributedCacheEntry;
 import org.apache.ignite.internal.processors.cache.distributed.GridDistributedLockCancelledException;
-import org.apache.ignite.internal.processors.cache.distributed.near.GridNearCacheAdapter;
 import org.apache.ignite.internal.processors.cache.transactions.IgniteTxEntry;
 import org.apache.ignite.internal.processors.cache.transactions.IgniteTxKey;
 import org.apache.ignite.internal.processors.cache.version.GridCacheVersion;
 import org.apache.ignite.internal.processors.dr.GridDrType;
 import org.apache.ignite.internal.processors.timeout.GridTimeoutObjectAdapter;
+import org.apache.ignite.internal.util.future.GridCompoundIdentityFuture;
 import org.apache.ignite.internal.util.future.GridFutureAdapter;
 import org.apache.ignite.internal.util.tostring.GridToStringExclude;
 import org.apache.ignite.internal.util.tostring.GridToStringInclude;
@@ -79,7 +77,7 @@ import static org.apache.ignite.internal.processors.dr.GridDrType.DR_PRELOAD;
 /**
  * Cache lock future.
  */
-public final class GridDhtLockFuture extends GridCacheCompoundIdentityFuture<Boolean>
+public final class GridDhtLockFuture extends GridCompoundIdentityFuture<Boolean>
     implements GridCacheMvccFuture<Boolean>, GridDhtFuture<Boolean>, GridCacheMappedVersion {
     /** */
     private static final long serialVersionUID = 0L;
@@ -300,8 +298,10 @@ public final class GridDhtLockFuture extends GridCacheCompoundIdentityFuture<Boo
     /**
      * @return Entries.
      */
-    public synchronized Collection<GridDhtCacheEntry> entriesCopy() {
-        return new ArrayList<>(entries());
+    public Collection<GridDhtCacheEntry> entriesCopy() {
+        synchronized (sync) {
+            return new ArrayList<>(entries());
+        }
     }
 
     /**
@@ -395,7 +395,7 @@ public final class GridDhtLockFuture extends GridCacheCompoundIdentityFuture<Boo
             return null;
         }
 
-        synchronized (this) {
+        synchronized (sync) {
             entries.add(c == null || c.reentry() ? null : entry);
 
             if (c != null && !c.reentry())
@@ -529,7 +529,7 @@ public final class GridDhtLockFuture extends GridCacheCompoundIdentityFuture<Boo
     @SuppressWarnings("ForLoopReplaceableByForEach")
     private MiniFuture miniFuture(IgniteUuid miniId) {
         // We iterate directly over the futs collection here to avoid copy.
-        synchronized (this) {
+        synchronized (sync) {
             int size = futuresCountNoLock();
 
             // Avoid iterator creation.
@@ -599,7 +599,7 @@ public final class GridDhtLockFuture extends GridCacheCompoundIdentityFuture<Boo
      * @param t Error.
      */
     public void onError(Throwable t) {
-        synchronized (this) {
+        synchronized (sync) {
             if (err != null)
                 return;
 
@@ -646,7 +646,7 @@ public final class GridDhtLockFuture extends GridCacheCompoundIdentityFuture<Boo
             log.debug("Received onOwnerChanged() callback [entry=" + entry + ", owner=" + owner + "]");
 
         if (owner != null && owner.version().equals(lockVer)) {
-            synchronized (this) {
+            synchronized (sync) {
                 if (!pendingLocks.remove(entry.key()))
                     return false;
             }
@@ -663,8 +663,10 @@ public final class GridDhtLockFuture extends GridCacheCompoundIdentityFuture<Boo
     /**
      * @return {@code True} if locks have been acquired.
      */
-    private synchronized boolean checkLocks() {
-        return pendingLocks.isEmpty();
+    private boolean checkLocks() {
+        synchronized (sync) {
+            return pendingLocks.isEmpty();
+        }
     }
 
     /** {@inheritDoc} */
@@ -695,7 +697,7 @@ public final class GridDhtLockFuture extends GridCacheCompoundIdentityFuture<Boo
         if (isDone() || (err == null && success && !checkLocks()))
             return false;
 
-        synchronized (this) {
+        synchronized (sync) {
             if (this.err == null)
                 this.err = err;
         }
@@ -774,7 +776,7 @@ public final class GridDhtLockFuture extends GridCacheCompoundIdentityFuture<Boo
      * @param entries Entries.
      */
     private void map(Iterable<GridDhtCacheEntry> entries) {
-        synchronized (this) {
+        synchronized (sync) {
             if (mapped)
                 return;
 
@@ -1118,7 +1120,7 @@ public final class GridDhtLockFuture extends GridCacheCompoundIdentityFuture<Boo
             if (log.isDebugEnabled())
                 log.debug("Timed out waiting for lock response: " + this);
 
-            synchronized (GridDhtLockFuture.this) {
+            synchronized (sync) {
                 timedOut = true;
 
                 // Stop locks and responses processing.
@@ -1143,6 +1145,9 @@ public final class GridDhtLockFuture extends GridCacheCompoundIdentityFuture<Boo
      * node as opposed to multiple nodes.
      */
     private class MiniFuture extends GridFutureAdapter<Boolean> {
+        /** */
+        private static final long serialVersionUID = 0L;
+
         /** */
         private final IgniteUuid futId = IgniteUuid.randomUuid();
 
@@ -1243,14 +1248,9 @@ public final class GridDhtLockFuture extends GridCacheCompoundIdentityFuture<Boo
 
                 boolean rec = cctx.events().isRecordable(EVT_CACHE_REBALANCE_OBJECT_LOADED);
 
-                GridCacheAdapter<?, ?> cache0 = cctx.cache();
-
-                if (cache0.isNear())
-                    cache0 = ((GridNearCacheAdapter)cache0).dht();
-
                 for (GridCacheEntryInfo info : res.preloadEntries()) {
                     try {
-                        GridCacheEntryEx entry = cache0.entryEx(info.key(), topVer);
+                        GridCacheEntryEx entry = cctx.cache().entryEx(info.key(), topVer);
 
                         if (entry.initialValue(info.value(),
                             info.version(),

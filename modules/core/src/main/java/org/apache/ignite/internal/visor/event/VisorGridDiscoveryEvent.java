@@ -17,14 +17,8 @@
 
 package org.apache.ignite.internal.visor.event;
 
-import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
 import java.util.UUID;
 import org.apache.ignite.internal.util.typedef.internal.S;
-import org.apache.ignite.internal.util.typedef.internal.U;
-import org.apache.ignite.internal.visor.VisorDataTransferObjectInput;
-import org.apache.ignite.internal.visor.VisorDataTransferObjectOutput;
 import org.apache.ignite.lang.IgniteUuid;
 import org.jetbrains.annotations.Nullable;
 
@@ -36,23 +30,16 @@ public class VisorGridDiscoveryEvent extends VisorGridEvent {
     private static final long serialVersionUID = 0L;
 
     /** Node that caused this event to be generated. */
-    private UUID evtNodeId;
+    private final UUID evtNodeId;
 
     /** Node address that caused this event to be generated. */
-    private String addr;
+    private final String addr;
 
     /** If node that caused this event is daemon. */
-    private boolean isDaemon;
+    private final boolean isDaemon;
 
     /** Topology version. */
-    private long topVer;
-
-    /**
-     * Default constructor.
-     */
-    public VisorGridDiscoveryEvent() {
-        // No-op.
-    }
+    private final long topVer;
 
     /**
      * Create event with given parameters.
@@ -91,16 +78,16 @@ public class VisorGridDiscoveryEvent extends VisorGridEvent {
     }
 
     /**
-     * @return Event node ID.
+     * @return Deployment alias.
      */
-    public UUID getEventNodeId() {
+    public UUID evtNodeId() {
         return evtNodeId;
     }
 
     /**
      * @return Node address that caused this event to be generated.
      */
-    public String getAddress() {
+    public String address() {
         return addr;
     }
 
@@ -115,38 +102,8 @@ public class VisorGridDiscoveryEvent extends VisorGridEvent {
      * @return Topology version or {@code 0} if configured discovery SPI implementation
      *      does not support versioning.
      **/
-    public long getTopologyVersion() {
+    public long topologyVersion() {
         return topVer;
-    }
-
-    /** {@inheritDoc} */
-    @Override public byte getProtocolVersion() {
-        return 1;
-    }
-
-    /** {@inheritDoc} */
-    @Override protected void writeExternalData(ObjectOutput out) throws IOException {
-        try (VisorDataTransferObjectOutput dtout = new VisorDataTransferObjectOutput(out)) {
-            dtout.writeByte(super.getProtocolVersion());
-            super.writeExternalData(dtout);
-        }
-
-        U.writeUuid(out, evtNodeId);
-        U.writeString(out, addr);
-        out.writeBoolean(isDaemon);
-        out.writeLong(topVer);
-    }
-
-    /** {@inheritDoc} */
-    @Override protected void readExternalData(byte protoVer, ObjectInput in) throws IOException, ClassNotFoundException {
-        try (VisorDataTransferObjectInput dtin = new VisorDataTransferObjectInput(in)) {
-            super.readExternalData(dtin.readByte(), dtin);
-        }
-
-        evtNodeId = U.readUuid(in);
-        addr = U.readString(in);
-        isDaemon = in.readBoolean();
-        topVer = in.readLong();
     }
 
     /** {@inheritDoc} */

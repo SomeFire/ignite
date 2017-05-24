@@ -17,17 +17,12 @@
 
 package org.apache.ignite.internal.visor.node;
 
-import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
-import org.apache.ignite.internal.util.typedef.internal.S;
-import org.apache.ignite.internal.util.typedef.internal.U;
-import org.apache.ignite.internal.visor.VisorDataTransferObject;
+import java.io.Serializable;
 
 /**
  * Data collector task arguments.
  */
-public class VisorNodeDataCollectorTaskArg extends VisorDataTransferObject {
+public class VisorNodeDataCollectorTaskArg implements Serializable {
     /** */
     private static final long serialVersionUID = 0L;
 
@@ -79,93 +74,70 @@ public class VisorNodeDataCollectorTaskArg extends VisorDataTransferObject {
     /**
      * @return {@code true} if Visor should collect information about tasks.
      */
-    public boolean isTaskMonitoringEnabled() {
+    public boolean taskMonitoringEnabled() {
         return taskMonitoringEnabled;
     }
 
     /**
      * @param taskMonitoringEnabled If {@code true} then Visor should collect information about tasks.
      */
-    public void setTaskMonitoringEnabled(boolean taskMonitoringEnabled) {
+    public void taskMonitoringEnabled(boolean taskMonitoringEnabled) {
         this.taskMonitoringEnabled = taskMonitoringEnabled;
     }
 
     /**
      * @return Key for store and read last event order number.
      */
-    public String getEventsOrderKey() {
+    public String eventsOrderKey() {
         return evtOrderKey;
     }
 
     /**
      * @param evtOrderKey Key for store and read last event order number.
      */
-    public void setEventsOrderKey(String evtOrderKey) {
+    public void eventsOrderKey(String evtOrderKey) {
         this.evtOrderKey = evtOrderKey;
     }
 
     /**
      * @return Key for store and read events throttle counter.
      */
-    public String getEventsThrottleCounterKey() {
+    public String eventsThrottleCounterKey() {
         return evtThrottleCntrKey;
     }
 
     /**
      * @param evtThrottleCntrKey Key for store and read events throttle counter.
      */
-    public void setEventsThrottleCounterKey(String evtThrottleCntrKey) {
+    public void eventsThrottleCounterKey(String evtThrottleCntrKey) {
         this.evtThrottleCntrKey = evtThrottleCntrKey;
     }
 
     /**
      * @return Number of items to evaluate cache size.
      */
-    public int getSample() {
+    public int sample() {
         return sample;
     }
 
     /**
      * @param sample Number of items to evaluate cache size.
      */
-    public void setSample(int sample) {
+    public void sample(int sample) {
         this.sample = sample;
     }
 
     /**
      * @return {@code true} if Visor should collect metrics for system caches.
      */
-    public boolean getSystemCaches() {
+    public boolean systemCaches() {
         return sysCaches;
     }
 
     /**
      * @param sysCaches {@code true} if Visor should collect metrics for system caches.
      */
-    public void setSystemCaches(boolean sysCaches) {
+    public void systemCaches(boolean sysCaches) {
         this.sysCaches = sysCaches;
-    }
-
-    /** {@inheritDoc} */
-    @Override protected void writeExternalData(ObjectOutput out) throws IOException {
-        out.writeBoolean(taskMonitoringEnabled);
-        U.writeString(out, evtOrderKey);
-        U.writeString(out, evtThrottleCntrKey);
-        out.writeInt(sample);
-        out.writeBoolean(sysCaches);
-    }
-
-    /** {@inheritDoc} */
-    @Override protected void readExternalData(byte protoVer, ObjectInput in) throws IOException, ClassNotFoundException {
-        taskMonitoringEnabled = in.readBoolean();
-        evtOrderKey = U.readString(in);
-        evtThrottleCntrKey = U.readString(in);
-        sample = in.readInt();
-        sysCaches = in.readBoolean();
-    }
-
-    /** {@inheritDoc} */
-    @Override public String toString() {
-        return S.toString(VisorNodeDataCollectorTaskArg.class, this);
     }
 }

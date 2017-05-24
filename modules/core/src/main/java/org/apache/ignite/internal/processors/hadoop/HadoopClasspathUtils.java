@@ -29,7 +29,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
-import org.apache.ignite.internal.util.typedef.F;
 
 /**
  * Hadoop classpath utilities.
@@ -259,7 +258,7 @@ public class HadoopClasspathUtils {
      * @return {@code True} if the given path denotes an existing directory.
      */
     public static boolean exists(String path) {
-        if (F.isEmpty(path))
+        if (path == null)
             return false;
 
         Path p = Paths.get(path);

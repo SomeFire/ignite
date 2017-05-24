@@ -41,7 +41,6 @@ import org.apache.ignite.internal.util.typedef.F;
 import org.apache.ignite.lang.IgniteBiInClosure;
 import org.apache.ignite.resources.CacheStoreSessionResource;
 import org.apache.ignite.resources.IgniteInstanceResource;
-import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import static org.apache.ignite.cache.CacheAtomicityMode.TRANSACTIONAL;
@@ -114,7 +113,7 @@ public abstract class IgniteCacheStoreSessionAbstractTest extends IgniteCacheAbs
      * @throws Exception If failed.
      */
     public void testStoreSession() throws Exception {
-        assertEquals(DEFAULT_CACHE_NAME, jcache(0).getName());
+        assertNull(jcache(0).getName());
 
         assertEquals(CACHE_NAME1, ignite(0).cache(CACHE_NAME1).getName());
 
@@ -228,7 +227,7 @@ public abstract class IgniteCacheStoreSessionAbstractTest extends IgniteCacheAbs
          * @param expProps Expected properties.
          * @param expCacheName Expected cache name.
          */
-        ExpectedData(boolean tx, String expMtd, Map<Object, Object> expProps, @NotNull String expCacheName) {
+        ExpectedData(boolean tx, String expMtd, Map<Object, Object> expProps, String expCacheName) {
             this.tx = tx;
             this.expMtd = expMtd;
             this.expProps = expProps;

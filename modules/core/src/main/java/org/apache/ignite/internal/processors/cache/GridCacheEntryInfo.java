@@ -42,6 +42,9 @@ public class GridCacheEntryInfo implements Message {
     @GridToStringInclude
     private KeyCacheObject key;
 
+    /** Key bytes, set when entry is read from swap and there is no key instance. */
+    private byte[] keyBytes;
+
     /** Cache ID. */
     private int cacheId;
 
@@ -84,6 +87,20 @@ public class GridCacheEntryInfo implements Message {
      */
     public void key(KeyCacheObject key) {
         this.key = key;
+    }
+
+    /**
+     * @param bytes Key bytes.
+     */
+    public void keyBytes(byte[] bytes) {
+        this.keyBytes = bytes;
+    }
+
+    /**
+     * @return Key bytes.
+     */
+    public byte[] keyBytes() {
+        return keyBytes;
     }
 
     /**
@@ -213,18 +230,24 @@ public class GridCacheEntryInfo implements Message {
                 writer.incrementState();
 
             case 3:
-                if (!writer.writeLong("ttl", ttl))
+                if (!writer.writeByteArray("keyBytes", keyBytes))
                     return false;
 
                 writer.incrementState();
 
             case 4:
-                if (!writer.writeMessage("val", val))
+                if (!writer.writeLong("ttl", ttl))
                     return false;
 
                 writer.incrementState();
 
             case 5:
+                if (!writer.writeMessage("val", val))
+                    return false;
+
+                writer.incrementState();
+
+            case 6:
                 if (!writer.writeMessage("ver", ver))
                     return false;
 
@@ -268,7 +291,7 @@ public class GridCacheEntryInfo implements Message {
                 reader.incrementState();
 
             case 3:
-                ttl = reader.readLong("ttl");
+                keyBytes = reader.readByteArray("keyBytes");
 
                 if (!reader.isLastRead())
                     return false;
@@ -276,7 +299,7 @@ public class GridCacheEntryInfo implements Message {
                 reader.incrementState();
 
             case 4:
-                val = reader.readMessage("val");
+                ttl = reader.readLong("ttl");
 
                 if (!reader.isLastRead())
                     return false;
@@ -284,6 +307,14 @@ public class GridCacheEntryInfo implements Message {
                 reader.incrementState();
 
             case 5:
+                val = reader.readMessage("val");
+
+                if (!reader.isLastRead())
+                    return false;
+
+                reader.incrementState();
+
+            case 6:
                 ver = reader.readMessage("ver");
 
                 if (!reader.isLastRead())
@@ -303,7 +334,7 @@ public class GridCacheEntryInfo implements Message {
 
     /** {@inheritDoc} */
     @Override public byte fieldsCount() {
-        return 6;
+        return 7;
     }
 
     /**
@@ -327,7 +358,13 @@ public class GridCacheEntryInfo implements Message {
         if (val != null)
             size += val.valueBytes(cacheObjCtx).length;
 
-        size += key.valueBytes(cacheObjCtx).length;
+        if (key == null) {
+            assert keyBytes != null;
+
+            size += keyBytes.length;
+        }
+        else
+            size += key.valueBytes(cacheObjCtx).length;
 
         return SIZE_OVERHEAD + size;
     }
@@ -337,9 +374,10 @@ public class GridCacheEntryInfo implements Message {
      * @throws IgniteCheckedException In case of error.
      */
     public void marshal(GridCacheContext ctx) throws IgniteCheckedException {
-        assert key != null;
+        assert key != null ^ keyBytes != null;
 
-        key.prepareMarshal(ctx.cacheObjectContext());
+        if (key != null)
+            key.prepareMarshal(ctx.cacheObjectContext());
 
         if (val != null)
             val.prepareMarshal(ctx.cacheObjectContext());
@@ -362,7 +400,17 @@ public class GridCacheEntryInfo implements Message {
      * @throws IgniteCheckedException If unmarshalling failed.
      */
     public void unmarshal(GridCacheContext ctx, ClassLoader clsLdr) throws IgniteCheckedException {
-        key.finishUnmarshal(ctx.cacheObjectContext(), clsLdr);
+        if (key == null) {
+            assert keyBytes != null;
+
+            CacheObjectContext cacheObjCtx = ctx.cacheObjectContext();
+
+            Object key0 = ctx.cacheObjects().unmarshal(cacheObjCtx, keyBytes, clsLdr);
+
+            key = ctx.cacheObjects().toCacheKeyObject(cacheObjCtx, ctx, key0, false);
+        }
+        else
+            key.finishUnmarshal(ctx.cacheObjectContext(), clsLdr);
 
         if (val != null)
             val.finishUnmarshal(ctx.cacheObjectContext(), clsLdr);

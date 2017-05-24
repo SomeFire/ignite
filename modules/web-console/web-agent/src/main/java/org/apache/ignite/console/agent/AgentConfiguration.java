@@ -23,18 +23,17 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.Reader;
 import java.net.URL;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Properties;
-import org.apache.ignite.internal.util.typedef.F;
-
-import static java.nio.charset.StandardCharsets.UTF_8;
 
 /**
  * Agent configuration.
  */
 public class AgentConfiguration {
+    /** Default Ignite node HTTP port. */
+    public static final int DFLT_NODE_PORT = 8080;
+
     /** Default path to agent property file. */
     public static final String DFLT_CFG_PATH = "default.properties";
 
@@ -52,8 +51,8 @@ public class AgentConfiguration {
     /** */
     @Parameter(names = {"-s", "--server-uri"},
         description = "URI for connect to Ignite Console via web-socket protocol" +
-            "           " +
-            "      Default value: " + DFLT_SERVER_URI)
+        "           " +
+        "      Default value: " + DFLT_SERVER_URI)
     private String srvUri;
 
     /** */
@@ -78,13 +77,7 @@ public class AgentConfiguration {
     private String driversFolder;
 
     /** */
-    @Parameter(names = {"-dd", "--disable-demo"}, description = "Disable demo mode on this agent " +
-        "                             " +
-        "      Default value: false")
-    private Boolean disableDemo;
-
-    /** */
-    @Parameter(names = {"-h", "--help"}, help = true, description = "Print this help message")
+    @Parameter(names = { "-h", "--help" }, help = true, description = "Print this help message")
     private Boolean help;
 
     /**
@@ -165,20 +158,6 @@ public class AgentConfiguration {
     }
 
     /**
-     * @return Disable demo mode.
-     */
-    public Boolean disableDemo() {
-        return disableDemo != null ? disableDemo : Boolean.FALSE;
-    }
-
-    /**
-     * @param disableDemo Disable demo mode.
-     */
-    public void disableDemo(Boolean disableDemo) {
-        this.disableDemo = disableDemo;
-    }
-
-    /**
      * @return {@code true} If agent options usage should be printed.
      */
     public Boolean help() {
@@ -191,14 +170,14 @@ public class AgentConfiguration {
     public void load(URL cfgUrl) throws IOException {
         Properties props = new Properties();
 
-        try (Reader reader = new InputStreamReader(cfgUrl.openStream(), UTF_8)) {
+        try (Reader reader = new InputStreamReader(cfgUrl.openStream())) {
             props.load(reader);
         }
 
         String val = (String)props.remove("tokens");
 
         if (val != null)
-            tokens(new ArrayList<>(Arrays.asList(val.split(","))));
+            tokens(Arrays.asList(val.split(",")));
 
         val = (String)props.remove("server-uri");
 
@@ -237,16 +216,13 @@ public class AgentConfiguration {
 
         if (driversFolder == null)
             driversFolder(cmd.driversFolder());
-
-        if (disableDemo == null)
-            disableDemo(cmd.disableDemo());
     }
 
     /** {@inheritDoc} */
     @Override public String toString() {
         StringBuilder sb = new StringBuilder();
 
-        if (!F.isEmpty(tokens)) {
+        if (tokens != null && tokens.size() > 0) {
             sb.append("User's security tokens        : ");
 
             boolean first = true;
@@ -255,7 +231,7 @@ public class AgentConfiguration {
                 if (first)
                     first = false;
                 else
-                    sb.append(',');
+                    sb.append(",");
 
                 if (tok.length() > 4) {
                     sb.append(new String(new char[tok.length() - 4]).replace('\0', '*'));
@@ -282,8 +258,7 @@ public class AgentConfiguration {
                 drvFld = new File(agentHome, "jdbc-drivers").getPath();
         }
 
-        sb.append("Path to JDBC drivers folder   : ").append(drvFld).append('\n');
-        sb.append("Demo mode                     : ").append(disableDemo() ? "disabled" : "enabled");
+        sb.append("Path to JDBC drivers folder   : ").append(drvFld);
 
         return sb.toString();
     }

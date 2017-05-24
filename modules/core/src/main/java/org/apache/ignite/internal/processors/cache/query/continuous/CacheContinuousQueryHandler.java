@@ -72,7 +72,6 @@ import org.apache.ignite.internal.util.GridLongList;
 import org.apache.ignite.internal.util.tostring.GridToStringInclude;
 import org.apache.ignite.internal.util.typedef.CI1;
 import org.apache.ignite.internal.util.typedef.F;
-import org.apache.ignite.internal.util.typedef.T2;
 import org.apache.ignite.internal.util.typedef.internal.CU;
 import org.apache.ignite.internal.util.typedef.internal.S;
 import org.apache.ignite.internal.util.typedef.internal.U;
@@ -154,10 +153,10 @@ public class CacheContinuousQueryHandler<K, V> implements GridContinuousHandler 
     private transient int cacheId;
 
     /** */
-    private transient volatile Map<Integer, T2<Long, Long>> initUpdCntrs;
+    private transient volatile Map<Integer, Long> initUpdCntrs;
 
     /** */
-    private transient volatile Map<UUID, Map<Integer, T2<Long, Long>>> initUpdCntrsPerNode;
+    private transient volatile Map<UUID, Map<Integer, Long>> initUpdCntrsPerNode;
 
     /** */
     private transient volatile AffinityTopologyVersion initTopVer;
@@ -166,7 +165,7 @@ public class CacheContinuousQueryHandler<K, V> implements GridContinuousHandler 
     private transient boolean ignoreClsNotFound;
 
     /** */
-    private transient boolean asyncCb;
+    private transient boolean asyncCallback;
 
     /** */
     private transient UUID nodeId;
@@ -290,8 +289,8 @@ public class CacheContinuousQueryHandler<K, V> implements GridContinuousHandler 
     }
 
     /** {@inheritDoc} */
-    @Override public void updateCounters(AffinityTopologyVersion topVer, Map<UUID, Map<Integer, T2<Long, Long>>> cntrsPerNode,
-        Map<Integer, T2<Long, Long>> cntrs) {
+    @Override public void updateCounters(AffinityTopologyVersion topVer, Map<UUID, Map<Integer, Long>> cntrsPerNode,
+        Map<Integer, Long> cntrs) {
         this.initUpdCntrsPerNode = cntrsPerNode;
         this.initUpdCntrs = cntrs;
         this.initTopVer = topVer;
@@ -308,12 +307,12 @@ public class CacheContinuousQueryHandler<K, V> implements GridContinuousHandler 
             if (locLsnr instanceof JCacheQueryLocalListener) {
                 ctx.resource().injectGeneric(((JCacheQueryLocalListener)locLsnr).impl);
 
-                asyncCb = ((JCacheQueryLocalListener)locLsnr).async();
+                asyncCallback = ((JCacheQueryLocalListener)locLsnr).async();
             }
             else {
                 ctx.resource().injectGeneric(locLsnr);
 
-                asyncCb = U.hasAnnotation(locLsnr, IgniteAsyncCallback.class);
+                asyncCallback = U.hasAnnotation(locLsnr, IgniteAsyncCallback.class);
             }
         }
 
@@ -324,14 +323,14 @@ public class CacheContinuousQueryHandler<K, V> implements GridContinuousHandler 
                 if (((JCacheQueryRemoteFilter)filter).impl != null)
                     ctx.resource().injectGeneric(((JCacheQueryRemoteFilter)filter).impl);
 
-                if (!asyncCb)
-                    asyncCb = ((JCacheQueryRemoteFilter)filter).async();
+                if (!asyncCallback)
+                    asyncCallback = ((JCacheQueryRemoteFilter)filter).async();
             }
             else {
                 ctx.resource().injectGeneric(filter);
 
-                if (!asyncCb)
-                    asyncCb = U.hasAnnotation(filter, IgniteAsyncCallback.class);
+                if (!asyncCallback)
+                    asyncCallback = U.hasAnnotation(filter, IgniteAsyncCallback.class);
             }
         }
 
@@ -399,7 +398,7 @@ public class CacheContinuousQueryHandler<K, V> implements GridContinuousHandler 
                 // skipPrimaryCheck is set only when listen locally for replicated cache events.
                 assert !skipPrimaryCheck || (cctx.isReplicated() && ctx.localNodeId().equals(nodeId));
 
-                if (asyncCb) {
+                if (asyncCallback) {
                     ContinuousQueryAsyncClosure clsr = new ContinuousQueryAsyncClosure(
                         primary,
                         evt,
@@ -455,8 +454,6 @@ public class CacheContinuousQueryHandler<K, V> implements GridContinuousHandler 
             }
 
             @Override public void flushBackupQueue(GridKernalContext ctx, AffinityTopologyVersion topVer) {
-                assert topVer != null;
-
                 Collection<CacheContinuousQueryEntry> backupQueue0 = backupQueue;
 
                 if (backupQueue0 == null)
@@ -561,19 +558,16 @@ public class CacheContinuousQueryHandler<K, V> implements GridContinuousHandler 
     }
 
     /**
-     * @param ctx Context.
-     * @throws IgniteCheckedException In case of error.
+     * Wait topology.
      */
-    void waitTopologyFuture(GridKernalContext ctx) throws IgniteCheckedException {
+    public void waitTopologyFuture(GridKernalContext ctx) throws IgniteCheckedException {
         GridCacheContext<K, V> cctx = cacheContext(ctx);
 
         if (!cctx.isLocal()) {
-            AffinityTopologyVersion topVer = initTopVer;
-
-            cacheContext(ctx).affinity().affinityReadyFuture(topVer).get();
+            cacheContext(ctx).affinity().affinityReadyFuture(initTopVer).get();
 
             for (int partId = 0; partId < cacheContext(ctx).affinity().partitions(); partId++)
-                getOrCreatePartitionRecovery(ctx, partId, topVer);
+                getOrCreatePartitionRecovery(ctx, partId);
         }
     }
 
@@ -612,7 +606,7 @@ public class CacheContinuousQueryHandler<K, V> implements GridContinuousHandler 
         if (objs.isEmpty())
             return;
 
-        if (asyncCb) {
+        if (asyncCallback) {
             final List<CacheContinuousQueryEntry> entries = objs instanceof List ? (List)objs : new ArrayList(objs);
 
             IgniteStripedThreadPoolExecutor asyncPool = ctx.asyncCallbackPool();
@@ -739,7 +733,7 @@ public class CacheContinuousQueryHandler<K, V> implements GridContinuousHandler 
                 Collections.<CacheEntryEvent<? extends K, ? extends V>>emptyList();
         }
 
-        PartitionRecovery rec = getOrCreatePartitionRecovery(ctx, e.partition(), e.topologyVersion());
+        PartitionRecovery rec = getOrCreatePartitionRecovery(ctx, e.partition());
 
         return rec.collectEntries(e, cctx, cache);
     }
@@ -872,41 +866,37 @@ public class CacheContinuousQueryHandler<K, V> implements GridContinuousHandler 
     /**
      * @param ctx Context.
      * @param partId Partition id.
-     * @param topVer Topology version for current operation.
      * @return Partition recovery.
      */
-    @NotNull private PartitionRecovery getOrCreatePartitionRecovery(GridKernalContext ctx,
-        int partId,
-        AffinityTopologyVersion topVer) {
-        assert topVer != null && topVer.topologyVersion() > 0 : topVer;
-
+    @NotNull private PartitionRecovery getOrCreatePartitionRecovery(GridKernalContext ctx, int partId) {
         PartitionRecovery rec = rcvs.get(partId);
 
         if (rec == null) {
-            T2<Long, Long> partCntrs = null;
+            Long partCntr = null;
 
-            Map<UUID, Map<Integer, T2<Long, Long>>> initUpdCntrsPerNode = this.initUpdCntrsPerNode;
+            AffinityTopologyVersion initTopVer0 = initTopVer;
 
-            if (initUpdCntrsPerNode != null) {
+            if (initTopVer0 != null) {
                 GridCacheContext<K, V> cctx = cacheContext(ctx);
 
                 GridCacheAffinityManager aff = cctx.affinity();
 
-                for (ClusterNode node : aff.nodesByPartition(partId, topVer)) {
-                    Map<Integer, T2<Long, Long>> map = initUpdCntrsPerNode.get(node.id());
+                if (initUpdCntrsPerNode != null) {
+                    for (ClusterNode node : aff.nodesByPartition(partId, initTopVer)) {
+                        Map<Integer, Long> map = initUpdCntrsPerNode.get(node.id());
 
-                    if (map != null) {
-                        partCntrs = map.get(partId);
+                        if (map != null) {
+                            partCntr = map.get(partId);
 
-                        break;
+                            break;
+                        }
                     }
                 }
+                else if (initUpdCntrs != null)
+                    partCntr = initUpdCntrs.get(partId);
             }
-            else if (initUpdCntrs != null)
-                partCntrs = initUpdCntrs.get(partId);
 
-            rec = new PartitionRecovery(ctx.log(CU.CONTINUOUS_QRY_LOG_CATEGORY), topVer,
-                partCntrs != null ? partCntrs.get2() : null);
+            rec = new PartitionRecovery(ctx.log(CU.CONTINUOUS_QRY_LOG_CATEGORY), initTopVer0, partCntr);
 
             PartitionRecovery oldRec = rcvs.putIfAbsent(partId, rec);
 

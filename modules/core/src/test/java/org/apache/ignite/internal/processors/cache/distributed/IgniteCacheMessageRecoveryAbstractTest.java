@@ -39,6 +39,7 @@ import org.apache.ignite.spi.communication.tcp.TcpCommunicationSpi;
 import org.apache.ignite.testframework.GridTestUtils;
 import org.apache.ignite.testframework.junits.common.GridCommonAbstractTest;
 
+import static org.apache.ignite.cache.CacheAtomicWriteOrderMode.PRIMARY;
 import static org.apache.ignite.cache.CacheMode.PARTITIONED;
 import static org.apache.ignite.cache.CacheWriteSynchronizationMode.FULL_SYNC;
 
@@ -66,6 +67,7 @@ public abstract class IgniteCacheMessageRecoveryAbstractTest extends GridCommonA
         ccfg.setCacheMode(PARTITIONED);
         ccfg.setAtomicityMode(atomicityMode());
         ccfg.setBackups(1);
+        ccfg.setAtomicWriteOrderMode(PRIMARY);
         ccfg.setNearConfiguration(null);
         ccfg.setWriteSynchronizationMode(FULL_SYNC);
 
@@ -103,7 +105,7 @@ public abstract class IgniteCacheMessageRecoveryAbstractTest extends GridCommonA
 
             GridTestUtils.retryAssert(log, 10, 500, new CA() {
                 @Override public void apply() {
-                    assertTrue(grid.internalCache(DEFAULT_CACHE_NAME).context().mvcc().atomicFutures().isEmpty());
+                    assertTrue(grid.internalCache().context().mvcc().atomicFutures().isEmpty());
                 }
             });
         }
@@ -115,7 +117,7 @@ public abstract class IgniteCacheMessageRecoveryAbstractTest extends GridCommonA
     public void testMessageRecovery() throws Exception {
         final Ignite ignite = grid(0);
 
-        final IgniteCache<Object, String> cache = ignite.cache(DEFAULT_CACHE_NAME);
+        final IgniteCache<Object, String> cache = ignite.cache(null);
 
         Map<Integer, String> map = new HashMap<>();
 

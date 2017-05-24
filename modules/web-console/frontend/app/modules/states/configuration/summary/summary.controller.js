@@ -264,9 +264,6 @@ export default [
             if (cluster.discovery.kind === 'Jdbc' && cluster.discovery.Jdbc.dialect)
                 $scope.dialects[cluster.discovery.Jdbc.dialect] = true;
 
-            if (cluster.discovery.kind === 'Kubernetes')
-                resourcesFolder.children.push({ type: 'file', name: 'ignite-service.yaml' });
-
             _.forEach(cluster.caches, (cache) => {
                 if (cache.cacheStoreFactory) {
                     const store = cache.cacheStoreFactory[cache.cacheStoreFactory.kind];
@@ -276,7 +273,7 @@ export default [
                 }
 
                 _.forEach(cache.domains, (domain) => {
-                    if (domain.generatePojo && _.nonEmpty(domain.keyFields)) {
+                    if (!_.isEmpty(domain.keyFields)) {
                         if (JavaTypes.nonBuiltInClass(domain.keyType))
                             addClass(domain.keyType);
 

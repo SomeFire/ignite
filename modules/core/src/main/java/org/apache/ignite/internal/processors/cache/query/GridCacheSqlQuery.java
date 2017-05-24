@@ -21,11 +21,17 @@ import java.nio.ByteBuffer;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.UUID;
+import org.apache.ignite.IgniteCheckedException;
+import org.apache.ignite.IgniteException;
 import org.apache.ignite.internal.GridDirectTransient;
+import org.apache.ignite.internal.GridKernalContext;
+import org.apache.ignite.internal.binary.BinaryMarshaller;
 import org.apache.ignite.internal.util.tostring.GridToStringInclude;
 import org.apache.ignite.internal.util.typedef.F;
 import org.apache.ignite.internal.util.typedef.internal.A;
 import org.apache.ignite.internal.util.typedef.internal.S;
+import org.apache.ignite.internal.util.typedef.internal.U;
+import org.apache.ignite.marshaller.Marshaller;
 import org.apache.ignite.plugin.extensions.communication.Message;
 import org.apache.ignite.plugin.extensions.communication.MessageReader;
 import org.apache.ignite.plugin.extensions.communication.MessageWriter;
@@ -33,7 +39,7 @@ import org.apache.ignite.plugin.extensions.communication.MessageWriter;
 /**
  * Query.
  */
-public class GridCacheSqlQuery implements Message {
+public class GridCacheSqlQuery implements Message, GridCacheQueryMarshallable {
     /** */
     private static final long serialVersionUID = 0L;
 
@@ -45,8 +51,22 @@ public class GridCacheSqlQuery implements Message {
     private String qry;
 
     /** */
+    @GridToStringInclude(sensitive = true)
+    @GridDirectTransient
+    private Object[] params;
+
+    /** */
+    private byte[] paramsBytes;
+
+    /** */
     @GridToStringInclude
+    @GridDirectTransient
     private int[] paramIdxs;
+
+    /** */
+    @GridToStringInclude
+    @GridDirectTransient
+    private int paramsSize;
 
     /** */
     @GridToStringInclude
@@ -120,6 +140,13 @@ public class GridCacheSqlQuery implements Message {
     }
 
     /**
+     * @return Parameters.
+     */
+    public Object[] parameters() {
+        return params;
+    }
+
+    /**
      * @return Parameter indexes.
      */
     public int[] parameterIndexes() {
@@ -127,13 +154,54 @@ public class GridCacheSqlQuery implements Message {
     }
 
     /**
+     * @param params Parameters.
      * @param paramIdxs Parameter indexes.
-     * @return {@code this}.
+     * @return {@code this} For chaining.
      */
-    public GridCacheSqlQuery parameterIndexes(int[] paramIdxs) {
+    public GridCacheSqlQuery parameters(Object[] params, int[] paramIdxs) {
+        this.params = F.isEmpty(params) ? EMPTY_PARAMS : params;
+
+        paramsSize = this.params.length;
+
         this.paramIdxs = paramIdxs;
 
         return this;
+    }
+
+    /** {@inheritDoc} */
+    @Override public void marshall(Marshaller m) {
+        if (paramsBytes != null)
+            return;
+
+        assert params != null;
+
+        try {
+            paramsBytes = U.marshal(m, params);
+        }
+        catch (IgniteCheckedException e) {
+            throw new IgniteException(e);
+        }
+    }
+
+    /** {@inheritDoc} */
+    @Override public void unmarshall(Marshaller m, GridKernalContext ctx) {
+        if (params != null)
+            return;
+
+        assert paramsBytes != null;
+
+        try {
+            final ClassLoader ldr = U.resolveClassLoader(ctx.config());
+
+            if (m instanceof BinaryMarshaller)
+                // To avoid deserializing of enum types.
+                params = ((BinaryMarshaller)m).binaryMarshaller().unmarshal(paramsBytes, ldr);
+            else
+                params = U.unmarshal(m, paramsBytes, ldr);
+        }
+        catch (IgniteCheckedException e) {
+            throw new IgniteException(e);
+        }
     }
 
     /** {@inheritDoc} */
@@ -171,7 +239,7 @@ public class GridCacheSqlQuery implements Message {
                 writer.incrementState();
 
             case 2:
-                if (!writer.writeIntArray("paramIdxs", paramIdxs))
+                if (!writer.writeByteArray("paramsBytes", paramsBytes))
                     return false;
 
                 writer.incrementState();
@@ -212,7 +280,7 @@ public class GridCacheSqlQuery implements Message {
                 reader.incrementState();
 
             case 2:
-                paramIdxs = reader.readIntArray("paramIdxs");
+                paramsBytes = reader.readByteArray("paramsBytes");
 
                 if (!reader.isLastRead())
                     return false;
@@ -243,16 +311,27 @@ public class GridCacheSqlQuery implements Message {
     }
 
     /**
+     * @param args Arguments.
      * @return Copy.
      */
-    public GridCacheSqlQuery copy() {
+    public GridCacheSqlQuery copy(Object[] args) {
         GridCacheSqlQuery cp = new GridCacheSqlQuery();
 
         cp.qry = qry;
         cp.cols = cols;
         cp.paramIdxs = paramIdxs;
+        cp.paramsSize = paramsSize;
         cp.sort = sort;
         cp.partitioned = partitioned;
+
+        if (F.isEmpty(args))
+            cp.params = EMPTY_PARAMS;
+        else {
+            cp.params = new Object[paramsSize];
+
+            for (int paramIdx : paramIdxs)
+                cp.params[paramIdx] = args[paramIdx];
+        }
 
         return cp;
     }
@@ -300,28 +379,5 @@ public class GridCacheSqlQuery implements Message {
         this.node = node;
 
         return this;
-    }
-
-    /**
-     * @param allParams All parameters.
-     * @return Parameters only for this query.
-     */
-    public Object[] parameters(Object[] allParams) {
-        if (F.isEmpty(paramIdxs))
-            return EMPTY_PARAMS;
-
-        assert !F.isEmpty(allParams);
-
-        int maxIdx = paramIdxs[paramIdxs.length - 1];
-
-        Object[] res = new Object[maxIdx + 1];
-
-        for (int i = 0; i < paramIdxs.length; i++) {
-            int idx = paramIdxs[i];
-
-            res[idx] = allParams[idx];
-        }
-
-        return res;
     }
 }

@@ -21,7 +21,6 @@ import java.util.Collection;
 import java.util.Map;
 import org.apache.ignite.IgniteCheckedException;
 import org.apache.ignite.cache.store.CacheStore;
-import org.apache.ignite.internal.processors.cache.CacheObject;
 import org.apache.ignite.internal.processors.cache.GridCacheManager;
 import org.apache.ignite.internal.processors.cache.KeyCacheObject;
 import org.apache.ignite.internal.processors.cache.transactions.IgniteInternalTx;
@@ -34,7 +33,7 @@ import org.jetbrains.annotations.Nullable;
 /**
  * Cache store manager interface.
  */
-public interface CacheStoreManager extends GridCacheManager {
+public interface CacheStoreManager<K, V> extends GridCacheManager<K, V> {
     /**
      * Initialize store manager.
      *
@@ -132,7 +131,7 @@ public interface CacheStoreManager extends GridCacheManager {
      * @return {@code true} If there is a persistent storage.
      * @throws IgniteCheckedException If storage failed.
      */
-    public boolean put(@Nullable IgniteInternalTx tx, KeyCacheObject key, CacheObject val, GridCacheVersion ver)
+    public boolean put(@Nullable IgniteInternalTx tx, Object key, Object val, GridCacheVersion ver)
         throws IgniteCheckedException;
 
     /**
@@ -143,10 +142,8 @@ public interface CacheStoreManager extends GridCacheManager {
      * @return {@code True} if there is a persistent storage.
      * @throws IgniteCheckedException If storage failed.
      */
-    public boolean putAll(
-        @Nullable IgniteInternalTx tx,
-        Map<? extends KeyCacheObject, IgniteBiTuple<? extends CacheObject, GridCacheVersion>> map
-    ) throws IgniteCheckedException;
+    public boolean putAll(@Nullable IgniteInternalTx tx, Map<Object, IgniteBiTuple<Object, GridCacheVersion>> map)
+        throws IgniteCheckedException;
 
     /**
      * @param tx Cache transaction.
@@ -154,7 +151,7 @@ public interface CacheStoreManager extends GridCacheManager {
      * @return {@code True} if there is a persistent storage.
      * @throws IgniteCheckedException If storage failed.
      */
-    public boolean remove(@Nullable IgniteInternalTx tx, KeyCacheObject key) throws IgniteCheckedException;
+    public boolean remove(@Nullable IgniteInternalTx tx, Object key) throws IgniteCheckedException;
 
     /**
      * @param tx Cache transaction.
@@ -162,7 +159,7 @@ public interface CacheStoreManager extends GridCacheManager {
      * @return {@code True} if there is a persistent storage.
      * @throws IgniteCheckedException If storage failed.
      */
-    public boolean removeAll(@Nullable IgniteInternalTx tx, Collection<? extends KeyCacheObject> keys)
+    public boolean removeAll(@Nullable IgniteInternalTx tx, Collection<Object> keys)
         throws IgniteCheckedException;
 
     /**

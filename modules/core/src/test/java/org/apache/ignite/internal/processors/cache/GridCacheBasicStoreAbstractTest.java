@@ -27,6 +27,7 @@ import org.apache.ignite.IgniteCache;
 import org.apache.ignite.IgniteCheckedException;
 import org.apache.ignite.cache.CacheAtomicityMode;
 import org.apache.ignite.cache.CacheMode;
+import org.apache.ignite.cache.CachePeekMode;
 import org.apache.ignite.configuration.CacheConfiguration;
 import org.apache.ignite.configuration.IgniteConfiguration;
 import org.apache.ignite.internal.util.typedef.P2;
@@ -90,6 +91,7 @@ public abstract class GridCacheBasicStoreAbstractTest extends GridCommonAbstract
 
         cc.setCacheMode(cacheMode());
         cc.setWriteSynchronizationMode(FULL_SYNC);
+        cc.setSwapEnabled(false);
         cc.setAtomicityMode(atomicityMode());
         cc.setRebalanceMode(SYNC);
 
@@ -526,7 +528,7 @@ public abstract class GridCacheBasicStoreAbstractTest extends GridCommonAbstract
 
         load(cache, 1, true);
 
-        String val = cache.localPeek(1);
+        String val = cache.localPeek(1, CachePeekMode.ONHEAP);
 
         assert val != null;
         assert "1".equals(val);
@@ -557,7 +559,7 @@ public abstract class GridCacheBasicStoreAbstractTest extends GridCommonAbstract
         for (int i = 1; i <= 10; i++) {
             load(cache, i, true);
 
-            val = cache.localPeek(i);
+            val = cache.localPeek(i, CachePeekMode.ONHEAP);
 
             checkLastMethod("load");
 

@@ -27,19 +27,19 @@ import org.apache.ignite.internal.visor.VisorOneNodeTask;
  * Task that stop specified caches on specified node.
  */
 @GridInternal
-public class VisorCacheStopTask extends VisorOneNodeTask<VisorCacheStopTaskArg, Void> {
+public class VisorCacheStopTask extends VisorOneNodeTask<String, Void> {
     /** */
     private static final long serialVersionUID = 0L;
 
     /** {@inheritDoc} */
-    @Override protected VisorCacheStopJob job(VisorCacheStopTaskArg arg) {
+    @Override protected VisorCacheStopJob job(String arg) {
         return new VisorCacheStopJob(arg, debug);
     }
 
     /**
      * Job that stop specified caches.
      */
-    private static class VisorCacheStopJob extends VisorJob<VisorCacheStopTaskArg, Void> {
+    private static class VisorCacheStopJob extends VisorJob<String, Void> {
         /** */
         private static final long serialVersionUID = 0L;
 
@@ -49,18 +49,13 @@ public class VisorCacheStopTask extends VisorOneNodeTask<VisorCacheStopTaskArg, 
          * @param cacheName Cache name to clear.
          * @param debug Debug flag.
          */
-        private VisorCacheStopJob(VisorCacheStopTaskArg cacheName, boolean debug) {
+        private VisorCacheStopJob(String cacheName, boolean debug) {
             super(cacheName, debug);
         }
 
         /** {@inheritDoc} */
-        @Override protected Void run(VisorCacheStopTaskArg arg) {
-            String cacheName = arg.getCacheName();
-
+        @Override protected Void run(String cacheName) {
             IgniteCache cache = ignite.cache(cacheName);
-
-            if (cache == null)
-                throw new IllegalStateException("Failed to find cache for name: " + cacheName);
 
             cache.destroy();
 

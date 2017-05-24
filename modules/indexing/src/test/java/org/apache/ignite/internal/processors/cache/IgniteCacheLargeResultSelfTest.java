@@ -54,6 +54,7 @@ public class IgniteCacheLargeResultSelfTest extends GridCommonAbstractTest {
         cacheCfg.setCacheMode(PARTITIONED);
         cacheCfg.setAtomicityMode(TRANSACTIONAL);
         cacheCfg.setWriteSynchronizationMode(CacheWriteSynchronizationMode.FULL_SYNC);
+        cacheCfg.setSwapEnabled(false);
         cacheCfg.setBackups(1);
         cacheCfg.setIndexedTypes(
             Integer.class, Integer.class
@@ -78,7 +79,7 @@ public class IgniteCacheLargeResultSelfTest extends GridCommonAbstractTest {
      */
     public void testLargeResult() {
         // Fill cache.
-        try (IgniteDataStreamer<Integer, Integer> streamer = ignite(0).dataStreamer(DEFAULT_CACHE_NAME)) {
+        try (IgniteDataStreamer<Integer, Integer> streamer = ignite(0).dataStreamer(null)) {
             streamer.perNodeBufferSize(20000);
 
             for (int i = 0; i < 50_000; i++)  // default max merge table size is 10000
@@ -87,7 +88,7 @@ public class IgniteCacheLargeResultSelfTest extends GridCommonAbstractTest {
             streamer.flush();
         }
 
-        IgniteCache<Integer, Integer> cache = ignite(0).cache(DEFAULT_CACHE_NAME);
+        IgniteCache<Integer, Integer> cache = ignite(0).cache(null);
 
         try(QueryCursor<List<?>> res = cache.query(
             new SqlFieldsQuery("select _val from Integer where _key between ? and ?")

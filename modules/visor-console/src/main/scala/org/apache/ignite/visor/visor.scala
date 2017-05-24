@@ -43,7 +43,7 @@ import java.util.concurrent._
 import java.util.{Collection => JavaCollection, HashSet => JavaHashSet, _}
 
 import org.apache.ignite.internal.visor.cache._
-import org.apache.ignite.internal.visor.node.VisorNodeEventsCollectorTaskArg
+import org.apache.ignite.internal.visor.node.VisorNodeEventsCollectorTask.VisorNodeEventsCollectorTaskArg
 import org.apache.ignite.internal.visor.node._
 import org.apache.ignite.internal.visor.util.VisorEventMapper
 import org.apache.ignite.internal.visor.util.VisorTaskUtils._
@@ -152,16 +152,16 @@ object visor extends VisorTag {
     private var cmdLst: Seq[VisorCommandHolder] = Nil
 
     /** Node left listener. */
-    private var nodeLeftLsnr: IgnitePredicate[Event] = _
+    private var nodeLeftLsnr: IgnitePredicate[Event] = null
 
     /** Node join listener. */
-    private var nodeJoinLsnr: IgnitePredicate[Event] = _
+    private var nodeJoinLsnr: IgnitePredicate[Event] = null
 
     /** Node segmentation listener. */
-    private var nodeSegLsnr: IgnitePredicate[Event] = _
+    private var nodeSegLsnr: IgnitePredicate[Event] = null
 
     /** Node stop listener. */
-    private var nodeStopLsnr: IgnitionListener = _
+    private var nodeStopLsnr: IgnitionListener = null
 
     /** */
     @volatile private var isCon: Boolean = false
@@ -209,13 +209,13 @@ object visor extends VisorTag {
     private final val DFLT_LOG_PATH = "visor/visor-log"
 
     /** Log file. */
-    private var logFile: File = _
+    private var logFile: File = null
 
     /** Log timer. */
-    private var logTimer: Timer = _
+    private var logTimer: Timer = null
 
     /** Topology log timer. */
-    private var topTimer: Timer = _
+    private var topTimer: Timer = null
 
     /** Log started flag. */
     @volatile private var logStarted = false
@@ -224,15 +224,15 @@ object visor extends VisorTag {
     @volatile var pool: ExecutorService = new IgniteThreadPoolExecutor()
 
     /** Configuration file path, if any. */
-    @volatile var cfgPath: String = _
+    @volatile var cfgPath: String = null
 
     /** */
-    @volatile var ignite: IgniteEx = _
+    @volatile var ignite: IgniteEx = null
 
     /** */
     @volatile var prevIgnite: Option[IgniteEx] = None
 
-    private var reader: ConsoleReader = _
+    private var reader: ConsoleReader = null
 
     var batchMode: Boolean = false
 
@@ -272,8 +272,7 @@ object visor extends VisorTag {
     def groupForDataNode(node: Option[ClusterNode], cacheName: String) = {
         val grp = node match {
             case Some(n) => ignite.cluster.forNode(n)
-            case None => ignite.cluster.forNodeIds(executeRandom(classOf[VisorCacheNodesTask],
-                new VisorCacheNodesTaskArg(cacheName)))
+            case None => ignite.cluster.forNodeIds(executeRandom(classOf[VisorCacheNodesTask], cacheName))
         }
 
         if (grp.nodes().isEmpty)
@@ -1675,7 +1674,7 @@ object visor extends VisorTag {
             val id8 = nid8(id)
             var v = mfindHead(id8)
 
-            if(v.isEmpty){
+            if(!v.isDefined){
                v = assignNodeValue(n)
             }
 
@@ -1833,7 +1832,7 @@ object visor extends VisorTag {
     @throws[ClusterGroupEmptyException]("In case of empty topology.")
     def cacheConfigurations(nid: UUID): JavaCollection[VisorCacheConfiguration] =
         executeOne(nid, classOf[VisorCacheConfigurationCollectorTask],
-            new VisorCacheConfigurationCollectorTaskArg(null.asInstanceOf[JavaCollection[IgniteUuid]])).values()
+            null.asInstanceOf[JavaCollection[IgniteUuid]]).values()
 
     /**
      * Asks user to select a node from the list.
@@ -2455,15 +2454,15 @@ object visor extends VisorTag {
                             try {
                                 out = new FileWriter(logFile, true)
 
-                                evts.toList.sortBy(_.getTimestamp).foreach(e => {
+                                evts.toList.sortBy(_.timestamp).foreach(e => {
                                     logImpl(
                                         out,
-                                        formatDateTime(e.getTimestamp),
-                                        nodeId8Addr(e.getNid),
-                                        U.compact(e.getShortDisplay)
+                                        formatDateTime(e.timestamp),
+                                        nodeId8Addr(e.nid()),
+                                        U.compact(e.shortDisplay())
                                     )
 
-                                    if (EVTS_DISCOVERY.contains(e.getTypeId))
+                                    if (EVTS_DISCOVERY.contains(e.typeId()))
                                         snapshot()
                                 })
                             }

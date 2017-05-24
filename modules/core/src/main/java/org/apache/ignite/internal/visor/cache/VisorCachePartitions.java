@@ -17,80 +17,69 @@
 
 package org.apache.ignite.internal.visor.cache;
 
-import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
-import java.util.HashMap;
-import java.util.Map;
+import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.List;
+import org.apache.ignite.internal.LessNamingBean;
 import org.apache.ignite.internal.util.typedef.internal.S;
-import org.apache.ignite.internal.util.typedef.internal.U;
-import org.apache.ignite.internal.visor.VisorDataTransferObject;
 
 /**
  * Data transfer object for information about cache partitions.
  */
-public class VisorCachePartitions extends VisorDataTransferObject {
+public class VisorCachePartitions implements Serializable, LessNamingBean {
     /** */
     private static final long serialVersionUID = 0L;
 
     /** */
-    private Map<Integer, Long> primary;
+    private List<VisorCachePartition> primary;
 
     /** */
-    private Map<Integer, Long> backup;
+    private List<VisorCachePartition> backup;
 
     /**
      * Default constructor.
      */
     public VisorCachePartitions() {
-        primary = new HashMap<>();
-        backup = new HashMap<>();
+        primary = new ArrayList<>();
+        backup = new ArrayList<>();
     }
 
     /**
      * Add primary partition descriptor.
      *
-     * @param partId Partition id.
-     * @param cnt Number of primary keys in partition.
+     * @param part Partition id.
+     * @param heap Number of primary keys in heap.
+     * @param offheap Number of primary keys in offheap.
+     * @param swap Number of primary keys in swap.
      */
-    public void addPrimary(int partId, long cnt) {
-       primary.put(partId, cnt);
+    public void addPrimary(int part, int heap, long offheap, long swap) {
+       primary.add(new VisorCachePartition(part, heap, offheap, swap));
     }
 
     /**
      * Add backup partition descriptor.
      *
-     * @param partId Partition id.
-     * @param cnt Number of backup keys in partition.
+     * @param part Partition id.
+     * @param heap Number of backup keys in heap.
+     * @param offheap Number of backup keys in offheap.
+     * @param swap Number of backup keys in swap.
      */
-    public void addBackup(int partId, long cnt) {
-       backup.put(partId, cnt);
+    public void addBackup(int part, int heap, long offheap, long swap) {
+       backup.add(new VisorCachePartition(part, heap, offheap, swap));
     }
 
     /**
      * @return Get list of primary partitions.
      */
-    public Map<Integer, Long> getPrimary() {
+    public List<VisorCachePartition> primary() {
         return primary;
     }
 
     /**
      * @return Get list of backup partitions.
      */
-    public Map<Integer, Long> getBackup() {
+    public List<VisorCachePartition> backup() {
         return backup;
-    }
-
-    /** {@inheritDoc} */
-    @Override protected void writeExternalData(ObjectOutput out) throws IOException {
-        U.writeMap(out, primary);
-        U.writeMap(out, backup);
-    }
-
-    /** {@inheritDoc} */
-    @Override protected void readExternalData(byte protoVer, ObjectInput in) throws IOException, ClassNotFoundException {
-        primary = U.readMap(in);
-        backup = U.readMap(in);
     }
 
     /** {@inheritDoc} */

@@ -34,10 +34,6 @@ import javax.cache.processor.EntryProcessor;
 import org.apache.ignite.IgniteCheckedException;
 import org.apache.ignite.cache.CacheWriteSynchronizationMode;
 import org.apache.ignite.internal.IgniteInternalFuture;
-import org.apache.ignite.internal.pagemem.wal.StorageException;
-import org.apache.ignite.internal.pagemem.wal.WALPointer;
-import org.apache.ignite.internal.pagemem.wal.record.DataEntry;
-import org.apache.ignite.internal.pagemem.wal.record.DataRecord;
 import org.apache.ignite.internal.processors.affinity.AffinityTopologyVersion;
 import org.apache.ignite.internal.processors.cache.CacheEntryPredicate;
 import org.apache.ignite.internal.processors.cache.CacheInvokeEntry;
@@ -230,7 +226,7 @@ public abstract class IgniteTxLocalAdapter extends IgniteTxAdapter implements Ig
     }
 
     /** {@inheritDoc} */
-    @Override public IgniteTxLocalState txState() {
+    @Override public IgniteTxState txState() {
         return txState;
     }
 
@@ -406,11 +402,10 @@ public abstract class IgniteTxLocalAdapter extends IgniteTxAdapter implements Ig
     }
 
     /**
-     * @param entries Entries to lock or {@code null} if use default {@link IgniteInternalTx#optimisticLockEntries()}.
      * @throws IgniteCheckedException If prepare step failed.
      */
     @SuppressWarnings({"CatchGenericClass"})
-    public void userPrepare(@Nullable Collection<IgniteTxEntry> entries) throws IgniteCheckedException {
+    public void userPrepare() throws IgniteCheckedException {
         if (state() != PREPARING) {
             if (remainingTime() == -1)
                 throw new IgniteTxTimeoutCheckedException("Transaction timed out: " + this);
@@ -426,7 +421,7 @@ public abstract class IgniteTxLocalAdapter extends IgniteTxAdapter implements Ig
         checkValid();
 
         try {
-            cctx.tm().prepareTx(this, entries);
+            cctx.tm().prepareTx(this);
         }
         catch (IgniteCheckedException e) {
             throw e;
@@ -502,11 +497,7 @@ public abstract class IgniteTxLocalAdapter extends IgniteTxAdapter implements Ig
             cctx.tm().addCommittedTx(this);
 
         if (!empty) {
-            batchStoreCommit(writeEntries());
-
-            WALPointer ptr = null;
-
-            cctx.database().checkpointReadLock();
+            batchStoreCommit(writeMap().values());
 
             try {
                 cctx.tm().txContext(this);
@@ -572,8 +563,6 @@ public abstract class IgniteTxLocalAdapter extends IgniteTxAdapter implements Ig
                                             ExpiryPolicy expiry = cacheCtx.expiryForTxEntry(txEntry);
 
                                             if (expiry != null) {
-                                                txEntry.cached().unswap(false);
-
                                                 Duration duration = cached.hasValue() ?
                                                     expiry.getExpiryForUpdate() : expiry.getExpiryForCreation();
 
@@ -650,19 +639,6 @@ public abstract class IgniteTxLocalAdapter extends IgniteTxAdapter implements Ig
 
                                     if (dhtVer == null)
                                         dhtVer = explicitVer != null ? explicitVer : writeVersion();
-
-                                    if (cctx.wal() != null && !writeEntries().isEmpty()
-                                        && op != NOOP && op != RELOAD && op != READ)
-                                        ptr = cctx.wal().log(new DataRecord(new DataEntry(
-                                            cacheCtx.cacheId(),
-                                            txEntry.key(),
-                                            val,
-                                            op,
-                                            nearXidVersion(),
-                                            writeVersion(),
-                                            0,
-                                            txEntry.key().partition(),
-                                            txEntry.updateCounter())));
 
                                     if (op == CREATE || op == UPDATE) {
                                         GridCacheUpdateTxResult updRes = cached.innerSet(
@@ -859,17 +835,8 @@ public abstract class IgniteTxLocalAdapter extends IgniteTxAdapter implements Ig
                         }
                     }
                 }
-
-                if (ptr != null)
-                    cctx.wal().fsync(ptr);
-            }
-            catch (StorageException e) {
-                throw new IgniteCheckedException("Failed to log transaction record " +
-                    "(transaction will be rolled back): " + this, e);
             }
             finally {
-                cctx.database().checkpointReadUnlock();
-
                 cctx.tm().resetContext();
             }
         }
@@ -1075,9 +1042,11 @@ public abstract class IgniteTxLocalAdapter extends IgniteTxAdapter implements Ig
                                 v = cached.innerGet(
                                     null,
                                     this,
+                                    /*swap*/true,
                                     readThrough,
                                     /*metrics*/!invoke,
                                     /*event*/!invoke && !dht(),
+                                    /*temporary*/false,
                                     CU.subjectId(this, cctx),
                                     null,
                                     resolveTaskName(),
@@ -1087,7 +1056,7 @@ public abstract class IgniteTxLocalAdapter extends IgniteTxAdapter implements Ig
                         }
                         else {
                             if (!hasPrevVal)
-                                v = cached.rawGet();
+                                v = cached.rawGetOrUnmarshal(false);
                         }
 
                         if (txEntry.op() == TRANSFORM) {
@@ -1219,8 +1188,8 @@ public abstract class IgniteTxLocalAdapter extends IgniteTxAdapter implements Ig
      * @throws IgniteCheckedException If caches already enlisted in this transaction are not compatible with given
      *      cache (e.g. they have different stores).
      */
-    protected final void addActiveCache(GridCacheContext cacheCtx, boolean recovery) throws IgniteCheckedException {
-        txState.addActiveCache(cacheCtx, recovery, this);
+    protected final void addActiveCache(GridCacheContext cacheCtx) throws IgniteCheckedException {
+        txState.addActiveCache(cacheCtx, this);
     }
 
     /**

@@ -52,7 +52,7 @@ public class GridCacheReplicatedPreloadStartStopEventsSelfTest extends GridCommo
 
         ((TcpDiscoverySpi)cfg.getDiscoverySpi()).setIpFinder(ipFinder);
 
-        CacheConfiguration ccfg = new CacheConfiguration(DEFAULT_CACHE_NAME);
+        CacheConfiguration ccfg = new CacheConfiguration();
 
         ccfg.setCacheMode(REPLICATED);
 

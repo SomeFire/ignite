@@ -17,6 +17,8 @@
 
 package org.apache.ignite.tests.pojos;
 
+import org.apache.ignite.cache.query.annotations.QuerySqlField;
+
 import java.io.Externalizable;
 import java.io.IOException;
 import java.io.ObjectInput;
@@ -36,9 +38,6 @@ public class Person implements Externalizable {
 
     /** */
     private String lastName;
-
-    /** */
-    private String fullName;
 
     /** */
     private int age;
@@ -179,7 +178,6 @@ public class Person implements Externalizable {
     @SuppressWarnings("UnusedDeclaration")
     public void setFirstName(String name) {
         firstName = name;
-        fullName = firstName + " " + lastName;
     }
 
     /** */
@@ -192,7 +190,6 @@ public class Person implements Externalizable {
     @SuppressWarnings("UnusedDeclaration")
     public void setLastName(String name) {
         lastName = name;
-        fullName = firstName + " " + lastName;
     }
 
     /** */
@@ -203,8 +200,9 @@ public class Person implements Externalizable {
 
     /** */
     @SuppressWarnings("UnusedDeclaration")
+    @QuerySqlField
     public String getFullName() {
-        return fullName;
+        return firstName + " " + lastName;
     }
 
     /** */

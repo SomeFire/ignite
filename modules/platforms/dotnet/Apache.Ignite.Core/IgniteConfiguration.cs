@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-namespace Apache.Ignite.Core
+ namespace Apache.Ignite.Core
 {
     using System;
     using System.Collections.Generic;
@@ -40,9 +40,11 @@ namespace Apache.Ignite.Core
     using Apache.Ignite.Core.Impl;
     using Apache.Ignite.Core.Impl.Binary;
     using Apache.Ignite.Core.Impl.Common;
+    using Apache.Ignite.Core.Impl.SwapSpace;
     using Apache.Ignite.Core.Lifecycle;
     using Apache.Ignite.Core.Log;
     using Apache.Ignite.Core.Plugin;
+    using Apache.Ignite.Core.SwapSpace;
     using Apache.Ignite.Core.Transactions;
     using BinaryWriter = Apache.Ignite.Core.Impl.Binary.BinaryWriter;
 
@@ -96,11 +98,6 @@ namespace Apache.Ignite.Core
         /// </summary>
         public static readonly TimeSpan DefaultFailureDetectionTimeout = TimeSpan.FromSeconds(10);
 
-        /// <summary>
-        /// Default failure detection timeout.
-        /// </summary>
-        public static readonly TimeSpan DefaultClientFailureDetectionTimeout = TimeSpan.FromSeconds(30);
-
         /** */
         private TimeSpan? _metricsExpireTime;
 
@@ -133,9 +130,6 @@ namespace Apache.Ignite.Core
 
         /** */
         private TimeSpan? _failureDetectionTimeout;
-
-        /** */
-        private TimeSpan? _clientFailureDetectionTimeout;
 
         /// <summary>
         /// Default network retry count.
@@ -218,7 +212,6 @@ namespace Apache.Ignite.Core
             writer.WriteBooleanNullable(_isDaemon);
             writer.WriteBooleanNullable(_isLateAffinityAssignment);
             writer.WriteTimeSpanAsLongNullable(_failureDetectionTimeout);
-            writer.WriteTimeSpanAsLongNullable(_clientFailureDetectionTimeout);
 
             // Cache config
             var caches = CacheConfiguration;
@@ -282,9 +275,29 @@ namespace Apache.Ignite.Core
                     writer.WriteBoolean(false);
                 }
 
-                // Name mapper.
-                var mapper = BinaryConfiguration.NameMapper as BinaryBasicNameMapper;
-                writer.WriteBoolean(mapper != null && mapper.IsSimpleName);
+                // Send only descriptors with non-null EqualityComparer to preserve old behavior where
+                // remote nodes can have no BinaryConfiguration.
+
+                if (BinaryConfiguration.TypeConfigurations != null &&
+                    BinaryConfiguration.TypeConfigurations.Any(x => x.EqualityComparer != null))
+                {
+                    // Create a new marshaller to reuse type name resolver mechanism.
+                    var types = new Marshaller(BinaryConfiguration).GetUserTypeDescriptors()
+                        .Where(x => x.EqualityComparer != null).ToList();
+
+                    writer.WriteInt(types.Count);
+
+                    foreach (var type in types)
+                    {
+                        writer.WriteString(BinaryUtils.SimpleTypeName(type.TypeName));
+                        writer.WriteBoolean(type.IsEnum);
+                        BinaryEqualityComparerSerializer.Write(writer, type.EqualityComparer);
+                    }
+                }
+                else
+                {
+                    writer.WriteInt(0);
+                }
             }
             else
             {
@@ -333,6 +346,9 @@ namespace Apache.Ignite.Core
             else
                 writer.WriteBoolean(false);
 
+            // Swap space
+            SwapSpaceSerializer.Write(writer, SwapSpaceSpi);
+
             // Event storage
             if (EventStorageSpi == null)
             {
@@ -357,16 +373,6 @@ namespace Apache.Ignite.Core
                 writer.WriteByte(2);
 
                 memEventStorage.Write(writer);
-            }
-
-            if (MemoryConfiguration != null)
-            {
-                writer.WriteBoolean(true);
-                MemoryConfiguration.Write(writer);
-            }
-            else
-            {
-                writer.WriteBoolean(false);
             }
 
             // Plugins (should be last)
@@ -434,7 +440,6 @@ namespace Apache.Ignite.Core
             _isDaemon = r.ReadBooleanNullable();
             _isLateAffinityAssignment = r.ReadBooleanNullable();
             _failureDetectionTimeout = r.ReadTimeSpanNullable();
-            _clientFailureDetectionTimeout = r.ReadTimeSpanNullable();
 
             // Cache config
             var cacheCfgCount = r.ReadInt();
@@ -454,13 +459,25 @@ namespace Apache.Ignite.Core
                 BinaryConfiguration = BinaryConfiguration ?? new BinaryConfiguration();
 
                 if (r.ReadBoolean())
-                {
                     BinaryConfiguration.CompactFooter = r.ReadBoolean();
-                }
 
-                if (r.ReadBoolean())
+                var typeCount = r.ReadInt();
+
+                if (typeCount > 0)
                 {
-                    BinaryConfiguration.NameMapper = BinaryBasicNameMapper.SimpleNameInstance;
+                    var types = new List<BinaryTypeConfiguration>(typeCount);
+
+                    for (var i = 0; i < typeCount; i++)
+                    {
+                        types.Add(new BinaryTypeConfiguration
+                        {
+                            TypeName = r.ReadString(),
+                            IsEnum = r.ReadBoolean(),
+                            EqualityComparer = BinaryEqualityComparerSerializer.Read(r)
+                        });
+                    }
+
+                    BinaryConfiguration.TypeConfigurations = types;
                 }
             }
 
@@ -492,6 +509,9 @@ namespace Apache.Ignite.Core
                 };
             }
 
+            // Swap
+            SwapSpaceSpi = SwapSpaceSerializer.Read(r);
+
             // Event storage
             switch (r.ReadByte())
             {
@@ -501,11 +521,6 @@ namespace Apache.Ignite.Core
                 case 2:
                     EventStorageSpi = MemoryEventStorageSpi.Read(r);
                     break;
-            }
-
-            if (r.ReadBoolean())
-            {
-                MemoryConfiguration = new MemoryConfiguration(r);
             }
         }
 
@@ -549,12 +564,11 @@ namespace Apache.Ignite.Core
             JvmOptions = cfg.JvmOptions;
             Assemblies = cfg.Assemblies;
             SuppressWarnings = cfg.SuppressWarnings;
-            LifecycleHandlers = cfg.LifecycleHandlers;
+            LifecycleBeans = cfg.LifecycleBeans;
             Logger = cfg.Logger;
             JvmInitialMemoryMb = cfg.JvmInitialMemoryMb;
             JvmMaxMemoryMb = cfg.JvmMaxMemoryMb;
             PluginConfigurations = cfg.PluginConfigurations;
-            AutoGenerateIgniteInstanceName = cfg.AutoGenerateIgniteInstanceName;
         }
 
         /// <summary>
@@ -565,18 +579,6 @@ namespace Apache.Ignite.Core
         /// This property is used to when there are multiple Ignite nodes in one process to distinguish them.
         /// </summary>
         public string IgniteInstanceName { get; set; }
-
-        /// <summary>
-        /// Gets or sets a value indicating whether unique <see cref="IgniteInstanceName"/> should be generated.
-        /// <para />
-        /// Set this to true in scenarios where new node should be started regardless of other nodes present within
-        /// current process. In particular, this setting is useful is ASP.NET and IIS environments, where AppDomains
-        /// are loaded and unloaded within a single process during application restarts. Ignite stops all nodes
-        /// on <see cref="AppDomain"/> unload, however, IIS does not wait for previous AppDomain to unload before
-        /// starting up a new one, which may cause "Ignite instance with this name has already been started" errors.
-        /// This setting solves the issue.
-        /// </summary>
-        public bool AutoGenerateIgniteInstanceName { get; set; }
 
         /// <summary>
         /// Gets or sets optional local instance name.
@@ -660,10 +662,10 @@ namespace Apache.Ignite.Core
         public bool SuppressWarnings { get; set; }
 
         /// <summary>
-        /// Lifecycle handlers.
+        /// Lifecycle beans.
         /// </summary>
         [SuppressMessage("Microsoft.Usage", "CA2227:CollectionPropertiesShouldBeReadOnly")]
-        public ICollection<ILifecycleHandler> LifecycleHandlers { get; set; }
+        public ICollection<ILifecycleBean> LifecycleBeans { get; set; }
 
         /// <summary>
         /// Initial amount of memory in megabytes given to JVM. Maps to -Xms Java option.
@@ -950,15 +952,9 @@ namespace Apache.Ignite.Core
         }
 
         /// <summary>
-        /// Gets or sets the failure detection timeout used by <see cref="TcpDiscoverySpi"/>
-        /// and <see cref="TcpCommunicationSpi"/> for client nodes.
+        /// Gets or sets the swap space SPI.
         /// </summary>
-        [DefaultValue(typeof(TimeSpan), "00:00:30")]
-        public TimeSpan ClientFailureDetectionTimeout
-        {
-            get { return _clientFailureDetectionTimeout ?? DefaultClientFailureDetectionTimeout; }
-            set { _clientFailureDetectionTimeout = value; }
-        }
+        public ISwapSpaceSpi SwapSpaceSpi { get; set; }
 
         /// <summary>
         /// Gets or sets the configurations for plugins to be started.
@@ -969,15 +965,9 @@ namespace Apache.Ignite.Core
         /// <summary>
         /// Gets or sets the event storage interface.
         /// <para />
-        /// Only predefined implementations are supported:
+        /// Only predefined implementations are supported: 
         /// <see cref="NoopEventStorageSpi"/>, <see cref="MemoryEventStorageSpi"/>.
         /// </summary>
         public IEventStorageSpi EventStorageSpi { get; set; }
-
-        /// <summary>
-        /// Gets or sets the page memory configuration.
-        /// <see cref="MemoryConfiguration"/> for more details.
-        /// </summary>
-        public MemoryConfiguration MemoryConfiguration { get; set; }
     }
 }

@@ -42,6 +42,13 @@ public interface IgfsEx extends IgniteFileSystem {
     public IgfsContext context();
 
     /**
+     * Get handshake message.
+     *
+     * @return Handshake message.
+     */
+    public IgfsPaths proxyPaths();
+
+    /**
      * Gets global space counters.
      *
      * @return Tuple in which first component is used space on all nodes,

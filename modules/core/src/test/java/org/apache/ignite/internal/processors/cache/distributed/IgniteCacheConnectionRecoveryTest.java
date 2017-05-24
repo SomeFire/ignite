@@ -191,7 +191,7 @@ public class IgniteCacheConnectionRecoveryTest extends GridCommonAbstractTest {
      * @return Configuration.
      */
     private CacheConfiguration cacheConfiguration(String name, CacheAtomicityMode atomicityMode) {
-        CacheConfiguration ccfg = new CacheConfiguration(DEFAULT_CACHE_NAME);
+        CacheConfiguration ccfg = new CacheConfiguration();
 
         ccfg.setName(name);
         ccfg.setAtomicityMode(atomicityMode);

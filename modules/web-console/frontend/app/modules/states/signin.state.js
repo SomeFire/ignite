@@ -37,8 +37,6 @@ angular
                     .catch(() => {});
             }]
         },
-        controllerAs: '$ctrl',
-        controller() {},
         metaTags: {
         }
     });

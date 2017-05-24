@@ -128,6 +128,7 @@ namespace Apache.Ignite.Core.Tests.DataStructures
         /// Tests DateTime in the atomic.
         /// </summary>
         [Test]
+        [Ignore("IGNITE-2578")]
         public void TestDateTime()
         {
             TestOperations(DateTime.Now, DateTime.Now.AddDays(-1));
@@ -137,6 +138,7 @@ namespace Apache.Ignite.Core.Tests.DataStructures
         /// Tests serializable objects in the atomic.
         /// </summary>
         [Test]
+        [Ignore("IGNITE-2578")]
         public void TestSerializable()
         {
             TestOperations(new SerializableObj {Foo = 16}, new SerializableObj {Foo = -5});

@@ -17,18 +17,15 @@
 
 package org.apache.ignite.internal.visor.query;
 
-import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
+import java.io.Serializable;
+import org.apache.ignite.internal.LessNamingBean;
 import org.apache.ignite.internal.util.typedef.F;
 import org.apache.ignite.internal.util.typedef.internal.S;
-import org.apache.ignite.internal.util.typedef.internal.U;
-import org.apache.ignite.internal.visor.VisorDataTransferObject;
 
 /**
  * Data transfer object for query field type description.
  */
-public class VisorQueryField extends VisorDataTransferObject {
+public class VisorQueryField implements Serializable, LessNamingBean {
     /** */
     private static final long serialVersionUID = 0L;
 
@@ -43,13 +40,6 @@ public class VisorQueryField extends VisorDataTransferObject {
 
     /** Field type name. */
     private String fieldTypeName;
-
-    /**
-     * Default constructor.
-     */
-    public VisorQueryField() {
-        // No-op.
-    }
 
     /**
      * Create data transfer object with given parameters.
@@ -69,28 +59,28 @@ public class VisorQueryField extends VisorDataTransferObject {
     /**
      * @return Schema name.
      */
-    public String getSchemaName() {
+    public String schemaName() {
         return schemaName;
     }
 
     /**
      * @return Type name.
      */
-    public String getTypeName() {
+    public String typeName() {
         return typeName;
     }
 
     /**
      * @return Field name.
      */
-    public String getFieldName() {
+    public String fieldName() {
         return fieldName;
     }
 
     /**
      * @return Field type name.
      */
-    public String getFieldTypeName() {
+    public String fieldTypeName() {
         return fieldTypeName;
     }
 
@@ -98,7 +88,7 @@ public class VisorQueryField extends VisorDataTransferObject {
      * @param schema If {@code true} then add schema name to full name.
      * @return Fully qualified field name with type name and schema name.
      */
-    public String getFullName(boolean schema) {
+    public String fullName(boolean schema) {
         if (!F.isEmpty(typeName)) {
             if (schema && !F.isEmpty(schemaName))
                 return schemaName + "." + typeName + "." + fieldName;
@@ -107,22 +97,6 @@ public class VisorQueryField extends VisorDataTransferObject {
         }
 
         return fieldName;
-    }
-
-    /** {@inheritDoc} */
-    @Override protected void writeExternalData(ObjectOutput out) throws IOException {
-        U.writeString(out, schemaName);
-        U.writeString(out, typeName);
-        U.writeString(out, fieldName);
-        U.writeString(out, fieldTypeName);
-    }
-
-    /** {@inheritDoc} */
-    @Override protected void readExternalData(byte protoVer, ObjectInput in) throws IOException, ClassNotFoundException {
-        schemaName = U.readString(in);
-        typeName = U.readString(in);
-        fieldName = U.readString(in);
-        fieldTypeName = U.readString(in);
     }
 
     /** {@inheritDoc} */

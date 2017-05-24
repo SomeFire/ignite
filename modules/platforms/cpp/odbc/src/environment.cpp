@@ -43,18 +43,18 @@ namespace ignite
             return connection;
         }
 
-        SqlResult::Type Environment::InternalCreateConnection(Connection*& connection)
+        SqlResult Environment::InternalCreateConnection(Connection*& connection)
         {
             connection = new Connection;
 
             if (!connection)
             {
-                AddStatusRecord(SqlState::SHY001_MEMORY_ALLOCATION, "Not enough memory.");
+                AddStatusRecord(SQL_STATE_HY001_MEMORY_ALLOCATION, "Not enough memory.");
 
-                return SqlResult::AI_ERROR;
+                return SQL_RESULT_ERROR;
             }
 
-            return SqlResult::AI_SUCCESS;
+            return SQL_RESULT_SUCCESS;
         }
 
         void Environment::TransactionCommit()
@@ -62,9 +62,9 @@ namespace ignite
             IGNITE_ODBC_API_CALL(InternalTransactionCommit());
         }
 
-        SqlResult::Type Environment::InternalTransactionCommit()
+        SqlResult Environment::InternalTransactionCommit()
         {
-            return SqlResult::AI_SUCCESS;
+            return SQL_RESULT_SUCCESS;
         }
 
         void Environment::TransactionRollback()
@@ -72,12 +72,12 @@ namespace ignite
             IGNITE_ODBC_API_CALL(InternalTransactionRollback());
         }
 
-        SqlResult::Type Environment::InternalTransactionRollback()
+        SqlResult Environment::InternalTransactionRollback()
         {
-            AddStatusRecord(SqlState::SHYC00_OPTIONAL_FEATURE_NOT_IMPLEMENTED,
+            AddStatusRecord(SQL_STATE_HYC00_OPTIONAL_FEATURE_NOT_IMPLEMENTED,
                 "Rollback operation is not supported.");
 
-            return SqlResult::AI_ERROR;
+            return SQL_RESULT_ERROR;
         }
 
         void Environment::SetAttribute(int32_t attr, void* value, int32_t len)
@@ -85,51 +85,51 @@ namespace ignite
             IGNITE_ODBC_API_CALL(InternalSetAttribute(attr, value, len));
         }
 
-        SqlResult::Type Environment::InternalSetAttribute(int32_t attr, void* value, int32_t len)
+        SqlResult Environment::InternalSetAttribute(int32_t attr, void* value, int32_t len)
         {
-            EnvironmentAttribute::Type attribute = EnvironmentAttributeToInternal(attr);
+            EnvironmentAttribute attribute = EnvironmentAttributeToInternal(attr);
 
             switch (attribute)
             {
-                case EnvironmentAttribute::ODBC_VERSION:
+                case IGNITE_SQL_ENV_ATTR_ODBC_VERSION:
                 {
                     int32_t version = static_cast<int32_t>(reinterpret_cast<intptr_t>(value));
 
                     if (version != odbcVersion)
                     {
-                        AddStatusRecord(SqlState::S01S02_OPTION_VALUE_CHANGED,
+                        AddStatusRecord(SQL_STATE_01S02_OPTION_VALUE_CHANGED,
                             "ODBC version is not supported.");
 
-                        return SqlResult::AI_SUCCESS_WITH_INFO;
+                        return SQL_RESULT_SUCCESS_WITH_INFO;
                     }
 
-                    return SqlResult::AI_SUCCESS;
+                    return SQL_RESULT_SUCCESS;
                 }
 
-                case EnvironmentAttribute::OUTPUT_NTS:
+                case IGNITE_SQL_ENV_ATTR_OUTPUT_NTS:
                 {
                     int32_t nts = static_cast<int32_t>(reinterpret_cast<intptr_t>(value));
 
                     if (nts != odbcNts)
                     {
-                        AddStatusRecord(SqlState::S01S02_OPTION_VALUE_CHANGED,
+                        AddStatusRecord(SQL_STATE_01S02_OPTION_VALUE_CHANGED,
                             "Only null-termination of strings is supported.");
 
-                        return SqlResult::AI_SUCCESS_WITH_INFO;
+                        return SQL_RESULT_SUCCESS_WITH_INFO;
                     }
 
-                    return SqlResult::AI_SUCCESS;
+                    return SQL_RESULT_SUCCESS;
                 }
 
-                case EnvironmentAttribute::UNKNOWN:
+                case IGNITE_SQL_ENV_ATTR_UNKNOWN:
                 default:
                     break;
             }
 
-            AddStatusRecord(SqlState::SHYC00_OPTIONAL_FEATURE_NOT_IMPLEMENTED,
+            AddStatusRecord(SQL_STATE_HYC00_OPTIONAL_FEATURE_NOT_IMPLEMENTED,
                 "Attribute is not supported.");
 
-            return SqlResult::AI_ERROR;
+            return SQL_RESULT_ERROR;
         }
 
         void Environment::GetAttribute(int32_t attr, app::ApplicationDataBuffer& buffer)
@@ -137,35 +137,35 @@ namespace ignite
             IGNITE_ODBC_API_CALL(InternalGetAttribute(attr, buffer));
         }
 
-        SqlResult::Type Environment::InternalGetAttribute(int32_t attr, app::ApplicationDataBuffer& buffer)
+        SqlResult Environment::InternalGetAttribute(int32_t attr, app::ApplicationDataBuffer& buffer)
         {
-            EnvironmentAttribute::Type attribute = EnvironmentAttributeToInternal(attr);
+            EnvironmentAttribute attribute = EnvironmentAttributeToInternal(attr);
 
             switch (attribute)
             {
-                case EnvironmentAttribute::ODBC_VERSION:
+                case IGNITE_SQL_ENV_ATTR_ODBC_VERSION:
                 {
                     buffer.PutInt32(odbcVersion);
 
-                    return SqlResult::AI_SUCCESS;
+                    return SQL_RESULT_SUCCESS;
                 }
 
-                case EnvironmentAttribute::OUTPUT_NTS:
+                case IGNITE_SQL_ENV_ATTR_OUTPUT_NTS:
                 {
                     buffer.PutInt32(odbcNts);
 
-                    return SqlResult::AI_SUCCESS;
+                    return SQL_RESULT_SUCCESS;
                 }
 
-                case EnvironmentAttribute::UNKNOWN:
+                case IGNITE_SQL_ENV_ATTR_UNKNOWN:
                 default:
                     break;
             }
 
-            AddStatusRecord(SqlState::SHYC00_OPTIONAL_FEATURE_NOT_IMPLEMENTED,
+            AddStatusRecord(SQL_STATE_HYC00_OPTIONAL_FEATURE_NOT_IMPLEMENTED,
                 "Attribute is not supported.");
 
-            return SqlResult::AI_ERROR;
+            return SQL_RESULT_ERROR;
         }
     }
 }

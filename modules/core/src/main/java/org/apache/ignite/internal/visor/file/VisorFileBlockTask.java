@@ -19,15 +19,16 @@ package org.apache.ignite.internal.visor.file;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.Serializable;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.file.NoSuchFileException;
 import org.apache.ignite.internal.processors.task.GridInternal;
 import org.apache.ignite.internal.util.typedef.internal.S;
 import org.apache.ignite.internal.util.typedef.internal.U;
-import org.apache.ignite.internal.visor.VisorEither;
 import org.apache.ignite.internal.visor.VisorJob;
 import org.apache.ignite.internal.visor.VisorOneNodeTask;
+import org.apache.ignite.lang.IgniteBiTuple;
 
 import static org.apache.ignite.internal.visor.util.VisorTaskUtils.readBlock;
 
@@ -35,20 +36,60 @@ import static org.apache.ignite.internal.visor.util.VisorTaskUtils.readBlock;
  * Task to read file block.
  */
 @GridInternal
-public class VisorFileBlockTask extends VisorOneNodeTask<VisorFileBlockTaskArg, VisorEither<VisorFileBlock>> {
+public class VisorFileBlockTask extends VisorOneNodeTask<VisorFileBlockTask.VisorFileBlockArg,
+    IgniteBiTuple<? extends IOException, VisorFileBlock>> {
     /** */
     private static final long serialVersionUID = 0L;
 
     /** {@inheritDoc} */
-    @Override protected VisorFileBlockJob job(VisorFileBlockTaskArg arg) {
+    @Override protected VisorFileBlockJob job(VisorFileBlockArg arg) {
         return new VisorFileBlockJob(arg, debug);
+    }
+
+    /**
+     * Arguments for {@link VisorFileBlockTask}
+     */
+    @SuppressWarnings("PublicInnerClass")
+    public static class VisorFileBlockArg implements Serializable {
+        /** */
+        private static final long serialVersionUID = 0L;
+
+        /** Log file path. */
+        private final String path;
+
+        /** Log file offset. */
+        private final long off;
+
+        /** Block size. */
+        private final int blockSz;
+
+        /** Log file last modified timestamp. */
+        private final long lastModified;
+
+        /**
+         * @param path Log file path.
+         * @param off Offset in file.
+         * @param blockSz Block size.
+         * @param lastModified Log file last modified timestamp.
+         */
+        public VisorFileBlockArg(String path, long off, int blockSz, long lastModified) {
+            this.path = path;
+            this.off = off;
+            this.blockSz = blockSz;
+            this.lastModified = lastModified;
+        }
+
+        /** {@inheritDoc} */
+        @Override public String toString() {
+            return S.toString(VisorFileBlockArg.class, this);
+        }
     }
 
     /**
      * Job that read file block on node.
      */
     private static class VisorFileBlockJob
-        extends VisorJob<VisorFileBlockTaskArg, VisorEither<VisorFileBlock>> {
+        extends VisorJob<VisorFileBlockArg, IgniteBiTuple<? extends IOException, VisorFileBlock>> {
         /** */
         private static final long serialVersionUID = 0L;
 
@@ -56,28 +97,27 @@ public class VisorFileBlockTask extends VisorOneNodeTask<VisorFileBlockTaskArg, 
          * @param arg Descriptor of file block to read.
          * @param debug Debug flag.
          */
-        private VisorFileBlockJob(VisorFileBlockTaskArg arg, boolean debug) {
+        private VisorFileBlockJob(VisorFileBlockArg arg, boolean debug) {
             super(arg, debug);
         }
 
         /** {@inheritDoc} */
-        @Override protected VisorEither<VisorFileBlock> run(VisorFileBlockTaskArg arg) {
+        @Override protected IgniteBiTuple<? extends IOException, VisorFileBlock> run(VisorFileBlockArg arg) {
             try {
-                URL url = U.resolveIgniteUrl(arg.getPath());
+                URL url = U.resolveIgniteUrl(arg.path);
 
                 if (url == null)
-                    return new VisorEither<>(new NoSuchFileException("File path not found: " + arg.getPath()));
+                    return new IgniteBiTuple<>(new NoSuchFileException("File path not found: " + arg.path), null);
 
-                VisorFileBlock block = readBlock(
-                    new File(url.toURI()), arg.getOffset(), arg.getBlockSize(), arg.getLastModified());
+                VisorFileBlock block = readBlock(new File(url.toURI()), arg.off, arg.blockSz, arg.lastModified);
 
-                return new VisorEither<>(block);
+                return new IgniteBiTuple<>(null, block);
             }
             catch (IOException e) {
-                return new VisorEither<>(e);
+                return new IgniteBiTuple<>(e, null);
             }
             catch (URISyntaxException ignored) {
-                return new VisorEither<>(new NoSuchFileException("File path not found: " + arg.getPath()));
+                return new IgniteBiTuple<>(new NoSuchFileException("File path not found: " + arg.path), null);
             }
         }
 

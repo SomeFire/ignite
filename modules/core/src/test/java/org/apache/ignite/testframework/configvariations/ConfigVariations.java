@@ -26,11 +26,14 @@ import javax.cache.event.CacheEntryCreatedListener;
 import javax.cache.event.CacheEntryEventFilter;
 import javax.cache.event.CacheEntryListener;
 import javax.cache.event.CacheEntryListenerException;
+import org.apache.ignite.cache.CacheAtomicWriteOrderMode;
 import org.apache.ignite.cache.CacheAtomicityMode;
 import org.apache.ignite.cache.CacheInterceptorAdapter;
+import org.apache.ignite.cache.CacheMemoryMode;
 import org.apache.ignite.cache.CacheMode;
 import org.apache.ignite.cache.CacheRebalanceMode;
 import org.apache.ignite.cache.CacheWriteSynchronizationMode;
+import org.apache.ignite.cache.affinity.fair.FairAffinityFunction;
 import org.apache.ignite.cache.eviction.EvictionFilter;
 import org.apache.ignite.cache.eviction.fifo.FifoEvictionPolicy;
 import org.apache.ignite.cache.store.CacheStoreSession;
@@ -42,7 +45,8 @@ import org.apache.ignite.configuration.NearCacheConfiguration;
 import org.apache.ignite.configuration.TopologyValidator;
 import org.apache.ignite.internal.binary.BinaryMarshaller;
 import org.apache.ignite.internal.processors.cache.MapCacheStoreStrategy;
-import org.apache.ignite.internal.marshaller.optimized.OptimizedMarshaller;
+import org.apache.ignite.marshaller.optimized.OptimizedMarshaller;
+import org.apache.ignite.spi.swapspace.inmemory.GridTestSwapSpaceSpi;
 
 import static org.apache.ignite.internal.util.lang.GridFunc.asArray;
 
@@ -82,10 +86,27 @@ public class ConfigVariations {
     );
 
     /** */
+    private static final ConfigParameter<Object> ONHEAP_TIERED_MEMORY_PARAM =
+        Parameters.parameter("setMemoryMode", CacheMemoryMode.ONHEAP_TIERED);
+
+    /** */
+    private static final ConfigParameter<Object> OFFHEAP_TIERED_MEMORY_PARAM =
+        Parameters.parameter("setMemoryMode", CacheMemoryMode.OFFHEAP_TIERED);
+
+    /** */
+    private static final ConfigParameter<Object> OFFHEAP_VALUES_MEMORY_PARAM =
+        Parameters.parameter("setMemoryMode", CacheMemoryMode.OFFHEAP_VALUES);
+
+    /** */
+    private static final ConfigParameter<Object> OFFHEAP_ENABLED =
+        Parameters.parameter("setOffHeapMaxMemory", 10 * 1024 * 1024L);
+
+    /** */
     @SuppressWarnings("unchecked")
     private static final ConfigParameter<IgniteConfiguration>[][] BASIC_IGNITE_SET = new ConfigParameter[][] {
-        Parameters.objectParameters("setMarshaller", Parameters.factory(BinaryMarshaller.class), binaryMarshallerFactory()),
+        Parameters.objectParameters("setMarshaller", Parameters.factory(BinaryMarshaller.class), optimizedMarshallerFactory()),
         Parameters.booleanParameters("setPeerClassLoadingEnabled"),
+        Parameters.objectParameters("setSwapSpaceSpi", Parameters.factory(GridTestSwapSpaceSpi.class)),
     };
 
     /** */
@@ -93,11 +114,14 @@ public class ConfigVariations {
     private static final ConfigParameter<CacheConfiguration>[][] BASIC_CACHE_SET = new ConfigParameter[][] {
         Parameters.objectParameters("setCacheMode", CacheMode.REPLICATED, CacheMode.PARTITIONED),
         Parameters.enumParameters("setAtomicityMode", CacheAtomicityMode.class),
+        Parameters.enumParameters("setMemoryMode", CacheMemoryMode.class),
         // Set default parameters.
         Parameters.objectParameters("setLoadPreviousValue", true),
+        Parameters.objectParameters("setSwapEnabled", true),
         asArray(SIMPLE_CACHE_STORE_PARAM),
         Parameters.objectParameters("setWriteSynchronizationMode", CacheWriteSynchronizationMode.FULL_SYNC),
-        Parameters.booleanParameters("setOnheapCacheEnabled")
+        Parameters.objectParameters("setAtomicWriteOrderMode", CacheAtomicWriteOrderMode.PRIMARY),
+        Parameters.objectParameters("setStartSize", 1024),
     };
 
     /** */
@@ -105,10 +129,16 @@ public class ConfigVariations {
     private static final ConfigParameter<CacheConfiguration>[][] FULL_CACHE_SET = new ConfigParameter[][] {
         Parameters.enumParameters("setCacheMode", CacheMode.class),
         Parameters.enumParameters("setAtomicityMode", CacheAtomicityMode.class),
+        asArray(ONHEAP_TIERED_MEMORY_PARAM,
+            Parameters.complexParameter(ONHEAP_TIERED_MEMORY_PARAM, OFFHEAP_ENABLED),
+            Parameters.complexParameter(OFFHEAP_TIERED_MEMORY_PARAM, OFFHEAP_ENABLED),
+            Parameters.complexParameter(OFFHEAP_VALUES_MEMORY_PARAM, OFFHEAP_ENABLED)
+        ),
         Parameters.booleanParameters("setLoadPreviousValue"),
         Parameters.booleanParameters("setReadFromBackup"),
         Parameters.booleanParameters("setStoreKeepBinary"),
         Parameters.objectParameters("setRebalanceMode", CacheRebalanceMode.SYNC, CacheRebalanceMode.ASYNC),
+        Parameters.booleanParameters("setSwapEnabled"),
         Parameters.booleanParameters("setCopyOnRead"),
         Parameters.objectParameters(true, "setNearConfiguration", nearCacheConfigurationFactory()),
         asArray(null,
@@ -116,6 +146,7 @@ public class ConfigVariations {
                 EVICTION_PARAM,
                 CACHE_STORE_PARAM,
                 REBALANCING_PARAM,
+                Parameters.parameter("setAffinity", Parameters.factory(FairAffinityFunction.class)),
                 Parameters.parameter("setInterceptor", Parameters.factory(NoopInterceptor.class)),
                 Parameters.parameter("setTopologyValidator", Parameters.factory(NoopTopologyValidator.class)),
                 Parameters.parameter("addCacheEntryListenerConfiguration", Parameters.factory(EmptyCacheEntryListenerConfiguration.class))
@@ -123,7 +154,8 @@ public class ConfigVariations {
         ),
         // Set default parameters.
         Parameters.objectParameters("setWriteSynchronizationMode", CacheWriteSynchronizationMode.FULL_SYNC),
-        Parameters.booleanParameters("setOnheapCacheEnabled")
+        Parameters.objectParameters("setAtomicWriteOrderMode", CacheAtomicWriteOrderMode.PRIMARY),
+        Parameters.objectParameters("setStartSize", 1024),
     };
 
     /**
@@ -183,10 +215,14 @@ public class ConfigVariations {
     /**
      * @return Marshaller.
      */
-    public static Factory<BinaryMarshaller> binaryMarshallerFactory() {
-        return new Factory<BinaryMarshaller>() {
-            @Override public BinaryMarshaller create() {
-                return new BinaryMarshaller();
+    public static Factory<OptimizedMarshaller> optimizedMarshallerFactory() {
+        return new Factory<OptimizedMarshaller>() {
+            @Override public OptimizedMarshaller create() {
+                OptimizedMarshaller marsh = new OptimizedMarshaller(true);
+
+                marsh.setRequireSerializable(false);
+
+                return marsh;
             }
         };
     }

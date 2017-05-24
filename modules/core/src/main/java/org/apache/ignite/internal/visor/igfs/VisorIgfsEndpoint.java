@@ -17,51 +17,43 @@
 
 package org.apache.ignite.internal.visor.igfs;
 
-import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
+import java.io.Serializable;
+import org.apache.ignite.internal.LessNamingBean;
 import org.apache.ignite.internal.util.typedef.internal.S;
-import org.apache.ignite.internal.util.typedef.internal.U;
-import org.apache.ignite.internal.visor.VisorDataTransferObject;
 import org.jetbrains.annotations.Nullable;
 
 /**
  * IGFS endpoint descriptor.
  */
-public class VisorIgfsEndpoint extends VisorDataTransferObject {
+public class VisorIgfsEndpoint implements Serializable, LessNamingBean {
     /** */
     private static final long serialVersionUID = 0L;
 
     /** IGFS name. */
-    private String igfsName;
+    private final String igfsName;
 
-    /** Grid name. */
-    private String gridName;
+    /** Ignite instance name. */
+    private final String igniteInstanceName;
 
     /** Host address / name. */
-    private String hostName;
+    private final String hostName;
 
     /** Port number. */
-    private int port;
-
-    /**
-     * Default constructor.
-     */
-    public VisorIgfsEndpoint() {
-        // No-op.
-    }
+    private final int port;
 
     /**
      * Create IGFS endpoint descriptor with given parameters.
      *
      * @param igfsName IGFS name.
-     * @param gridName Grid name.
+     * @param igniteInstanceName Ignite instance name.
      * @param hostName Host address / name.
      * @param port Port number.
      */
-    public VisorIgfsEndpoint(@Nullable String igfsName, String gridName, @Nullable String hostName, int port) {
+    public VisorIgfsEndpoint(
+        @Nullable String igfsName, String igniteInstanceName, @Nullable String hostName, int port
+    ) {
         this.igfsName = igfsName;
-        this.gridName = gridName;
+        this.igniteInstanceName = igniteInstanceName;
         this.hostName = hostName;
         this.port = port;
     }
@@ -69,61 +61,45 @@ public class VisorIgfsEndpoint extends VisorDataTransferObject {
     /**
      * @return IGFS name.
      */
-    @Nullable public String getIgfsName() {
+    @Nullable public String igfsName() {
         return igfsName;
     }
 
     /**
-     * @return Grid name.
+     * @return Ignite instance name.
      */
-    public String getGridName() {
-        return gridName;
+    public String igniteInstanceName() {
+        return igniteInstanceName;
     }
 
     /**
      * @return Host address / name.
      */
-    @Nullable public String getHostName() {
+    @Nullable public String hostName() {
         return hostName;
     }
 
     /**
      * @return Port number.
      */
-    public int getPort() {
+    public int port() {
         return port;
     }
 
     /**
      * @return URI Authority
      */
-    public String getAuthority() {
+    public String authority() {
         String addr = hostName + ":" + port;
 
-        if (igfsName == null && gridName == null)
+        if (igfsName == null && igniteInstanceName == null)
             return addr;
         else if (igfsName == null)
-            return gridName + "@" + addr;
-        else if (gridName == null)
+            return igniteInstanceName + "@" + addr;
+        else if (igniteInstanceName == null)
             return igfsName + "@" + addr;
         else
-            return igfsName + ":" + gridName + "@" + addr;
-    }
-
-    /** {@inheritDoc} */
-    @Override protected void writeExternalData(ObjectOutput out) throws IOException {
-        U.writeString(out, igfsName);
-        U.writeString(out, gridName);
-        U.writeString(out, hostName);
-        out.writeInt(port);
-    }
-
-    /** {@inheritDoc} */
-    @Override protected void readExternalData(byte protoVer, ObjectInput in) throws IOException, ClassNotFoundException {
-        igfsName = U.readString(in);
-        gridName = U.readString(in);
-        hostName = U.readString(in);
-        port = in.readInt();
+            return igfsName + ":" + igniteInstanceName + "@" + addr;
     }
 
     /** {@inheritDoc} */

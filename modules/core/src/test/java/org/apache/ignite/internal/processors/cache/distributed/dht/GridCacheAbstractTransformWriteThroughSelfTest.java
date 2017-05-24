@@ -316,7 +316,7 @@ public abstract class GridCacheAbstractTransformWriteThroughSelfTest extends Gri
         while (keys.size() < 30) {
             String key = String.valueOf(numKey);
 
-            Affinity<Object> affinity = ignite(0).affinity(DEFAULT_CACHE_NAME);
+            Affinity<Object> affinity = ignite(0).affinity(null);
 
             if (nodeType == NEAR_NODE) {
                 if (!affinity.isPrimaryOrBackup(grid(0).localNode(), key))

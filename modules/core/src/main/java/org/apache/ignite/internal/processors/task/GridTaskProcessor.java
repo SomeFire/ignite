@@ -140,7 +140,7 @@ public class GridTaskProcessor extends GridProcessorAdapter {
     }
 
     /** {@inheritDoc} */
-    @Override public void start(boolean activeOnStart) {
+    @Override public void start() {
         ctx.event().addLocalEventListener(discoLsnr, EVT_NODE_FAILED, EVT_NODE_LEFT);
 
         ctx.io().addMessageListener(TOPIC_JOB_SIBLINGS, new JobSiblingsMessageListener());
@@ -152,7 +152,7 @@ public class GridTaskProcessor extends GridProcessorAdapter {
     }
 
     /** {@inheritDoc} */
-    @Override public void onKernalStart(boolean activeOnStart) throws IgniteCheckedException {
+    @Override public void onKernalStart() throws IgniteCheckedException {
         tasksMetaCache = ctx.security().enabled() && !ctx.isDaemon() ?
             ctx.cache().<GridTaskNameHashKey, String>utilityCache() : null;
 
@@ -359,19 +359,6 @@ public class GridTaskProcessor extends GridProcessorAdapter {
      * @param <R> Task return value type.
      */
     public <T, R> ComputeTaskInternalFuture<R> execute(Class<? extends ComputeTask<T, R>> taskCls, @Nullable T arg) {
-        return execute(taskCls, arg, null);
-    }
-
-    /**
-     * @param taskCls Task class.
-     * @param arg Optional execution argument.
-     * @param execName Name of the custom executor.
-     * @return Task future.
-     * @param <T> Task argument type.
-     * @param <R> Task return value type.
-     */
-    public <T, R> ComputeTaskInternalFuture<R> execute(Class<? extends ComputeTask<T, R>> taskCls, @Nullable T arg,
-        @Nullable String execName) {
         assert taskCls != null;
 
         lock.readLock();
@@ -380,8 +367,7 @@ public class GridTaskProcessor extends GridProcessorAdapter {
             if (stopping)
                 throw new IllegalStateException("Failed to execute task due to grid shutdown: " + taskCls);
 
-            return startTask(null, taskCls, null, IgniteUuid.fromUuid(ctx.localNodeId()), arg,
-                false, execName);
+            return startTask(null, taskCls, null, IgniteUuid.fromUuid(ctx.localNodeId()), arg, false);
         }
         finally {
             lock.readUnlock();
@@ -396,19 +382,7 @@ public class GridTaskProcessor extends GridProcessorAdapter {
      * @param <R> Task return value type.
      */
     public <T, R> ComputeTaskInternalFuture<R> execute(ComputeTask<T, R> task, @Nullable T arg) {
-        return execute(task, arg, false, null);
-    }
-
-    /**
-     * @param task Actual task.
-     * @param arg Optional task argument.
-     * @param execName Name of the custom executor.
-     * @return Task future.
-     * @param <T> Task argument type.
-     * @param <R> Task return value type.
-     */
-    public <T, R> ComputeTaskInternalFuture<R> execute(ComputeTask<T, R> task, @Nullable T arg, String execName) {
-        return execute(task, arg, false, execName);
+        return execute(task, arg, false);
     }
 
     /**
@@ -420,28 +394,13 @@ public class GridTaskProcessor extends GridProcessorAdapter {
      * @param <R> Task return value type.
      */
     public <T, R> ComputeTaskInternalFuture<R> execute(ComputeTask<T, R> task, @Nullable T arg, boolean sys) {
-        return execute(task, arg, sys, null);
-    }
-
-    /**
-     * @param task Actual task.
-     * @param arg Optional task argument.
-     * @param sys If {@code true}, then system pool will be used.
-     * @param execName Name of the custom executor.
-     * @return Task future.
-     * @param <T> Task argument type.
-     * @param <R> Task return value type.
-     */
-    public <T, R> ComputeTaskInternalFuture<R> execute(ComputeTask<T, R> task, @Nullable T arg, boolean sys,
-        @Nullable String execName) {
         lock.readLock();
 
         try {
             if (stopping)
                 throw new IllegalStateException("Failed to execute task due to grid shutdown: " + task);
 
-            return startTask(null, null, task, IgniteUuid.fromUuid(ctx.localNodeId()), arg,
-                sys, execName);
+            return startTask(null, null, task, IgniteUuid.fromUuid(ctx.localNodeId()), arg, sys);
         }
         finally {
             lock.readUnlock();
@@ -462,7 +421,7 @@ public class GridTaskProcessor extends GridProcessorAdapter {
 
         try {
             return taskMetaCache().localPeek(
-                new GridTaskNameHashKey(taskNameHash), null, null);
+                new GridTaskNameHashKey(taskNameHash), CachePeekModes.ONHEAP_ONLY, null);
         }
         catch (IgniteCheckedException e) {
             throw new IgniteException(e);
@@ -477,18 +436,6 @@ public class GridTaskProcessor extends GridProcessorAdapter {
      * @param <R> Task return value type.
      */
     public <T, R> ComputeTaskInternalFuture<R> execute(String taskName, @Nullable T arg) {
-        return execute(taskName, arg, null);
-    }
-
-    /**
-     * @param taskName Task name.
-     * @param arg Optional execution argument.
-     * @param execName Name of the custom executor.
-     * @return Task future.
-     * @param <T> Task argument type.
-     * @param <R> Task return value type.
-     */
-    public <T, R> ComputeTaskInternalFuture<R> execute(String taskName, @Nullable T arg, @Nullable String execName) {
         assert taskName != null;
 
         lock.readLock();
@@ -497,8 +444,7 @@ public class GridTaskProcessor extends GridProcessorAdapter {
             if (stopping)
                 throw new IllegalStateException("Failed to execute task due to grid shutdown: " + taskName);
 
-            return startTask(taskName, null, null, IgniteUuid.fromUuid(ctx.localNodeId()), arg,
-                false, execName);
+            return startTask(taskName, null, null, IgniteUuid.fromUuid(ctx.localNodeId()), arg, false);
         }
         finally {
             lock.readUnlock();
@@ -512,7 +458,6 @@ public class GridTaskProcessor extends GridProcessorAdapter {
      * @param sesId Task session ID.
      * @param arg Optional task argument.
      * @param sys If {@code true}, then system pool will be used.
-     * @param execName Name of the custom executor.
      * @return Task future.
      */
     @SuppressWarnings("unchecked")
@@ -522,8 +467,7 @@ public class GridTaskProcessor extends GridProcessorAdapter {
         @Nullable ComputeTask<T, R> task,
         IgniteUuid sesId,
         @Nullable T arg,
-        boolean sys,
-        @Nullable String execName) {
+        boolean sys) {
         assert sesId != null;
 
         String taskClsName;
@@ -685,8 +629,7 @@ public class GridTaskProcessor extends GridProcessorAdapter {
             Collections.emptyMap(),
             fullSup,
             internal,
-            subjId,
-            execName);
+            subjId);
 
         ComputeTaskInternalFuture<R> fut = new ComputeTaskInternalFuture<>(ses, ctx);
 

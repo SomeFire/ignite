@@ -182,12 +182,6 @@ public class IgfsMarshaller {
                     break;
                 }
 
-                case MODE_RESOLVER: {
-                    out.write(hdr);
-
-                    break;
-                }
-
                 default: {
                     assert false : "Invalid command: " + msg.command();
 
@@ -301,12 +295,6 @@ public class IgfsMarshaller {
                     res.readExternal(in);
 
                     msg = res;
-
-                    break;
-                }
-
-                case MODE_RESOLVER: {
-                    msg = new IgfsModeResolverRequest();
 
                     break;
                 }

@@ -147,9 +147,9 @@ public class BinaryMetadataUpdatesFlowTest extends GridCommonAbstractTest {
                 }
             };
 
-            cfg.setDiscoverySpi(discoSpi);
+            discoSpi.setHeartbeatFrequency(1000);
 
-            cfg.setMetricsUpdateFrequency(1000);
+            cfg.setDiscoverySpi(discoSpi);
         }
 
         ((TcpDiscoverySpi)cfg.getDiscoverySpi()).setIpFinder(ipFinder);
@@ -158,7 +158,7 @@ public class BinaryMetadataUpdatesFlowTest extends GridCommonAbstractTest {
 
         cfg.setClientMode(clientMode);
 
-        CacheConfiguration ccfg = new CacheConfiguration(DEFAULT_CACHE_NAME);
+        CacheConfiguration ccfg = new CacheConfiguration();
 
         ccfg.setCacheMode(CacheMode.REPLICATED);
 
@@ -221,14 +221,14 @@ public class BinaryMetadataUpdatesFlowTest extends GridCommonAbstractTest {
 
             IgniteEx client = startGrid(idx);
 
-            client.cache(DEFAULT_CACHE_NAME).withKeepBinary().query(qry);
+            client.cache(null).withKeepBinary().query(qry);
         }
         else {
             applyDiscoveryHook = false;
 
             IgniteEx client = startGrid(idx);
 
-            client.cache(DEFAULT_CACHE_NAME).withKeepBinary().query(qry);
+            client.cache(null).withKeepBinary().query(qry);
         }
     }
 
@@ -292,7 +292,7 @@ public class BinaryMetadataUpdatesFlowTest extends GridCommonAbstractTest {
 
         IgniteEx ignite0 = grid(0);
 
-        IgniteCache<Object, Object> cache0 = ignite0.cache(DEFAULT_CACHE_NAME);
+        IgniteCache<Object, Object> cache0 = ignite0.cache(null);
 
         int cacheEntries = cache0.size(CachePeekMode.PRIMARY);
 
@@ -564,7 +564,7 @@ public class BinaryMetadataUpdatesFlowTest extends GridCommonAbstractTest {
         @Override public Object call() throws Exception {
             START_LATCH.await();
 
-            IgniteCache<Object, Object> cache = ignite.cache(DEFAULT_CACHE_NAME).withKeepBinary();
+            IgniteCache<Object, Object> cache = ignite.cache(null).withKeepBinary();
 
             while (!updatesQueue.isEmpty()) {
                 BinaryUpdateDescription desc = updatesQueue.poll();

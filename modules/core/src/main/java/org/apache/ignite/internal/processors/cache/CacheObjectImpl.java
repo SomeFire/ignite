@@ -64,16 +64,8 @@ public class CacheObjectImpl extends CacheObjectAdapter {
                     valBytes = ctx.processor().marshal(ctx, val);
                 }
 
-                ClassLoader clsLdr;
-
-                if (val != null)
-                    clsLdr = val.getClass().getClassLoader();
-                else if (ctx.kernalContext().config().isPeerClassLoadingEnabled())
-                    clsLdr = ctx.kernalContext().cache().context().deploy().globalLoader();
-                else
-                    clsLdr = null;
-
-                return (T)ctx.processor().unmarshal(ctx, valBytes, clsLdr);
+                return (T)ctx.processor().unmarshal(ctx, valBytes,
+                    val == null ? ctx.kernalContext().config().getClassLoader() : val.getClass().getClassLoader());
             }
 
             if (val != null)
@@ -81,9 +73,7 @@ public class CacheObjectImpl extends CacheObjectAdapter {
 
             assert valBytes != null;
 
-            Object val = ctx.processor().unmarshal(ctx, valBytes,
-                ctx.kernalContext().config().isPeerClassLoadingEnabled() ?
-                    ctx.kernalContext().cache().context().deploy().globalLoader() : null);
+            Object val = ctx.processor().unmarshal(ctx, valBytes, ctx.kernalContext().config().getClassLoader());
 
             if (ctx.storeValue())
                 this.val = val;

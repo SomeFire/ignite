@@ -17,24 +17,24 @@
 
 package org.apache.ignite.internal.visor.cache;
 
-import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
+import java.io.Serializable;
 import org.apache.ignite.cache.CacheRebalanceMode;
 import org.apache.ignite.configuration.CacheConfiguration;
+import org.apache.ignite.internal.LessNamingBean;
 import org.apache.ignite.internal.util.typedef.internal.S;
-import org.apache.ignite.internal.util.typedef.internal.U;
-import org.apache.ignite.internal.visor.VisorDataTransferObject;
 
 /**
  * Data transfer object for cache rebalance configuration properties.
  */
-public class VisorCacheRebalanceConfiguration extends VisorDataTransferObject {
+public class VisorCacheRebalanceConfiguration implements Serializable, LessNamingBean {
     /** */
     private static final long serialVersionUID = 0L;
 
     /** Cache rebalance mode. */
     private CacheRebalanceMode mode;
+
+    /** Rebalance thread pool size. */
+    private int threadPoolSize;
 
     /** Cache rebalance batch size. */
     private int batchSize;
@@ -48,102 +48,63 @@ public class VisorCacheRebalanceConfiguration extends VisorDataTransferObject {
     /** Rebalance timeout. */
     private long timeout;
 
-    /** Rebalance batches prefetch count. */
-    private long batchesPrefetchCnt;
-
-    /** Cache rebalance order. */
-    private int rebalanceOrder;
-
     /**
-     * Default constructor.
-     */
-    public VisorCacheRebalanceConfiguration() {
-        // No-op.
-    }
-
-    /**
-     * Create data transfer object for rebalance configuration properties.
      * @param ccfg Cache configuration.
+     * @return Data transfer object for rebalance configuration properties.
      */
-    public VisorCacheRebalanceConfiguration(CacheConfiguration ccfg) {
-        mode = ccfg.getRebalanceMode();
-        batchSize = ccfg.getRebalanceBatchSize();
-        partitionedDelay = ccfg.getRebalanceDelay();
-        throttle = ccfg.getRebalanceThrottle();
-        timeout = ccfg.getRebalanceTimeout();
-        batchesPrefetchCnt = ccfg.getRebalanceBatchesPrefetchCount();
-        rebalanceOrder = ccfg.getRebalanceOrder();
+    public static VisorCacheRebalanceConfiguration from(CacheConfiguration ccfg) {
+        VisorCacheRebalanceConfiguration cfg = new VisorCacheRebalanceConfiguration();
+
+        cfg.mode = ccfg.getRebalanceMode();
+        cfg.batchSize = ccfg.getRebalanceBatchSize();
+        cfg.threadPoolSize = ccfg.getRebalanceThreadPoolSize();
+        cfg.partitionedDelay = ccfg.getRebalanceDelay();
+        cfg.throttle = ccfg.getRebalanceThrottle();
+        cfg.timeout = ccfg.getRebalanceTimeout();
+
+        return cfg;
     }
 
     /**
      * @return Cache rebalance mode.
      */
-    public CacheRebalanceMode getMode() {
+    public CacheRebalanceMode mode() {
         return mode;
+    }
+
+    /**
+     * @return Rebalance thread pool size.
+     */
+    public int threadPoolSize() {
+        return threadPoolSize;
     }
 
     /**
      * @return Cache rebalance batch size.
      */
-    public int getBatchSize() {
+    public int batchSize() {
         return batchSize;
     }
 
     /**
      * @return Rebalance partitioned delay.
      */
-    public long getPartitionedDelay() {
+    public long partitionedDelay() {
         return partitionedDelay;
     }
 
     /**
      * @return Time in milliseconds to wait between rebalance messages.
      */
-    public long getThrottle() {
+    public long throttle() {
         return throttle;
     }
 
     /**
      * @return Rebalance timeout.
      */
-    public long getTimeout() {
+    public long timeout() {
         return timeout;
-    }
-
-    /**
-     * @return Batches count
-     */
-    public long getBatchesPrefetchCnt() {
-        return batchesPrefetchCnt;
-    }
-
-    /**
-     * @return Cache rebalance order.
-     */
-    public int getRebalanceOrder() {
-        return rebalanceOrder;
-    }
-
-    /** {@inheritDoc} */
-    @Override protected void writeExternalData(ObjectOutput out) throws IOException {
-        U.writeEnum(out, mode);
-        out.writeInt(batchSize);
-        out.writeLong(partitionedDelay);
-        out.writeLong(throttle);
-        out.writeLong(timeout);
-        out.writeLong(batchesPrefetchCnt);
-        out.writeInt(rebalanceOrder);
-    }
-
-    /** {@inheritDoc} */
-    @Override protected void readExternalData(byte protoVer, ObjectInput in) throws IOException, ClassNotFoundException {
-        mode = CacheRebalanceMode.fromOrdinal(in.readByte());
-        batchSize = in.readInt();
-        partitionedDelay = in.readLong();
-        throttle = in.readLong();
-        timeout = in.readLong();
-        batchesPrefetchCnt = in.readLong();
-        rebalanceOrder = in.readInt();
     }
 
     /** {@inheritDoc} */

@@ -25,6 +25,7 @@
          resolve: {
              user: () => user
          },
+         placement: 'center',
          controller,
          controllerAs: 'ctrl'
      });

@@ -39,9 +39,11 @@ public class IgniteCacheInterceptorSelfTestSuite extends TestSuite {
         suite.addTestSuite(GridCacheInterceptorAtomicSelfTest.class);
         suite.addTestSuite(GridCacheInterceptorAtomicNearEnabledSelfTest.class);
         suite.addTestSuite(GridCacheInterceptorAtomicWithStoreSelfTest.class);
+        suite.addTestSuite(GridCacheInterceptorAtomicPrimaryWriteOrderSelfTest.class);
 
         suite.addTestSuite(GridCacheInterceptorAtomicReplicatedSelfTest.class);
         suite.addTestSuite(GridCacheInterceptorAtomicWithStoreReplicatedSelfTest.class);
+        suite.addTestSuite(GridCacheInterceptorAtomicReplicatedPrimaryWriteOrderSelfTest.class);
 
         suite.addTestSuite(GridCacheInterceptorSelfTest.class);
         suite.addTestSuite(GridCacheInterceptorNearEnabledSelfTest.class);
@@ -49,17 +51,17 @@ public class IgniteCacheInterceptorSelfTestSuite extends TestSuite {
         suite.addTestSuite(GridCacheInterceptorReplicatedSelfTest.class);
         suite.addTestSuite(GridCacheInterceptorReplicatedWithStoreSelfTest.class);
 
-// TODO GG-11141.
-//        suite.addTestSuite(GridCacheOnCopyFlagTxPartitionedSelfTest.class);
-//        suite.addTestSuite(GridCacheOnCopyFlagReplicatedSelfTest.class);
-//        suite.addTestSuite(GridCacheOnCopyFlagLocalSelfTest.class);
-//        suite.addTestSuite(GridCacheOnCopyFlagAtomicSelfTest.class);
-
+        suite.addTestSuite(GridCacheOnCopyFlagTxPartitionedSelfTest.class);
+        suite.addTestSuite(GridCacheOnCopyFlagReplicatedSelfTest.class);
+        suite.addTestSuite(GridCacheOnCopyFlagLocalSelfTest.class);
+        suite.addTestSuite(GridCacheOnCopyFlagAtomicSelfTest.class);
         suite.addTestSuite(CacheInterceptorPartitionCounterRandomOperationsTest.class);
         suite.addTestSuite(CacheInterceptorPartitionCounterLocalSanityTest.class);
 
         suite.addTestSuite(GridCacheInterceptorAtomicRebalanceTest.class);
         suite.addTestSuite(GridCacheInterceptorTransactionalRebalanceTest.class);
+        suite.addTestSuite(GridCacheInterceptorAtomicOffheapRebalanceTest.class);
+        suite.addTestSuite(GridCacheInterceptorTransactionalOffheapRebalanceTest.class);
 
         return suite;
     }

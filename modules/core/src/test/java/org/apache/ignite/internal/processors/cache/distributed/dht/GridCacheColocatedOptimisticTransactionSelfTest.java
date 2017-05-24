@@ -25,6 +25,7 @@ import org.apache.ignite.internal.util.typedef.F;
 import org.apache.ignite.spi.discovery.tcp.TcpDiscoverySpi;
 import org.apache.ignite.spi.discovery.tcp.ipfinder.TcpDiscoveryIpFinder;
 import org.apache.ignite.spi.discovery.tcp.ipfinder.vm.TcpDiscoveryVmIpFinder;
+import org.apache.ignite.spi.swapspace.file.FileSwapSpaceSpi;
 import org.apache.ignite.testframework.junits.common.GridCommonAbstractTest;
 import org.apache.ignite.transactions.Transaction;
 
@@ -69,7 +70,7 @@ public class GridCacheColocatedOptimisticTransactionSelfTest extends GridCommonA
 
         disco.setIpFinder(IP_FINDER);
 
-        CacheConfiguration cc = new CacheConfiguration(DEFAULT_CACHE_NAME);
+        CacheConfiguration cc = new CacheConfiguration();
 
         cc.setName(CACHE);
         cc.setCacheMode(PARTITIONED);
@@ -77,9 +78,12 @@ public class GridCacheColocatedOptimisticTransactionSelfTest extends GridCommonA
         cc.setNearConfiguration(null);
         cc.setBackups(1);
         cc.setWriteSynchronizationMode(FULL_SYNC);
+        cc.setSwapEnabled(true);
+        cc.setEvictSynchronized(false);
 
         c.setDiscoverySpi(disco);
         c.setCacheConfiguration(cc);
+        c.setSwapSpaceSpi(new FileSwapSpaceSpi());
 
         return c;
     }

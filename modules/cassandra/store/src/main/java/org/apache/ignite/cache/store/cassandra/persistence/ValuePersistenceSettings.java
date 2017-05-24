@@ -22,6 +22,7 @@ import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 
+import org.apache.ignite.cache.query.annotations.QuerySqlField;
 import org.apache.ignite.cache.store.cassandra.common.PropertyMappingHelper;
 import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
@@ -84,12 +85,13 @@ public class ValuePersistenceSettings extends PersistenceSettings {
         List<PojoField> list = new LinkedList<>();
 
         if (fieldNodes == null || fieldNodes.getLength() == 0) {
-            List<PropertyDescriptor> primitivePropDescriptors =
-                PropertyMappingHelper.getPojoPropertyDescriptors(getJavaClass(), true);
-
+            List<PropertyDescriptor> primitivePropDescriptors = PropertyMappingHelper.getPojoPropertyDescriptors(getJavaClass(), true);
             for (PropertyDescriptor desc : primitivePropDescriptors) {
-                // Skip POJO field if it's read-only
-                if (desc.getWriteMethod() != null)
+                boolean valid = desc.getWriteMethod() != null ||
+                        desc.getReadMethod().getAnnotation(QuerySqlField.class) != null;
+
+                // Skip POJO field if it's read-only and is not annotated with @QuerySqlField.
+                if (valid)
                     list.add(new PojoValueField(desc));
             }
 

@@ -858,44 +858,16 @@ namespace Apache.Ignite.Core.Impl.Binary
                 WriteNullField();
             else
             {
-                var type = val.GetType();
+                var desc = _marsh.GetDescriptor(val.GetType());
 
-                if (!type.IsEnum)
-                {
-                    throw new BinaryObjectException("Type is not an enum: " + type);
-                }
+                var metaHnd = _marsh.GetBinaryTypeHandler(desc);
 
-                var handler = BinarySystemHandlers.GetWriteHandler(type);
+                _stream.WriteByte(BinaryUtils.TypeEnum);
 
-                if (handler != null)
-                {
-                    // All enums except long/ulong.
-                    handler.Write(this, val);
-                }
-                else
-                {
-                    throw new BinaryObjectException(string.Format("Enum '{0}' has unsupported underlying type '{1}'. " +
-                                                                  "Use WriteObject instead of WriteEnum.",
-                        type, Enum.GetUnderlyingType(type)));
-                }
+                BinaryUtils.WriteEnum(this, val);
+
+                SaveMetadata(desc, metaHnd.OnObjectWriteFinished());
             }
-        }
-
-        /// <summary>
-        /// Write enum value.
-        /// </summary>
-        /// <param name="val">Enum value.</param>
-        /// <param name="type">Enum type.</param>
-        internal void WriteEnum(int val, Type type)
-        {
-            var desc = _marsh.GetDescriptor(type);
-
-            _stream.WriteByte(BinaryUtils.TypeEnum);
-            _stream.WriteInt(desc.TypeId);
-            _stream.WriteInt(val);
-
-            var metaHnd = _marsh.GetBinaryTypeHandler(desc);
-            SaveMetadata(desc, metaHnd.OnObjectWriteFinished());
         }
 
         /// <summary>
@@ -1148,6 +1120,14 @@ namespace Apache.Ignite.Core.Impl.Binary
                 return;
             }
 
+            // Handle enums.
+            if (type.IsEnum)
+            {
+                WriteEnum(obj);
+
+                return;
+            }
+
             // Handle special case for builder.
             if (WriteBuilderSpecials(obj))
                 return;
@@ -1238,8 +1218,10 @@ namespace Apache.Ignite.Core.Impl.Binary
 
                 var len = _stream.Position - pos;
 
-                    var hashCode = BinaryArrayEqualityComparer.GetHashCode(Stream, pos + BinaryObjectHeader.Size,
-                            dataEnd - pos - BinaryObjectHeader.Size);
+                    var comparer = BinaryUtils.GetEqualityComparer(desc);
+
+                    var hashCode = comparer.GetHashCode(Stream, pos + BinaryObjectHeader.Size,
+                            dataEnd - pos - BinaryObjectHeader.Size, _schema, schemaIdx, _marsh, desc);
 
                     var header = new BinaryObjectHeader(desc.IsRegistered ? desc.TypeId : BinaryUtils.TypeUnregistered,
                         hashCode, len, schemaId, schemaOffset, flags);

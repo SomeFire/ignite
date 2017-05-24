@@ -151,6 +151,9 @@ public class GridNearTxLocal extends GridDhtTxLocalAdapter implements AutoClosea
     @GridToStringExclude
     private volatile GridNearTxFinishFuture rollbackFut;
 
+    /** Entries to lock on next step of prepare stage. */
+    private Collection<IgniteTxEntry> optimisticLockEntries = Collections.emptyList();
+
     /** True if transaction contains near cache entries mapped to local node. */
     private boolean nearLocallyMapped;
 
@@ -546,7 +549,6 @@ public class GridNearTxLocal extends GridDhtTxLocalAdapter implements AutoClosea
                 opCtx != null && opCtx.skipStore(),
                 /*singleRmv*/false,
                 keepBinary,
-                opCtx != null && opCtx.recovery(),
                 dataCenterId);
 
             if (pessimistic()) {
@@ -722,7 +724,6 @@ public class GridNearTxLocal extends GridDhtTxLocalAdapter implements AutoClosea
                 opCtx != null && opCtx.skipStore(),
                 false,
                 keepBinary,
-                opCtx != null && opCtx.recovery(),
                 dataCenterId);
 
             if (pessimistic()) {
@@ -839,10 +840,9 @@ public class GridNearTxLocal extends GridDhtTxLocalAdapter implements AutoClosea
         boolean skipStore,
         final boolean singleRmv,
         boolean keepBinary,
-        boolean recovery,
         Byte dataCenterId) {
         try {
-            addActiveCache(cacheCtx, recovery);
+            addActiveCache(cacheCtx);
 
             final boolean hasFilters = !F.isEmptyOrNulls(filter) && !F.isAlwaysTrue(filter);
             final boolean needVal = singleRmv || retval || hasFilters;
@@ -873,8 +873,7 @@ public class GridNearTxLocal extends GridDhtTxLocalAdapter implements AutoClosea
                 hasFilters,
                 needVal,
                 needReadVer,
-                keepBinary,
-                recovery);
+                keepBinary);
 
             if (loadMissed) {
                 AffinityTopologyVersion topVer = topologyVersionSnapshot();
@@ -893,7 +892,6 @@ public class GridNearTxLocal extends GridDhtTxLocalAdapter implements AutoClosea
                     /*read through*/(entryProcessor != null || cacheCtx.config().isLoadPreviousValue()) && !skipStore,
                     retval,
                     keepBinary,
-                    recovery,
                     expiryPlc);
             }
 
@@ -944,13 +942,12 @@ public class GridNearTxLocal extends GridDhtTxLocalAdapter implements AutoClosea
         boolean skipStore,
         final boolean singleRmv,
         final boolean keepBinary,
-        final boolean recovery,
         Byte dataCenterId
     ) {
         assert retval || invokeMap == null;
 
         try {
-            addActiveCache(cacheCtx, recovery);
+            addActiveCache(cacheCtx);
         }
         catch (IgniteCheckedException e) {
             return new GridFinishedFuture<>(e);
@@ -1038,8 +1035,7 @@ public class GridNearTxLocal extends GridDhtTxLocalAdapter implements AutoClosea
                     hasFilters,
                     needVal,
                     needReadVer,
-                    keepBinary,
-                    recovery);
+                    keepBinary);
 
                 if (loadMissed) {
                     if (missedForLoad == null)
@@ -1066,7 +1062,6 @@ public class GridNearTxLocal extends GridDhtTxLocalAdapter implements AutoClosea
                     /*read through*/(invokeMap != null || cacheCtx.config().isLoadPreviousValue()) && !skipStore,
                     retval,
                     keepBinary,
-                    recovery,
                     expiryPlc);
             }
 
@@ -1120,8 +1115,7 @@ public class GridNearTxLocal extends GridDhtTxLocalAdapter implements AutoClosea
         boolean hasFilters,
         final boolean needVal,
         boolean needReadVer,
-        boolean keepBinary,
-        boolean recovery
+        boolean keepBinary
     ) throws IgniteCheckedException {
         boolean loadMissed = false;
 
@@ -1160,6 +1154,8 @@ public class GridNearTxLocal extends GridDhtTxLocalAdapter implements AutoClosea
                                     entry.innerGetVersioned(
                                         null,
                                         this,
+                                        /*swap*/false,
+                                        /*unmarshal*/retval || needVal,
                                         /*metrics*/retval,
                                         /*events*/retval,
                                         CU.subjectId(this, cctx),
@@ -1178,9 +1174,11 @@ public class GridNearTxLocal extends GridDhtTxLocalAdapter implements AutoClosea
                                 old = entry.innerGet(
                                     null,
                                     this,
-                                    /*read through*/false,
+                                    /*swap*/false,
+                                    /*read-through*/false,
                                     /*metrics*/retval,
                                     /*events*/retval,
+                                    /*temporary*/false,
                                     CU.subjectId(this, cctx),
                                     entryProcessor,
                                     resolveTaskName(),
@@ -1195,7 +1193,7 @@ public class GridNearTxLocal extends GridDhtTxLocalAdapter implements AutoClosea
                         }
                     }
                     else
-                        old = entry.rawGet();
+                        old = retval ? entry.rawGetOrUnmarshal(false) : entry.rawGet();
 
                     final GridCacheOperation op = lockOnly ? NOOP : rmv ? DELETE :
                         entryProcessor != null ? TRANSFORM : old != null ? UPDATE : CREATE;
@@ -1263,6 +1261,9 @@ public class GridNearTxLocal extends GridDhtTxLocalAdapter implements AutoClosea
                         drVer,
                         skipStore,
                         keepBinary);
+
+                    if (!implicit() && readCommitted() && !cacheCtx.offheapTiered())
+                        cacheCtx.evicts().touch(entry, topologyVersion());
 
                     if (enlisted != null)
                         enlisted.add(cacheKey);
@@ -1518,7 +1519,6 @@ public class GridNearTxLocal extends GridDhtTxLocalAdapter implements AutoClosea
             opCtx != null && opCtx.skipStore(),
             singleRmv,
             keepBinary,
-            opCtx != null && opCtx.recovery(),
             dataCenterId
         );
 
@@ -1655,7 +1655,6 @@ public class GridNearTxLocal extends GridDhtTxLocalAdapter implements AutoClosea
         final boolean skipVals,
         final boolean keepCacheObjects,
         final boolean skipStore,
-        final boolean recovery,
         final boolean needVer) {
         if (F.isEmpty(keys))
             return new GridFinishedFuture<>(Collections.<K, V>emptyMap());
@@ -1688,7 +1687,6 @@ public class GridNearTxLocal extends GridDhtTxLocalAdapter implements AutoClosea
                 skipVals,
                 keepCacheObjects,
                 skipStore,
-                recovery,
                 needVer);
 
             if (single && missed.isEmpty())
@@ -1758,6 +1756,8 @@ public class GridNearTxLocal extends GridDhtTxLocalAdapter implements AutoClosea
                                         getRes = cached.innerGetVersioned(
                                             null,
                                             GridNearTxLocal.this,
+                                            /*swap*/cacheCtx.isSwapOrOffheapEnabled(),
+                                            /*unmarshal*/true,
                                             /*update-metrics*/true,
                                             /*event*/!skipVals,
                                             CU.subjectId(GridNearTxLocal.this, cctx),
@@ -1772,13 +1772,15 @@ public class GridNearTxLocal extends GridDhtTxLocalAdapter implements AutoClosea
                                             readVer = getRes.version();
                                         }
                                     }
-                                    else {
+                                    else{
                                         val = cached.innerGet(
                                             null,
                                             GridNearTxLocal.this,
-                                            /*read through*/false,
+                                            cacheCtx.isSwapOrOffheapEnabled(),
+                                            /*read-through*/false,
                                             /*metrics*/true,
                                             /*events*/!skipVals,
+                                            /*temporary*/false,
                                             CU.subjectId(GridNearTxLocal.this, cctx),
                                             transformClo,
                                             resolveTaskName(),
@@ -1842,7 +1844,6 @@ public class GridNearTxLocal extends GridDhtTxLocalAdapter implements AutoClosea
                                 skipVals,
                                 keepCacheObjects,
                                 skipStore,
-                                recovery,
                                 needVer,
                                 expiryPlc0);
                         }
@@ -1894,9 +1895,8 @@ public class GridNearTxLocal extends GridDhtTxLocalAdapter implements AutoClosea
                         for (Iterator<KeyCacheObject> it = missed.keySet().iterator(); it.hasNext(); ) {
                             KeyCacheObject cacheKey = it.next();
 
-                            K keyVal = (K)(keepCacheObjects ? cacheKey
-                                : cacheCtx.cacheObjectContext()
-                                .unwrapBinaryIfNeeded(cacheKey, !deserializeBinary, false));
+                            K keyVal =
+                                (K)(keepCacheObjects ? cacheKey : cacheKey.value(cacheCtx.cacheObjectContext(), false));
 
                             if (retMap.containsKey(keyVal))
                                 it.remove();
@@ -1918,7 +1918,6 @@ public class GridNearTxLocal extends GridDhtTxLocalAdapter implements AutoClosea
                         skipVals,
                         keepCacheObjects,
                         skipStore,
-                        recovery,
                         needVer,
                         expiryPlc);
                 }
@@ -1960,7 +1959,6 @@ public class GridNearTxLocal extends GridDhtTxLocalAdapter implements AutoClosea
         boolean skipVals,
         boolean keepCacheObjects,
         boolean skipStore,
-        boolean recovery,
         final boolean needVer
     ) throws IgniteCheckedException {
         assert !F.isEmpty(keys);
@@ -1981,7 +1979,7 @@ public class GridNearTxLocal extends GridDhtTxLocalAdapter implements AutoClosea
         // outside of this loop.
         for (KeyCacheObject key : keys) {
             if ((pessimistic() || needReadVer) && !readCommitted() && !skipVals)
-                addActiveCache(cacheCtx, recovery);
+                addActiveCache(cacheCtx);
 
             IgniteTxKey txKey = cacheCtx.txKey(key);
 
@@ -2052,6 +2050,8 @@ public class GridNearTxLocal extends GridDhtTxLocalAdapter implements AutoClosea
                                 getRes = txEntry.cached().innerGetVersioned(
                                     null,
                                     this,
+                                    /*swap*/true,
+                                    /*unmarshal*/true,
                                     /*update-metrics*/true,
                                     /*event*/!skipVals,
                                     CU.subjectId(this, cctx),
@@ -2070,9 +2070,11 @@ public class GridNearTxLocal extends GridDhtTxLocalAdapter implements AutoClosea
                                 val = txEntry.cached().innerGet(
                                     null,
                                     this,
+                                    /*swap*/true,
                                     /*read-through*/false,
                                     /*metrics*/true,
                                     /*event*/!skipVals,
+                                    /*temporary*/false,
                                     CU.subjectId(this, cctx),
                                     transformClo,
                                     resolveTaskName(),
@@ -2138,6 +2140,8 @@ public class GridNearTxLocal extends GridDhtTxLocalAdapter implements AutoClosea
                                     entry.innerGetVersioned(
                                         null,
                                         this,
+                                        /*swap*/true,
+                                        /*unmarshal*/true,
                                         /*metrics*/true,
                                         /*event*/true,
                                         CU.subjectId(this, cctx),
@@ -2156,9 +2160,11 @@ public class GridNearTxLocal extends GridDhtTxLocalAdapter implements AutoClosea
                                 val = entry.innerGet(
                                     null,
                                     this,
+                                    /*swap*/true,
                                     /*read-through*/false,
                                     /*metrics*/true,
-                                    /*event*/!skipVals,
+                                    /*event*/true,
+                                    /*temporary*/false,
                                     CU.subjectId(this, cctx),
                                     null,
                                     resolveTaskName(),
@@ -2265,7 +2271,6 @@ public class GridNearTxLocal extends GridDhtTxLocalAdapter implements AutoClosea
         final boolean readThrough,
         final boolean retval,
         final boolean keepBinary,
-        final boolean recovery,
         final ExpiryPolicy expiryPlc) {
         GridInClosure3<KeyCacheObject, Object, GridCacheVersion> c =
             new GridInClosure3<KeyCacheObject, Object, GridCacheVersion>() {
@@ -2340,7 +2345,6 @@ public class GridNearTxLocal extends GridDhtTxLocalAdapter implements AutoClosea
             /*skipVals*/singleRmv,
             needReadVer,
             keepBinary,
-            recovery,
             expiryPlc,
             c);
     }
@@ -2422,9 +2426,14 @@ public class GridNearTxLocal extends GridDhtTxLocalAdapter implements AutoClosea
 
     /** {@inheritDoc} */
     @Override public Collection<IgniteTxEntry> optimisticLockEntries() {
-        assert false : "Should not be called";
+        return optimisticLockEntries;
+    }
 
-        throw new UnsupportedOperationException();
+    /**
+     * @param optimisticLockEntries Optimistic lock entries.
+     */
+    void optimisticLockEntries(Collection<IgniteTxEntry> optimisticLockEntries) {
+        this.optimisticLockEntries = optimisticLockEntries;
     }
 
     /**
@@ -2447,7 +2456,6 @@ public class GridNearTxLocal extends GridDhtTxLocalAdapter implements AutoClosea
         final boolean skipVals,
         final boolean needVer,
         boolean keepBinary,
-        boolean recovery,
         final ExpiryPolicy expiryPlc,
         final GridInClosure3<KeyCacheObject, Object, GridCacheVersion> c
     ) {
@@ -2461,7 +2469,6 @@ public class GridNearTxLocal extends GridDhtTxLocalAdapter implements AutoClosea
                 keys,
                 readThrough,
                 /*deserializeBinary*/false,
-                recovery,
                 expiryPlc0,
                 skipVals,
                 needVer).chain(new C1<IgniteInternalFuture<Map<Object, Object>>, Void>() {
@@ -2497,8 +2504,7 @@ public class GridNearTxLocal extends GridDhtTxLocalAdapter implements AutoClosea
                     skipVals,
                     /*can remap*/true,
                     needVer,
-                    /*keepCacheObject*/true,
-                    recovery
+                    /*keepCacheObject*/true
                 ).chain(new C1<IgniteInternalFuture<Object>, Void>() {
                     @Override public Void apply(IgniteInternalFuture<Object> f) {
                         try {
@@ -2525,7 +2531,6 @@ public class GridNearTxLocal extends GridDhtTxLocalAdapter implements AutoClosea
                     CU.subjectId(this, cctx),
                     resolveTaskName(),
                     /*deserializeBinary*/false,
-                    recovery,
                     expiryPlc0,
                     skipVals,
                     /*can remap*/true,
@@ -2558,9 +2563,8 @@ public class GridNearTxLocal extends GridDhtTxLocalAdapter implements AutoClosea
                 async,
                 keys,
                 skipVals,
-                needVer,
                 keepBinary,
-                recovery,
+                needVer,
                 expiryPlc,
                 c);
         }
@@ -2586,7 +2590,6 @@ public class GridNearTxLocal extends GridDhtTxLocalAdapter implements AutoClosea
         boolean skipVals,
         boolean needVer,
         boolean keepBinary,
-        boolean recovery,
         final ExpiryPolicy expiryPlc,
         final GridInClosure3<KeyCacheObject, Object, GridCacheVersion> c
     ) {
@@ -2620,6 +2623,8 @@ public class GridNearTxLocal extends GridDhtTxLocalAdapter implements AutoClosea
                         EntryGetResult res = entry.innerGetVersioned(
                             null,
                             this,
+                            /*readSwap*/true,
+                            /*unmarshal*/true,
                             /*update-metrics*/!skipVals,
                             /*event*/!skipVals,
                             CU.subjectId(this, cctx),
@@ -2666,8 +2671,6 @@ public class GridNearTxLocal extends GridDhtTxLocalAdapter implements AutoClosea
                                 GridCacheEntryEx entry = cacheCtx.cache().entryEx(key, topVer);
 
                                 try {
-                                    cacheCtx.shared().database().ensureFreeSpace(cacheCtx.memoryPolicy());
-
                                     EntryGetResult verVal = entry.versionedValue(cacheVal,
                                         ver,
                                         null,
@@ -2854,6 +2857,8 @@ public class GridNearTxLocal extends GridDhtTxLocalAdapter implements AutoClosea
                 if (m == null) {
                     mappings.put(m = new GridDistributedTxMapping(primary));
 
+                    m.near(map.near());
+
                     if (map.explicitLock())
                         m.markExplicitLock();
                 }
@@ -2878,6 +2883,8 @@ public class GridNearTxLocal extends GridDhtTxLocalAdapter implements AutoClosea
         GridDistributedTxMapping m = new GridDistributedTxMapping(n);
 
         mappings.put(m);
+
+        m.near(map.near());
 
         if (map.explicitLock())
             m.markExplicitLock();
@@ -2921,16 +2928,14 @@ public class GridNearTxLocal extends GridDhtTxLocalAdapter implements AutoClosea
         Collection<GridCacheVersion> committedVers,
         Collection<GridCacheVersion> rolledbackVers)
     {
-        assert mapping.hasNearCacheEntries() : mapping;
-
         // Process writes, then reads.
         for (IgniteTxEntry txEntry : mapping.entries()) {
-            if (CU.WRITE_FILTER_NEAR.apply(txEntry))
+            if (CU.writes().apply(txEntry))
                 readyNearLock(txEntry, mapping.dhtVersion(), pendingVers, committedVers, rolledbackVers);
         }
 
         for (IgniteTxEntry txEntry : mapping.entries()) {
-            if (CU.READ_FILTER_NEAR.apply(txEntry))
+            if (CU.reads().apply(txEntry))
                 readyNearLock(txEntry, mapping.dhtVersion(), pendingVers, committedVers, rolledbackVers);
         }
     }
@@ -2942,7 +2947,7 @@ public class GridNearTxLocal extends GridDhtTxLocalAdapter implements AutoClosea
      * @param committedVers Committed versions.
      * @param rolledbackVers Rolled back versions.
      */
-    private void readyNearLock(IgniteTxEntry txEntry,
+    void readyNearLock(IgniteTxEntry txEntry,
         GridCacheVersion dhtVer,
         Collection<GridCacheVersion> pendingVers,
         Collection<GridCacheVersion> committedVers,
@@ -3323,7 +3328,11 @@ public class GridNearTxLocal extends GridDhtTxLocalAdapter implements AutoClosea
             needReturnValue() && implicit());
 
         try {
-            userPrepare((serializable() && optimistic()) ? F.concat(false, writes, reads) : writes);
+            // At this point all the entries passed in must be enlisted in transaction because this is an
+            // optimistic transaction.
+            optimisticLockEntries = (serializable() && optimistic()) ? F.concat(false, writes, reads) : writes;
+
+            userPrepare();
 
             // Make sure to add future before calling prepare on it.
             cctx.mvcc().addFuture(fut);
@@ -3743,7 +3752,6 @@ public class GridNearTxLocal extends GridDhtTxLocalAdapter implements AutoClosea
         final boolean skipVals,
         final boolean keepCacheObjects,
         final boolean skipStore,
-        final boolean recovery,
         final boolean needVer,
         final ExpiryPolicy expiryPlc
     ) {
@@ -3773,7 +3781,6 @@ public class GridNearTxLocal extends GridDhtTxLocalAdapter implements AutoClosea
                 skipVals,
                 needReadVer,
                 !deserializeBinary,
-                recovery,
                 expiryPlc,
                 new GridInClosure3<KeyCacheObject, Object, GridCacheVersion>() {
                     @Override public void apply(KeyCacheObject key, Object val, GridCacheVersion loadVer) {
@@ -3878,16 +3885,17 @@ public class GridNearTxLocal extends GridDhtTxLocalAdapter implements AutoClosea
     /**
      * @param cctx Cache context.
      * @param key Key.
+     * @param val Value.
      * @param filter Filter.
      * @return {@code True} if filter passed.
      */
     private boolean isAll(GridCacheContext cctx,
         KeyCacheObject key,
-        final CacheObject val0,
+        CacheObject val,
         CacheEntryPredicate[] filter) {
-        GridCacheEntryEx e = new GridDhtDetachedCacheEntry(cctx, key) {
+        GridCacheEntryEx e = new GridDhtDetachedCacheEntry(cctx, key, 0, val, null, 0) {
             @Nullable @Override public CacheObject peekVisibleValue() {
-                return val0;
+                return rawGet();
             }
         };
 
@@ -3937,7 +3945,7 @@ public class GridNearTxLocal extends GridDhtTxLocalAdapter implements AutoClosea
     private <T> IgniteInternalFuture<T> nonInterruptable(IgniteInternalFuture<T> fut) {
         // Safety.
         if (fut instanceof GridFutureAdapter)
-            ((GridFutureAdapter)fut).ignoreInterrupts();
+            ((GridFutureAdapter)fut).ignoreInterrupts(true);
 
         return fut;
     }

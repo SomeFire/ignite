@@ -32,12 +32,14 @@ import org.apache.ignite.configuration.IgniteConfiguration;
 import org.apache.ignite.spi.discovery.tcp.TcpDiscoverySpi;
 import org.apache.ignite.spi.discovery.tcp.ipfinder.TcpDiscoveryIpFinder;
 import org.apache.ignite.spi.discovery.tcp.ipfinder.vm.TcpDiscoveryVmIpFinder;
+import org.apache.ignite.spi.swapspace.file.FileSwapSpaceSpi;
 import org.apache.ignite.testframework.junits.common.GridCommonAbstractTest;
 import org.apache.ignite.transactions.Transaction;
 import org.apache.ignite.transactions.TransactionConcurrency;
 import org.apache.ignite.transactions.TransactionIsolation;
 
 import static org.apache.ignite.cache.CacheAtomicityMode.TRANSACTIONAL;
+import static org.apache.ignite.cache.CacheMemoryMode.OFFHEAP_TIERED;
 import static org.apache.ignite.cache.CacheMode.PARTITIONED;
 import static org.apache.ignite.cache.CacheWriteSynchronizationMode.FULL_SYNC;
 import static org.apache.ignite.configuration.DeploymentMode.SHARED;
@@ -46,6 +48,9 @@ import static org.apache.ignite.configuration.DeploymentMode.SHARED;
  * Tests off heap storage when both offheaped and swapped entries exists.
  */
 public class GridCacheOffheapIndexGetSelfTest extends GridCommonAbstractTest {
+    /** */
+    private static final long OFFHEAP_MEM = 10L * 1024L;
+
     /** */
     private final TcpDiscoveryIpFinder ipFinder = new TcpDiscoveryVmIpFinder(true);
 
@@ -61,24 +66,27 @@ public class GridCacheOffheapIndexGetSelfTest extends GridCommonAbstractTest {
 
         cfg.setNetworkTimeout(2000);
 
-        cfg.setDeploymentMode(SHARED);
+        cfg.setSwapSpaceSpi(new FileSwapSpaceSpi());
 
-        return cfg;
-    }
-
-    /**
-     * @return Cache configuration.
-     */
-    protected CacheConfiguration cacheConfiguration() {
         CacheConfiguration cacheCfg = defaultCacheConfiguration();
 
         cacheCfg.setWriteSynchronizationMode(FULL_SYNC);
+        cacheCfg.setSwapEnabled(true);
         cacheCfg.setCacheMode(PARTITIONED);
         cacheCfg.setBackups(1);
+        cacheCfg.setOffHeapMaxMemory(OFFHEAP_MEM);
+        cacheCfg.setEvictSynchronized(true);
+        cacheCfg.setEvictSynchronizedKeyBufferSize(1);
         cacheCfg.setAtomicityMode(TRANSACTIONAL);
+        cacheCfg.setMemoryMode(OFFHEAP_TIERED);
         cacheCfg.setEvictionPolicy(null);
+        cacheCfg.setIndexedTypes(Long.class, Long.class, String.class, TestEntity.class);
 
-        return cacheCfg;
+        cfg.setCacheConfiguration(cacheCfg);
+
+        cfg.setDeploymentMode(SHARED);
+
+        return cfg;
     }
 
     /** {@inheritDoc} */
@@ -93,11 +101,7 @@ public class GridCacheOffheapIndexGetSelfTest extends GridCommonAbstractTest {
 
     /** {@inheritDoc} */
     @Override protected void afterTest() throws Exception {
-        for(String cacheName : grid(0).cacheNames()) {
-            info("Clear cache: " + cacheName);
-
-            grid(0).cache(cacheName).clear();
-        }
+        grid(0).cache(null).clear();
     }
 
     /**
@@ -106,7 +110,7 @@ public class GridCacheOffheapIndexGetSelfTest extends GridCommonAbstractTest {
      * @throws Exception If failed.
      */
     public void testGet() throws Exception {
-        IgniteCache<Long, Long> cache = jcache(grid(0), cacheConfiguration(), Long.class, Long.class);
+        IgniteCache<Long, Long> cache = grid(0).cache(null);
 
         for (long i = 0; i < 100; i++)
             cache.put(i, i);
@@ -130,7 +134,7 @@ public class GridCacheOffheapIndexGetSelfTest extends GridCommonAbstractTest {
      * @throws Exception If failed.
      */
     public void testPutGet() throws Exception {
-        IgniteCache<Object, Object> cache = jcache(grid(0), cacheConfiguration(), Object.class, Object.class);
+        IgniteCache<Object, Object> cache = grid(0).cache(null);
 
         Map map = new HashMap();
 
@@ -157,7 +161,7 @@ public class GridCacheOffheapIndexGetSelfTest extends GridCommonAbstractTest {
      * @throws Exception If failed.
      */
     public void testWithExpiryPolicy() throws Exception {
-        IgniteCache<Long, Long> cache = jcache(grid(0), cacheConfiguration(), Long.class, Long.class);
+        IgniteCache<Long, Long> cache = grid(0).cache(null);
 
         cache = cache.withExpiryPolicy(new TestExiryPolicy());
 

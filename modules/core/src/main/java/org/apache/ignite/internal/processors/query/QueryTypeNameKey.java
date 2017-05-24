@@ -26,19 +26,19 @@ import org.jetbrains.annotations.Nullable;
  */
 public class QueryTypeNameKey {
     /** */
-    private final String cacheName;
+    private final String space;
 
     /** */
     private final String typeName;
 
     /**
-     * @param cacheName Cache name.
+     * @param space Space name.
      * @param typeName Type name.
      */
-    public QueryTypeNameKey(@Nullable String cacheName, String typeName) {
+    public QueryTypeNameKey(@Nullable String space, String typeName) {
         assert !F.isEmpty(typeName) : typeName;
 
-        this.cacheName = cacheName;
+        this.space = space;
         this.typeName = typeName;
     }
 
@@ -52,13 +52,13 @@ public class QueryTypeNameKey {
 
         QueryTypeNameKey other = (QueryTypeNameKey)o;
 
-        return (cacheName != null ? cacheName.equals(other.cacheName) : other.cacheName == null) &&
+        return (space != null ? space.equals(other.space) : other.space == null) &&
             typeName.equals(other.typeName);
     }
 
     /** {@inheritDoc} */
     @Override public int hashCode() {
-        return 31 * (cacheName != null ? cacheName.hashCode() : 0) + typeName.hashCode();
+        return 31 * (space != null ? space.hashCode() : 0) + typeName.hashCode();
     }
 
     /** {@inheritDoc} */

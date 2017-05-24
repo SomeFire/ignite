@@ -22,7 +22,6 @@ namespace Apache.Ignite.Core.Compute
     using System.Diagnostics.CodeAnalysis;
     using Apache.Ignite.Core.Cluster;
     using Apache.Ignite.Core.Common;
-    using Apache.Ignite.Core.Impl.Compute;
 
     /// <summary>
     /// Convenience adapter for <see cref="IComputeTask{TArg,TJobRes,TTaskRes}"/> interface
@@ -52,7 +51,8 @@ namespace Apache.Ignite.Core.Compute
 
             if (err != null)
             {
-                if (Compute.IsFailoverException(err)) 
+                if (err is ComputeExecutionRejectedException || err is ClusterTopologyException ||
+                    err is ComputeJobFailoverException)
                     return ComputeJobResultPolicy.Failover;
                 
                 throw new IgniteException("Remote job threw user exception (override or implement " +

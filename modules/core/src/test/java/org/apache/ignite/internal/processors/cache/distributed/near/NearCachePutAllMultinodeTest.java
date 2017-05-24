@@ -73,6 +73,7 @@ public class NearCachePutAllMultinodeTest extends GridCommonAbstractTest {
 
             cc.setCacheMode(PARTITIONED);
             cc.setWriteSynchronizationMode(FULL_SYNC);
+            cc.setSwapEnabled(false);
             cc.setAtomicityMode(TRANSACTIONAL);
             cc.setBackups(1);
 
@@ -95,11 +96,11 @@ public class NearCachePutAllMultinodeTest extends GridCommonAbstractTest {
 
         Ignite grid = startGrid(GRID_CNT - 2);
 
-        grid.createNearCache(DEFAULT_CACHE_NAME, new NearCacheConfiguration());
+        grid.createNearCache(null, new NearCacheConfiguration());
 
         grid = startGrid(GRID_CNT - 1);
 
-        grid.cache(DEFAULT_CACHE_NAME);
+        grid.cache(null);
     }
 
     /** {@inheritDoc} */

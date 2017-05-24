@@ -68,7 +68,8 @@ namespace Apache.Ignite.Core.Impl.Compute.Closure
 
             if (err != null)
             {
-                if (Compute.IsFailoverException(err))
+                if (err is ComputeExecutionRejectedException || err is ClusterTopologyException || 
+                    err is ComputeJobFailoverException)
                     return ComputeJobResultPolicy.Failover;
                 
                 throw err;

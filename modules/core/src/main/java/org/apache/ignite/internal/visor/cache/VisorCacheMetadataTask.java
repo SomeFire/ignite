@@ -34,19 +34,19 @@ import static org.apache.ignite.internal.visor.util.VisorTaskUtils.escapeName;
  * Task to get cache SQL metadata.
  */
 @GridInternal
-public class VisorCacheMetadataTask extends VisorOneNodeTask<VisorCacheMetadataTaskArg, VisorCacheSqlMetadata> {
+public class VisorCacheMetadataTask extends VisorOneNodeTask<String, GridCacheSqlMetadata> {
     /** */
     private static final long serialVersionUID = 0L;
 
     /** {@inheritDoc} */
-    @Override protected VisorCacheMetadataJob job(VisorCacheMetadataTaskArg arg) {
+    @Override protected VisorCacheMetadataJob job(String arg) {
         return new VisorCacheMetadataJob(arg, debug);
     }
 
     /**
      * Job to get cache SQL metadata.
      */
-    private static class VisorCacheMetadataJob extends VisorJob<VisorCacheMetadataTaskArg, VisorCacheSqlMetadata> {
+    private static class VisorCacheMetadataJob extends VisorJob<String, GridCacheSqlMetadata> {
         /** */
         private static final long serialVersionUID = 0L;
 
@@ -54,25 +54,19 @@ public class VisorCacheMetadataTask extends VisorOneNodeTask<VisorCacheMetadataT
          * @param arg Cache name to take metadata.
          * @param debug Debug flag.
          */
-        private VisorCacheMetadataJob(VisorCacheMetadataTaskArg arg, boolean debug) {
+        private VisorCacheMetadataJob(String arg, boolean debug) {
             super(arg, debug);
         }
 
         /** {@inheritDoc} */
-        @Override protected VisorCacheSqlMetadata run(VisorCacheMetadataTaskArg arg) {
+        @Override protected GridCacheSqlMetadata run(String cacheName) {
             try {
-                IgniteInternalCache<Object, Object> cache = ignite.cachex(arg.getCacheName());
+                IgniteInternalCache<Object, Object> cache = ignite.cachex(cacheName);
 
-                if (cache != null) {
-                    GridCacheSqlMetadata meta = F.first(cache.context().queries().sqlMetadata());
+                if (cache != null)
+                    return F.first(cache.context().queries().sqlMetadata());
 
-                    if (meta != null)
-                        return new VisorCacheSqlMetadata(meta);
-
-                    return null;
-                }
-
-                throw new IgniteException("Cache not found: " + escapeName(arg.getCacheName()));
+                throw new IgniteException("Cache not found: " + escapeName(cacheName));
             }
             catch (IgniteCheckedException e) {
                 throw U.convertException(e);

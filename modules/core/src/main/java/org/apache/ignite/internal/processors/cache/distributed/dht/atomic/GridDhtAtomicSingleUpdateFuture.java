@@ -37,6 +37,9 @@ import org.jetbrains.annotations.Nullable;
  */
 class GridDhtAtomicSingleUpdateFuture extends GridDhtAtomicAbstractUpdateFuture {
     /** */
+    private static final long serialVersionUID = 0L;
+
+    /** */
     private boolean allUpdated;
 
     /**

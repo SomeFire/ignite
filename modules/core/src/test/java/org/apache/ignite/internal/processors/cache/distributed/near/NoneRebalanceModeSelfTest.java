@@ -24,7 +24,7 @@ import org.apache.ignite.internal.processors.cache.distributed.dht.GridDhtLocalP
 import org.apache.ignite.testframework.junits.common.GridCommonAbstractTest;
 
 import static org.apache.ignite.cache.CacheRebalanceMode.NONE;
-import static org.apache.ignite.internal.processors.cache.distributed.dht.GridDhtPartitionState.OWNING;
+import static org.apache.ignite.internal.processors.cache.distributed.dht.GridDhtPartitionState.MOVING;
 
 /**
  * Test none rebalance mode.
@@ -58,11 +58,11 @@ public class NoneRebalanceModeSelfTest extends GridCommonAbstractTest {
      * @throws Exception If failed.
      */
     public void testRemoveAll() throws Exception {
-        GridNearTransactionalCache cache = (GridNearTransactionalCache)((IgniteKernal)grid(0)).internalCache(DEFAULT_CACHE_NAME);
+        GridNearTransactionalCache cache = (GridNearTransactionalCache)((IgniteKernal)grid(0)).internalCache(null);
 
         for (GridDhtLocalPartition part : cache.dht().topology().localPartitions())
-            assertEquals(OWNING, part.state());
+            assertEquals(MOVING, part.state());
 
-        grid(0).cache(DEFAULT_CACHE_NAME).removeAll();
+        grid(0).cache(null).removeAll();
     }
 }

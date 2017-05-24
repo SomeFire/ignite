@@ -47,6 +47,7 @@ import org.apache.ignite.IgniteDataStreamer;
 import org.apache.ignite.IgniteException;
 import org.apache.ignite.cache.CacheAtomicityMode;
 import org.apache.ignite.cache.CacheEntryEventSerializableFilter;
+import org.apache.ignite.cache.CacheMemoryMode;
 import org.apache.ignite.cache.CacheMode;
 import org.apache.ignite.cache.QueryEntity;
 import org.apache.ignite.cache.QueryIndex;
@@ -252,6 +253,12 @@ public class IgniteCacheRandomOperationBenchmark extends IgniteAbstractBenchmark
             CacheConfiguration configuration = cache.getConfiguration(CacheConfiguration.class);
 
             if (isClassDefinedInConfig(configuration)) {
+                if (configuration.getMemoryMode() == CacheMemoryMode.OFFHEAP_TIERED &&
+                    configuration.getQueryEntities().size() > 2) {
+                    throw new IgniteException("Off-heap mode is unsupported by the load test due to bugs IGNITE-2982" +
+                        " and IGNITE-2997");
+                }
+
                 ArrayList<Class> keys = new ArrayList<>();
                 ArrayList<Class> values = new ArrayList<>();
 

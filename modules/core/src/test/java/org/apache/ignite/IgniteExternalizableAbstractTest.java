@@ -19,25 +19,32 @@ package org.apache.ignite;
 
 import java.util.ArrayList;
 import java.util.List;
-import org.apache.ignite.internal.binary.BinaryMarshaller;
 import org.apache.ignite.marshaller.Marshaller;
+import org.apache.ignite.marshaller.MarshallerContext;
+import org.apache.ignite.marshaller.MarshallerContextTestImpl;
 import org.apache.ignite.marshaller.jdk.JdkMarshaller;
+import org.apache.ignite.marshaller.optimized.OptimizedMarshaller;
 import org.apache.ignite.testframework.junits.common.GridCommonAbstractTest;
 
 /**
  * Base externalizable test class.
  */
 public class IgniteExternalizableAbstractTest extends GridCommonAbstractTest {
+    /** */
+    private static final MarshallerContext CTX = new MarshallerContextTestImpl();
+
     /**
      * @return Marshallers.
      */
-    protected List<Marshaller> getMarshallers() throws IgniteCheckedException {
+    protected List<Marshaller> getMarshallers() {
         List<Marshaller> marshallers = new ArrayList<>();
 
-        BinaryMarshaller bin = createStandaloneBinaryMarshaller();
+        OptimizedMarshaller opt = new OptimizedMarshaller();
+
+        opt.setContext(CTX);
 
         marshallers.add(new JdkMarshaller());
-        marshallers.add(bin);
+        marshallers.add(opt);
 
         return marshallers;
     }

@@ -29,8 +29,10 @@ class VisorOpenCommandSpec extends VisorRuntimeBaseSpec(3) {
             visor.mlist()
         }
 
-        it("should reopen when already connected") {
-            openVisor()
+        it("should print error message when already connected") {
+            intercept[IgniteException] {
+                openVisor()
+            }
         }
     }
 }

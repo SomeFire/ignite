@@ -318,7 +318,6 @@ public class GridCacheLifecycleAwareSelfTest extends GridAbstractLifecycleAwareS
         TestEvictionPolicy evictionPlc = new TestEvictionPolicy();
 
         ccfg.setEvictionPolicy(evictionPlc);
-        ccfg.setOnheapCacheEnabled(true);
 
         lifecycleAwares.add(evictionPlc);
 

@@ -57,6 +57,9 @@ public class GridCompoundFuture<T, R> extends GridFutureAdapter<R> implements Ig
     private static final AtomicIntegerFieldUpdater<GridCompoundFuture> LSNR_CALLS_UPD =
         AtomicIntegerFieldUpdater.newUpdater(GridCompoundFuture.class, "lsnrCalls");
 
+    /** Sync object */
+    protected final Object sync = new Object();
+
     /** Possible values: null (no future), IgniteInternalFuture instance (single future) or List of futures  */
     private volatile Object futs;
 
@@ -143,7 +146,7 @@ public class GridCompoundFuture<T, R> extends GridFutureAdapter<R> implements Ig
             throw e;
         }
 
-        LSNR_CALLS_UPD.incrementAndGet(this);
+        LSNR_CALLS_UPD.incrementAndGet(GridCompoundFuture.this);
 
         checkComplete();
     }
@@ -166,14 +169,16 @@ public class GridCompoundFuture<T, R> extends GridFutureAdapter<R> implements Ig
      * @return Collection of futures.
      */
     @SuppressWarnings("unchecked")
-    public synchronized final Collection<IgniteInternalFuture<T>> futures() {
-        if (futs == null)
-            return Collections.emptyList();
+    public final Collection<IgniteInternalFuture<T>> futures() {
+        synchronized (sync) {
+            if (futs == null)
+                return Collections.emptyList();
 
-        if (futs instanceof IgniteInternalFuture)
-            return Collections.singletonList((IgniteInternalFuture<T>)futs);
+            if (futs instanceof IgniteInternalFuture)
+                return Collections.singletonList((IgniteInternalFuture<T>)futs);
 
-        return new ArrayList<>((Collection<IgniteInternalFuture<T>>)futs);
+            return new ArrayList<>((Collection<IgniteInternalFuture<T>>)futs);
+        }
     }
 
     /**
@@ -195,7 +200,7 @@ public class GridCompoundFuture<T, R> extends GridFutureAdapter<R> implements Ig
      */
     @SuppressWarnings("ForLoopReplaceableByForEach")
     protected final boolean hasPending() {
-        synchronized (this) {
+        synchronized (sync) {
             int size = futuresCountNoLock();
 
             // Avoid iterator creation and collection copy.
@@ -219,7 +224,7 @@ public class GridCompoundFuture<T, R> extends GridFutureAdapter<R> implements Ig
     public final void add(IgniteInternalFuture<T> fut) {
         assert fut != null;
 
-        synchronized (this) {
+        synchronized (sync) {
             if (futs == null)
                 futs = fut;
             else if (futs instanceof IgniteInternalFuture) {
@@ -249,8 +254,10 @@ public class GridCompoundFuture<T, R> extends GridFutureAdapter<R> implements Ig
     /**
      * Clear futures.
      */
-    protected synchronized final void clear() {
-        futs = null;
+    protected final void clear() {
+        synchronized (sync) {
+            futs = null;
+        }
     }
 
     /**
@@ -300,7 +307,7 @@ public class GridCompoundFuture<T, R> extends GridFutureAdapter<R> implements Ig
      */
     @SuppressWarnings("unchecked")
     protected final IgniteInternalFuture<T> future(int idx) {
-        assert Thread.holdsLock(this);
+        assert Thread.holdsLock(sync);
         assert futs != null && idx >= 0 && idx < futuresCountNoLock();
 
         if (futs instanceof IgniteInternalFuture) {
@@ -317,7 +324,7 @@ public class GridCompoundFuture<T, R> extends GridFutureAdapter<R> implements Ig
      */
     @SuppressWarnings("unchecked")
     protected final int futuresCountNoLock() {
-        assert Thread.holdsLock(this);
+        assert Thread.holdsLock(sync);
 
         if (futs == null)
             return 0;
@@ -331,15 +338,19 @@ public class GridCompoundFuture<T, R> extends GridFutureAdapter<R> implements Ig
     /**
      * @return Futures size.
      */
-    private synchronized int futuresCount() {
-        return futuresCountNoLock();
+    private int futuresCount() {
+        synchronized (sync) {
+            return futuresCountNoLock();
+        }
     }
 
     /**
      * @return {@code True} if has at least one future.
      */
-    protected synchronized final boolean hasFutures() {
-        return futs != null;
+    protected final boolean hasFutures() {
+        synchronized (sync) {
+            return futs != null;
+        }
     }
 
     /** {@inheritDoc} */

@@ -36,6 +36,7 @@ import org.apache.ignite.spi.discovery.tcp.ipfinder.vm.TcpDiscoveryVmIpFinder;
 import org.apache.ignite.testframework.GridTestUtils;
 import org.apache.ignite.testframework.junits.common.GridCommonAbstractTest;
 
+import static org.apache.ignite.cache.CacheAtomicWriteOrderMode.PRIMARY;
 import static org.apache.ignite.cache.CacheAtomicityMode.ATOMIC;
 import static org.apache.ignite.cache.CacheMode.PARTITIONED;
 import static org.apache.ignite.cache.CacheRebalanceMode.SYNC;
@@ -61,10 +62,11 @@ public class GridCacheIncrementTransformTest extends GridCommonAbstractTest {
     @Override protected IgniteConfiguration getConfiguration(String igniteInstanceName) throws Exception {
         IgniteConfiguration cfg = super.getConfiguration(igniteInstanceName);
 
-        CacheConfiguration cache = new CacheConfiguration(DEFAULT_CACHE_NAME);
+        CacheConfiguration cache = new CacheConfiguration();
 
         cache.setCacheMode(PARTITIONED);
         cache.setAtomicityMode(ATOMIC);
+        cache.setAtomicWriteOrderMode(PRIMARY);
         cache.setWriteSynchronizationMode(FULL_SYNC);
         cache.setBackups(1);
         cache.setRebalanceMode(SYNC);
@@ -170,7 +172,7 @@ public class GridCacheIncrementTransformTest extends GridCommonAbstractTest {
                 ignite = restarts ? grids.getAndSet(idx, null) : grid(idx);
             }
 
-            IgniteCache<String, TestObject> cache = ignite.<String, TestObject>cache(DEFAULT_CACHE_NAME).withNoRetries();
+            IgniteCache<String, TestObject> cache = ignite.<String, TestObject>cache(null).withNoRetries();
 
             assertNotNull(cache);
 

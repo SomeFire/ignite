@@ -164,23 +164,10 @@ public class IgfsProcessorValidationSelfTest extends IgfsCommonAbstractTest {
      * @throws Exception If failed.
      */
     @SuppressWarnings("NullableProblems")
-    public void testLocalNullIgfsNameIsNotSupported() throws Exception {
-        try {
-            g1IgfsCfg1.setName(null);
+    public void testLocalNullIgfsNameIsSupported() throws Exception {
+        g1IgfsCfg1.setName(null);
 
-            fail("IGFS name cannot be null");
-        }
-        catch (IllegalArgumentException e) {
-            // No-op.
-        }
-
-        ArrayList<FileSystemConfiguration> fsCfgs = new ArrayList<>(Arrays.asList(g1Cfg.getFileSystemConfiguration()));
-
-        fsCfgs.add(new FileSystemConfiguration()); // IGFS doesn't have default name (name == null).
-
-        g1Cfg.setFileSystemConfiguration(fsCfgs.toArray(new FileSystemConfiguration[fsCfgs.size()]));
-
-        checkGridStartFails(g1Cfg, "IGFS name cannot be null", true);
+        assertFalse(G.start(g1Cfg).cluster().nodes().isEmpty());
     }
 
     /**

@@ -18,7 +18,6 @@
 package org.apache.ignite.internal.processors.hadoop.impl.delegate;
 
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 import org.apache.hadoop.fs.BlockLocation;
 import org.apache.hadoop.fs.FileStatus;
@@ -126,7 +125,8 @@ public class HadoopIgfsSecondaryFileSystemDelegateImpl implements HadoopIgfsSeco
             throw handleSecondaryFsError(e, "Failed to update file properties [path=" + path + "]");
         }
 
-        return info(path);
+        //Result is not used in case of secondary FS.
+        return null;
     }
 
     /** {@inheritDoc} */
@@ -300,7 +300,7 @@ public class HadoopIgfsSecondaryFileSystemDelegateImpl implements HadoopIgfsSeco
 
             final Map<String, String> props = properties(status);
 
-            return new IgfsFileImpl(new IgfsFile() {
+            return new IgfsFile() {
                 @Override public IgfsPath path() {
                     return path;
                 }
@@ -353,7 +353,7 @@ public class HadoopIgfsSecondaryFileSystemDelegateImpl implements HadoopIgfsSeco
                 @Override public Map<String, String> properties() {
                     return props;
                 }
-            }, 0);
+            };
         }
         catch (FileNotFoundException ignore) {
             return null;
@@ -376,7 +376,7 @@ public class HadoopIgfsSecondaryFileSystemDelegateImpl implements HadoopIgfsSeco
     }
 
     /** {@inheritDoc} */
-    @Override public void setTimes(IgfsPath path, long modificationTime, long accessTime) throws IgniteException {
+    @Override public void setTimes(IgfsPath path, long accessTime, long modificationTime) throws IgniteException {
         try {
             // We don't use FileSystem#getUsed() since it counts only the files
             // in the filesystem root, not all the files recursively.
@@ -399,9 +399,6 @@ public class HadoopIgfsSecondaryFileSystemDelegateImpl implements HadoopIgfsSeco
                 blks.add(convertBlockLocation(hadoopBlocks[i]));
 
             return blks;
-        }
-        catch (FileNotFoundException ignored) {
-            return Collections.emptyList();
         }
         catch (IOException e) {
             throw handleSecondaryFsError(e, "Failed affinity for path: " + path);

@@ -302,17 +302,17 @@ namespace ignite
             template<typename T>
             BinaryCollectionWriter<T> WriteCollection()
             {
-                return WriteCollection<T>(CollectionType::UNDEFINED);
+                return WriteCollection<T>(IGNITE_COLLECTION_UNDEFINED);
             }
 
             /**
              * Start collection write.
              *
-             * @param typ Collection type.
+             * @param type Collection type.
              * @return Collection writer.
              */
             template<typename T>
-            BinaryCollectionWriter<T> WriteCollection(CollectionType::Type typ)
+            BinaryCollectionWriter<T> WriteCollection(CollectionType typ)
             {
                 int32_t id = impl->WriteCollection(typ);
 
@@ -324,11 +324,12 @@ namespace ignite
              *
              * @param first Iterator pointing to the beginning of the interval.
              * @param last Iterator pointing to the end of the interval.
+             * @param typ Collection type.
              */
             template<typename InputIterator>
             void WriteCollection(InputIterator first, InputIterator last)
             {
-                impl->WriteCollection(first, last, CollectionType::UNDEFINED);
+                impl->WriteCollection(first, last, IGNITE_COLLECTION_UNDEFINED);
             }
 
             /**
@@ -339,20 +340,9 @@ namespace ignite
              * @param typ Collection type.
              */
             template<typename InputIterator>
-            void WriteCollection(InputIterator first, InputIterator last, CollectionType::Type typ)
+            void WriteCollection(InputIterator first, InputIterator last, CollectionType typ)
             {
                 impl->WriteCollection(first, last, typ);
-            }
-
-            /**
-             * Start map write.
-             *
-             * @return Map writer.
-             */
-            template<typename K, typename V>
-            BinaryMapWriter<K, V> WriteMap()
-            {
-                return WriteMap<K, V>(MapType::UNDEFINED);
             }
 
             /**
@@ -362,7 +352,19 @@ namespace ignite
              * @return Map writer.
              */
             template<typename K, typename V>
-            BinaryMapWriter<K, V> WriteMap(MapType::Type typ)
+            BinaryMapWriter<K, V> WriteMap()
+            {
+                return WriteMap<K, V>(IGNITE_MAP_UNDEFINED);
+            }
+
+            /**
+             * Start map write.
+             *
+             * @param typ Map type.
+             * @return Map writer.
+             */
+            template<typename K, typename V>
+            BinaryMapWriter<K, V> WriteMap(MapType typ)
             {
                 int32_t id = impl->WriteMap(typ);
 

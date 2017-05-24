@@ -17,50 +17,45 @@
 
 package org.apache.ignite.internal.visor.igfs;
 
-import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
+import java.io.Serializable;
 import org.apache.ignite.IgniteFileSystem;
 import org.apache.ignite.igfs.IgfsMode;
+import org.apache.ignite.internal.LessNamingBean;
 import org.apache.ignite.internal.util.typedef.internal.S;
-import org.apache.ignite.internal.util.typedef.internal.U;
-import org.apache.ignite.internal.visor.VisorDataTransferObject;
 
 /**
- * Data transfer object for {@link IgniteFileSystem}.
+ * Data transfer object for {@link org.apache.ignite.IgniteFileSystem}.
  */
-public class VisorIgfs extends VisorDataTransferObject {
+public class VisorIgfs implements Serializable, LessNamingBean {
     /** */
     private static final long serialVersionUID = 0L;
 
     /** IGFS instance name. */
-    private String name;
+    private final String name;
 
     /** IGFS instance working mode. */
-    private IgfsMode mode;
+    private final IgfsMode mode;
 
     /** IGFS metrics. */
-    private VisorIgfsMetrics metrics;
+    private final VisorIgfsMetrics metrics;
 
     /** Whether IGFS has configured secondary file system. */
-    private boolean secondaryFsConfigured;
+    private final boolean secondaryFsConfigured;
 
     /**
-     * Default constructor.
-     */
-    public VisorIgfs() {
-        // No-op.
-    }
-
-    /**
-     * Create IGFS configuration transfer object.
+     * Create data transfer object.
      *
-     * @param name IGFS instance name.
-     * @param mode IGFS instance working mode.
+     * @param name IGFS name.
+     * @param mode IGFS mode.
      * @param metrics IGFS metrics.
      * @param secondaryFsConfigured Whether IGFS has configured secondary file system.
      */
-    public VisorIgfs(String name, IgfsMode mode, VisorIgfsMetrics metrics, boolean secondaryFsConfigured) {
+    public VisorIgfs(
+        String name,
+        IgfsMode mode,
+        VisorIgfsMetrics metrics,
+        boolean secondaryFsConfigured
+    ) {
         this.name = name;
         this.mode = mode;
         this.metrics = metrics;
@@ -68,61 +63,46 @@ public class VisorIgfs extends VisorDataTransferObject {
     }
 
     /**
-     * Create data transfer object.
-     *
      * @param igfs Source IGFS.
+     * @return Data transfer object for given IGFS.
      */
-    public VisorIgfs(IgniteFileSystem igfs) {
+    public static VisorIgfs from(IgniteFileSystem igfs) {
         assert igfs != null;
 
-        name = igfs.name();
-        mode = igfs.configuration().getDefaultMode();
-        metrics = new VisorIgfsMetrics(igfs);
-        secondaryFsConfigured = igfs.configuration().getSecondaryFileSystem() != null;
+        return new VisorIgfs(
+            igfs.name(),
+            igfs.configuration().getDefaultMode(),
+            VisorIgfsMetrics.from(igfs),
+            igfs.configuration().getSecondaryFileSystem() != null
+        );
     }
 
     /**
      * @return IGFS instance name.
      */
-    public String getName() {
+    public String name() {
         return name;
     }
 
     /**
      * @return IGFS instance working mode.
      */
-    public IgfsMode getMode() {
+    public IgfsMode mode() {
         return mode;
     }
 
     /**
      * @return IGFS metrics.
      */
-    public VisorIgfsMetrics getMetrics() {
+    public VisorIgfsMetrics metrics() {
         return metrics;
     }
 
     /**
      * @return Whether IGFS has configured secondary file system.
      */
-    public boolean isSecondaryFileSystemConfigured() {
+    public boolean secondaryFileSystemConfigured() {
         return secondaryFsConfigured;
-    }
-
-    /** {@inheritDoc} */
-    @Override protected void writeExternalData(ObjectOutput out) throws IOException {
-        U.writeString(out, name);
-        U.writeEnum(out, mode);
-        out.writeObject(metrics);
-        out.writeBoolean(secondaryFsConfigured);
-    }
-
-    /** {@inheritDoc} */
-    @Override protected void readExternalData(byte protoVer, ObjectInput in) throws IOException, ClassNotFoundException {
-        name = U.readString(in);
-        mode = IgfsMode.fromOrdinal(in.readByte());
-        metrics = (VisorIgfsMetrics)in.readObject();
-        secondaryFsConfigured = in.readBoolean();
     }
 
     /** {@inheritDoc} */

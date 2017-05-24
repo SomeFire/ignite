@@ -100,7 +100,7 @@ public class IgniteVariousConnectionNumberTest extends GridCommonAbstractTest {
 
         startGridsMultiThreaded(3, 3);
 
-        CacheConfiguration ccfg = new CacheConfiguration(DEFAULT_CACHE_NAME);
+        CacheConfiguration ccfg = new CacheConfiguration();
 
         ccfg.setCacheMode(REPLICATED);
         ccfg.setWriteSynchronizationMode(FULL_SYNC);
@@ -137,7 +137,7 @@ public class IgniteVariousConnectionNumberTest extends GridCommonAbstractTest {
             @Override public Void call() throws Exception {
                 Ignite node = ignite(idx.getAndIncrement() % NODES);
 
-                IgniteCache cache = node.cache(DEFAULT_CACHE_NAME);
+                IgniteCache cache = node.cache(null);
 
                 long stopTime = U.currentTimeMillis() + time;
 

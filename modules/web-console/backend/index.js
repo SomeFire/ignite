@@ -22,19 +22,17 @@ const path = require('path');
 const http = require('http');
 const https = require('https');
 
-const igniteModules = process.env.IGNITE_MODULES ?
-    path.join(path.normalize(process.env.IGNITE_MODULES), 'backend') : './ignite_modules';
+const igniteModules = process.env.IGNITE_MODULES || './ignite_modules';
 
 let injector;
 
 try {
-    const igniteModulesInjector = path.resolve(path.join(igniteModules, 'injector.js'));
+    const igniteModulesInjector = path.resolve(path.join(igniteModules, 'backend', 'injector.js'));
 
     fs.accessSync(igniteModulesInjector, fs.F_OK);
 
     injector = require(igniteModulesInjector);
-}
-catch (ignore) {
+} catch (ignore) {
     injector = require(path.join(__dirname, './injector'));
 }
 
@@ -73,36 +71,25 @@ const _onListening = (addr) => {
     console.log('Start listening on ' + bind);
 };
 
-/**
- * @param settings
- * @param {ApiServer} apiSrv
- * @param {AgentsHandler} agentsHnd
- * @param {BrowsersHandler} BrowsersHandler
- */
-const init = ([settings, apiSrv, agentsHnd, BrowsersHandler]) => {
-    // Start rest server.
-    const srv = settings.server.SSLOptions ? https.createServer(settings.server.SSLOptions) : http.createServer();
+Promise.all([injector('settings'), injector('app'), injector('agent-manager'), injector('browser-manager')])
+    .then(([settings, app, agentMgr, browserMgr]) => {
+        // Start rest server.
+        const server = settings.server.SSLOptions
+            ? https.createServer(settings.server.SSLOptions) : http.createServer();
 
-    srv.listen(settings.server.port);
+        server.listen(settings.server.port);
+        server.on('error', _onError.bind(null, settings.server.port));
+        server.on('listening', _onListening.bind(null, server.address()));
 
-    srv.on('error', _onError.bind(null, settings.server.port));
-    srv.on('listening', _onListening.bind(null, srv.address()));
+        app.listen(server);
 
-    apiSrv.attach(srv);
+        agentMgr.attach(server);
+        browserMgr.attach(server);
 
-    const browsersHnd = new BrowsersHandler();
-
-    agentsHnd.attach(srv, browsersHnd);
-    browsersHnd.attach(srv, agentsHnd);
-
-    // Used for automated test.
-    if (process.send)
-        process.send('running');
-};
-
-Promise.all([injector('settings'), injector('api-server'), injector('agents-handler'), injector('browsers-handler')])
-    .then(init)
-    .catch((err) => {
+        // Used for automated test.
+        if (process.send)
+            process.send('running');
+    }).catch((err) => {
         console.error(err);
 
         process.exit(1);

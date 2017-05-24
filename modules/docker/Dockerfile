@@ -19,7 +19,7 @@
 FROM java:8
 
 # Ignite version
-ENV IGNITE_VERSION 2.0.0
+ENV IGNITE_VERSION 1.9.0
 
 # Ignite home
 ENV IGNITE_HOME /opt/ignite/apache-ignite-fabric-${IGNITE_VERSION}-bin

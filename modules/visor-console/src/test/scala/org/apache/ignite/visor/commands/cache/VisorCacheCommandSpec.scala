@@ -44,7 +44,7 @@ class VisorCacheCommandSpec extends VisorRuntimeBaseSpec(1) {
      * @param name Cache name.
      * @return Cache Configuration.
      */
-    def cacheConfig(@NotNull name: String): CacheConfiguration[Object, Object] = {
+    def cacheConfig(@Nullable name: String): CacheConfiguration[Object, Object] = {
         val cfg = new CacheConfiguration[Object, Object]
 
         cfg.setCacheMode(REPLICATED)
@@ -125,10 +125,6 @@ class VisorCacheCommandSpec extends VisorRuntimeBaseSpec(1) {
 
         it("should display correct information for all caches") {
             visor cache "-a"
-        }
-
-        it("should scan cache") {
-            visor cache "-c=replicated -scan"
         }
     }
 }

@@ -17,21 +17,16 @@
 
 package org.apache.ignite.internal.visor.node;
 
-import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
-import java.util.List;
+import java.io.Serializable;
 import org.apache.ignite.configuration.ConnectorConfiguration;
 import org.apache.ignite.configuration.IgniteConfiguration;
-import org.apache.ignite.configuration.OdbcConfiguration;
+import org.apache.ignite.internal.LessNamingBean;
 import org.apache.ignite.internal.util.typedef.internal.S;
-import org.apache.ignite.internal.util.typedef.internal.U;
-import org.apache.ignite.internal.visor.VisorDataTransferObject;
 
 /**
  * Data transfer object for node executors configuration properties.
  */
-public class VisorExecutorServiceConfiguration extends VisorDataTransferObject {
+public class VisorExecutorServiceConfiguration implements Serializable, LessNamingBean {
     /** */
     private static final long serialVersionUID = 0L;
 
@@ -50,219 +45,70 @@ public class VisorExecutorServiceConfiguration extends VisorDataTransferObject {
     /** Peer-to-peer pool size. */
     private int p2pPoolSz;
 
-    /** Rebalance thread pool size. */
-    private int rebalanceThreadPoolSize;
-
     /** REST requests pool size. */
     private int restPoolSz;
 
-    /** Async Callback pool size. */
-    private int cbPoolSize;
-
-    /** Data stream pool size. */
-    private int dataStreamerPoolSize;
-
-    /** Query pool size. */
-    private int qryPoolSize;
-
-    /** Use striped pool for internal requests processing when possible */
-    private int stripedPoolSize;
-
-    /** Service pool size. */
-    private int svcPoolSize;
-
-    /** Utility cache pool size. */
-    private int utilityCachePoolSize;
-
-    /** ODBC pool size. */
-    private int odbcPoolSize;
-
-    /** List of executor configurations. */
-    private List<VisorExecutorConfiguration> executors;
-
     /**
-     * Default constructor.
-     */
-    public VisorExecutorServiceConfiguration() {
-        // No-op.
-    }
-
-    /**
-     * Create data transfer object for node executors configuration properties.
-     *
      * @param c Grid configuration.
+     * @return Data transfer object for node executors configuration properties.
      */
-    public VisorExecutorServiceConfiguration(IgniteConfiguration c) {
-        pubPoolSize = c.getPublicThreadPoolSize();
-        sysPoolSz = c.getSystemThreadPoolSize();
-        mgmtPoolSize = c.getManagementThreadPoolSize();
-        p2pPoolSz = c.getPeerClassLoadingThreadPoolSize();
-        igfsPoolSize = c.getIgfsThreadPoolSize();
-        rebalanceThreadPoolSize = c.getRebalanceThreadPoolSize();
+    public static VisorExecutorServiceConfiguration from(IgniteConfiguration c) {
+        VisorExecutorServiceConfiguration cfg = new VisorExecutorServiceConfiguration();
+
+        cfg.pubPoolSize = c.getPublicThreadPoolSize();
+        cfg.sysPoolSz = c.getSystemThreadPoolSize();
+        cfg.mgmtPoolSize = c.getManagementThreadPoolSize();
+        cfg.p2pPoolSz = c.getPeerClassLoadingThreadPoolSize();
+        cfg.igfsPoolSize = c.getIgfsThreadPoolSize();
 
         ConnectorConfiguration cc = c.getConnectorConfiguration();
 
         if (cc != null)
-            restPoolSz = cc.getThreadPoolSize();
+            cfg.restPoolSz = cc.getThreadPoolSize();
 
-        cbPoolSize = c.getAsyncCallbackPoolSize();
-        dataStreamerPoolSize = c.getDataStreamerThreadPoolSize();
-        qryPoolSize = c.getQueryThreadPoolSize();
-        stripedPoolSize = c.getStripedPoolSize();
-        svcPoolSize = c.getServiceThreadPoolSize();
-        utilityCachePoolSize = c.getUtilityCacheThreadPoolSize();
-
-        OdbcConfiguration oc = c.getOdbcConfiguration();
-
-        if (oc != null)
-            odbcPoolSize = oc.getThreadPoolSize();
-
-        executors = VisorExecutorConfiguration.list(c.getExecutorConfiguration());
+        return cfg;
     }
 
     /**
      * @return Public pool size.
      */
-    public int getPublicThreadPoolSize() {
+    public int publicThreadPoolSize() {
         return pubPoolSize;
     }
 
     /**
      * @return System pool size.
      */
-    public int getSystemThreadPoolSize() {
+    public int systemThreadPoolSize() {
         return sysPoolSz;
     }
 
     /**
      * @return Management pool size.
      */
-    public int getManagementThreadPoolSize() {
+    public int managementThreadPoolSize() {
         return mgmtPoolSize;
     }
 
     /**
      * @return IGFS pool size.
      */
-    public int getIgfsThreadPoolSize() {
+    public int igfsThreadPoolSize() {
         return igfsPoolSize;
     }
 
     /**
      * @return Peer-to-peer pool size.
      */
-    public int getPeerClassLoadingThreadPoolSize() {
+    public int peerClassLoadingThreadPoolSize() {
         return p2pPoolSz;
-    }
-
-    /**
-     * @return Rebalance thread pool size.
-     */
-    public int getRebalanceThreadPoolSize() {
-        return rebalanceThreadPoolSize;
     }
 
     /**
      * @return REST requests pool size.
      */
-    public int getRestThreadPoolSize() {
+    public int restThreadPoolSize() {
         return restPoolSz;
-    }
-
-    /**
-     * @return Thread pool size to be used for processing of asynchronous callbacks.
-     */
-    public int getCallbackPoolSize() {
-        return cbPoolSize;
-    }
-
-    /**
-     * @return Thread pool size to be used for data stream messages.
-     */
-    public int getDataStreamerPoolSize() {
-        return dataStreamerPoolSize;
-    }
-
-    /**
-     * @return Thread pool size to be used in grid for query messages.
-     */
-    public int getQueryThreadPoolSize() {
-        return qryPoolSize;
-    }
-
-    /**
-     * @return Positive value if striped pool should be initialized
-     *      with configured number of threads (stripes) and used for requests processing
-     *      or non-positive value to process requests in system pool.
-     */
-    public int getStripedPoolSize() {
-        return stripedPoolSize;
-    }
-
-    /**
-     * @return Thread pool size to be used in grid to process service proxy invocations.
-     */
-    public int getServiceThreadPoolSize() {
-        return svcPoolSize;
-    }
-
-    /**
-     * @return Thread pool size to be used in grid for utility cache messages.
-     */
-    public int getUtilityCacheThreadPoolSize() {
-        return utilityCachePoolSize;
-    }
-
-    /**
-     * @return Thread pool that is in charge of processing ODBC tasks.
-     */
-    public int getOdbcThreadPoolSize() {
-        return odbcPoolSize;
-    }
-
-    /**
-     * @return List of executor configurations.
-     */
-    public List<VisorExecutorConfiguration> getExecutors() {
-        return executors;
-    }
-
-    /** {@inheritDoc} */
-    @Override protected void writeExternalData(ObjectOutput out) throws IOException {
-        out.writeInt(pubPoolSize);
-        out.writeInt(sysPoolSz);
-        out.writeInt(mgmtPoolSize);
-        out.writeInt(igfsPoolSize);
-        out.writeInt(p2pPoolSz);
-        out.writeInt(rebalanceThreadPoolSize);
-        out.writeInt(restPoolSz);
-        out.writeInt(cbPoolSize);
-        out.writeInt(dataStreamerPoolSize);
-        out.writeInt(qryPoolSize);
-        out.writeInt(stripedPoolSize);
-        out.writeInt(svcPoolSize);
-        out.writeInt(utilityCachePoolSize);
-        out.writeInt(odbcPoolSize);
-        U.writeCollection(out, executors);
-    }
-
-    /** {@inheritDoc} */
-    @Override protected void readExternalData(byte protoVer, ObjectInput in) throws IOException, ClassNotFoundException {
-        pubPoolSize = in.readInt();
-        sysPoolSz = in.readInt();
-        mgmtPoolSize = in.readInt();
-        igfsPoolSize = in.readInt();
-        p2pPoolSz = in.readInt();
-        rebalanceThreadPoolSize = in.readInt();
-        restPoolSz = in.readInt();
-        cbPoolSize = in.readInt();
-        dataStreamerPoolSize = in.readInt();
-        qryPoolSize = in.readInt();
-        stripedPoolSize = in.readInt();
-        svcPoolSize = in.readInt();
-        utilityCachePoolSize = in.readInt();
-        odbcPoolSize = in.readInt();
-        executors = U.readList(in);
     }
 
     /** {@inheritDoc} */

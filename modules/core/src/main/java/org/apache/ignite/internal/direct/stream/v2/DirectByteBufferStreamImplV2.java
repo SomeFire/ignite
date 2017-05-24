@@ -1,4 +1,4 @@
- /*
+/*
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.
@@ -27,7 +27,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.RandomAccess;
 import java.util.UUID;
-import org.apache.ignite.IgniteException;
 import org.apache.ignite.internal.direct.stream.DirectByteBufferStream;
 import org.apache.ignite.internal.util.GridUnsafe;
 import org.apache.ignite.internal.util.tostring.GridToStringExclude;
@@ -81,8 +80,7 @@ public class DirectByteBufferStreamImplV2 implements DirectByteBufferStream {
     /** */
     private static final ArrayCreator<byte[]> BYTE_ARR_CREATOR = new ArrayCreator<byte[]>() {
         @Override public byte[] create(int len) {
-            if (len < 0)
-                throw new IgniteException("Read invalid byte array length: " + len);
+            assert len >= 0;
 
             switch (len) {
                 case 0:
@@ -97,8 +95,7 @@ public class DirectByteBufferStreamImplV2 implements DirectByteBufferStream {
     /** */
     private static final ArrayCreator<short[]> SHORT_ARR_CREATOR = new ArrayCreator<short[]>() {
         @Override public short[] create(int len) {
-            if (len < 0)
-                throw new IgniteException("Read invalid short array length: " + len);
+            assert len >= 0;
 
             switch (len) {
                 case 0:
@@ -113,8 +110,7 @@ public class DirectByteBufferStreamImplV2 implements DirectByteBufferStream {
     /** */
     private static final ArrayCreator<int[]> INT_ARR_CREATOR = new ArrayCreator<int[]>() {
         @Override public int[] create(int len) {
-            if (len < 0)
-                throw new IgniteException("Read invalid int array length: " + len);
+            assert len >= 0;
 
             switch (len) {
                 case 0:
@@ -129,8 +125,7 @@ public class DirectByteBufferStreamImplV2 implements DirectByteBufferStream {
     /** */
     private static final ArrayCreator<long[]> LONG_ARR_CREATOR = new ArrayCreator<long[]>() {
         @Override public long[] create(int len) {
-            if (len < 0)
-                throw new IgniteException("Read invalid long array length: " + len);
+            assert len >= 0;
 
             switch (len) {
                 case 0:
@@ -145,8 +140,7 @@ public class DirectByteBufferStreamImplV2 implements DirectByteBufferStream {
     /** */
     private static final ArrayCreator<float[]> FLOAT_ARR_CREATOR = new ArrayCreator<float[]>() {
         @Override public float[] create(int len) {
-            if (len < 0)
-                throw new IgniteException("Read invalid float array length: " + len);
+            assert len >= 0;
 
             switch (len) {
                 case 0:
@@ -161,8 +155,7 @@ public class DirectByteBufferStreamImplV2 implements DirectByteBufferStream {
     /** */
     private static final ArrayCreator<double[]> DOUBLE_ARR_CREATOR = new ArrayCreator<double[]>() {
         @Override public double[] create(int len) {
-            if (len < 0)
-                throw new IgniteException("Read invalid double array length: " + len);
+            assert len >= 0;
 
             switch (len) {
                 case 0:
@@ -177,8 +170,7 @@ public class DirectByteBufferStreamImplV2 implements DirectByteBufferStream {
     /** */
     private static final ArrayCreator<char[]> CHAR_ARR_CREATOR = new ArrayCreator<char[]>() {
         @Override public char[] create(int len) {
-            if (len < 0)
-                throw new IgniteException("Read invalid char array length: " + len);
+            assert len >= 0;
 
             switch (len) {
                 case 0:
@@ -193,8 +185,7 @@ public class DirectByteBufferStreamImplV2 implements DirectByteBufferStream {
     /** */
     private static final ArrayCreator<boolean[]> BOOLEAN_ARR_CREATOR = new ArrayCreator<boolean[]>() {
         @Override public boolean[] create(int len) {
-            if (len < 0)
-                throw new IgniteException("Read invalid boolean array length: " + len);
+            assert len >= 0;
 
             switch (len) {
                 case 0:

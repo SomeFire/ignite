@@ -78,7 +78,7 @@ public class ContinuousQueryRemoteFilterMissingInClassPathSelfTest extends GridC
 
         cfg.setClientMode(clientMode);
 
-        CacheConfiguration cacheCfg = new CacheConfiguration(DEFAULT_CACHE_NAME);
+        CacheConfiguration cacheCfg = new CacheConfiguration();
 
         cacheCfg.setName("simple");
 

@@ -39,9 +39,6 @@ public class CacheOperationContext implements Serializable {
     @GridToStringInclude
     private final boolean noRetries;
 
-    /** */
-    private final boolean recovery;
-
     /** Client ID which operates over this projection. */
     private final UUID subjId;
 
@@ -68,8 +65,6 @@ public class CacheOperationContext implements Serializable {
 
         noRetries = false;
 
-        recovery = false;
-
         dataCenterId = null;
     }
 
@@ -86,9 +81,7 @@ public class CacheOperationContext implements Serializable {
         boolean keepBinary,
         @Nullable ExpiryPolicy expiryPlc,
         boolean noRetries,
-        @Nullable Byte dataCenterId,
-        boolean recovery
-    ) {
+        @Nullable Byte dataCenterId) {
         this.skipStore = skipStore;
 
         this.subjId = subjId;
@@ -100,8 +93,6 @@ public class CacheOperationContext implements Serializable {
         this.noRetries = noRetries;
 
         this.dataCenterId = dataCenterId;
-
-        this.recovery = recovery;
     }
 
     /**
@@ -130,8 +121,7 @@ public class CacheOperationContext implements Serializable {
             true,
             expiryPlc,
             noRetries,
-            dataCenterId,
-            recovery);
+            dataCenterId);
     }
 
     /**
@@ -165,8 +155,7 @@ public class CacheOperationContext implements Serializable {
             keepBinary,
             expiryPlc,
             noRetries,
-            dataCenterId,
-            recovery);
+            dataCenterId);
     }
 
     /**
@@ -189,8 +178,7 @@ public class CacheOperationContext implements Serializable {
             keepBinary,
             expiryPlc,
             noRetries,
-            dataCenterId,
-            recovery);
+            dataCenterId);
     }
 
     /**
@@ -210,11 +198,10 @@ public class CacheOperationContext implements Serializable {
         return new CacheOperationContext(
             skipStore,
             subjId,
-            keepBinary,
+            true,
             plc,
             noRetries,
-            dataCenterId,
-            recovery);
+            dataCenterId);
     }
 
     /**
@@ -228,30 +215,7 @@ public class CacheOperationContext implements Serializable {
             keepBinary,
             expiryPlc,
             noRetries,
-            dataCenterId,
-            recovery);
-    }
-
-    /**
-     * @param recovery Recovery flag.
-     * @return New instance of CacheOperationContext with recovery flag.
-     */
-    public CacheOperationContext setRecovery(boolean recovery) {
-        return new CacheOperationContext(
-            skipStore,
-            subjId,
-            keepBinary,
-            expiryPlc,
-            noRetries,
-            dataCenterId,
-            recovery);
-    }
-
-    /**
-     * @return Recovery flag.
-     */
-    public boolean recovery() {
-        return recovery;
+            dataCenterId);
     }
 
     /**

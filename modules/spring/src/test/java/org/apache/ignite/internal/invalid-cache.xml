@@ -35,6 +35,9 @@
         http://www.springframework.org/schema/util
         http://www.springframework.org/schema/util/spring-util.xsd">
     <bean id="cache-configuration" class="org.apache.ignite.configuration.CacheConfiguration">
+        <!-- Initial cache size. -->
+        <property name="startSize" value="3000000"/>
+
         <!-- Set synchronous rebalancing (default is asynchronous). -->
         <property name="rebalanceMode" value="SYNC"/>
 
@@ -51,6 +54,9 @@
     </bean>
 
     <bean id="cache-configuration1" class="org.apache.ignite.configuration.CacheConfiguration">
+        <!-- Initial cache size. -->
+        <property name="startSize" value="3000000"/>
+
         <!-- Set synchronous rebalancing (default is asynchronous). -->
         <property name="rebalanceMode" value="SYNC"/>
 

@@ -109,7 +109,7 @@ public class IgniteCacheQueryLoadSelfTest extends GridCommonAbstractTest {
      * @throws IgniteCheckedException If failed.
      */
     private long size(Class<?> cls) throws IgniteCheckedException {
-        return (Long)grid().cache(DEFAULT_CACHE_NAME).query(
+        return (Long)grid().cache(null).query(
             new SqlFieldsQuery("select count(*) from " + QueryUtils.typeName(cls)).setLocal(true))
             .getAll().get(0).get(0);
     }
@@ -118,7 +118,7 @@ public class IgniteCacheQueryLoadSelfTest extends GridCommonAbstractTest {
      * @throws Exception If failed.
      */
     public void testLoadCache() throws Exception {
-        IgniteCache<Integer, ValueObject> cache = grid().cache(DEFAULT_CACHE_NAME);
+        IgniteCache<Integer, ValueObject> cache = grid().cache(null);
 
         cache.loadCache(null);
 
@@ -136,7 +136,7 @@ public class IgniteCacheQueryLoadSelfTest extends GridCommonAbstractTest {
      * @throws Exception If failed.
      */
     public void testLoadCacheAsync() throws Exception {
-        IgniteCache<Integer, ValueObject> cache = grid().cache(DEFAULT_CACHE_NAME);
+        IgniteCache<Integer, ValueObject> cache = grid().cache(null);
 
         cache.loadCacheAsync(null, 0).get();
 
@@ -154,7 +154,7 @@ public class IgniteCacheQueryLoadSelfTest extends GridCommonAbstractTest {
      * @throws Exception If failed.
      */
     public void testLoadCacheFiltered() throws Exception {
-        IgniteCache<Integer, ValueObject> cache = grid().cache(DEFAULT_CACHE_NAME);
+        IgniteCache<Integer, ValueObject> cache = grid().cache(null);
 
         cache.loadCache(new P2<Integer,ValueObject>() {
             @Override
@@ -177,7 +177,7 @@ public class IgniteCacheQueryLoadSelfTest extends GridCommonAbstractTest {
      * @throws Exception If failed.
      */
     public void testLoadCacheAsyncFiltered() throws Exception {
-        IgniteCache<Integer, ValueObject> cache = grid().cache(DEFAULT_CACHE_NAME);
+        IgniteCache<Integer, ValueObject> cache = grid().cache(null);
 
         cache.loadCacheAsync(new P2<Integer, ValueObject>() {
             @Override
@@ -232,7 +232,7 @@ public class IgniteCacheQueryLoadSelfTest extends GridCommonAbstractTest {
 
         CompletionListenerFuture fut = new CompletionListenerFuture();
 
-        grid().<Integer, Integer>cache(DEFAULT_CACHE_NAME).loadAll(F.asSet(keys), true, fut);
+        grid().<Integer, Integer>cache(null).loadAll(F.asSet(keys), true, fut);
 
         fut.get();
 
@@ -252,7 +252,7 @@ public class IgniteCacheQueryLoadSelfTest extends GridCommonAbstractTest {
 
         fut = new CompletionListenerFuture();
 
-        grid().<Integer, Integer>cache(DEFAULT_CACHE_NAME).loadAll(F.asSet(keys), true, fut);
+        grid().<Integer, Integer>cache(null).loadAll(F.asSet(keys), true, fut);
 
         fut.get();
 

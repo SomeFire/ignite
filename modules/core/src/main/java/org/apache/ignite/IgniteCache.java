@@ -21,7 +21,6 @@ import java.io.Serializable;
 import java.sql.Timestamp;
 import java.util.Collection;
 import java.util.Date;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -42,7 +41,6 @@ import org.apache.ignite.cache.CacheEntryProcessor;
 import org.apache.ignite.cache.CacheMetrics;
 import org.apache.ignite.cache.CacheMode;
 import org.apache.ignite.cache.CachePeekMode;
-import org.apache.ignite.cache.query.FieldsQueryCursor;
 import org.apache.ignite.cache.query.Query;
 import org.apache.ignite.cache.query.QueryCursor;
 import org.apache.ignite.cache.query.QueryDetailMetrics;
@@ -108,6 +106,19 @@ public interface IgniteCache<K, V> extends javax.cache.Cache<K, V>, IgniteAsyncS
     @Override public <C extends Configuration<K, V>> C getConfiguration(Class<C> clazz);
 
     /**
+     * Gets a random entry out of cache. In the worst cache scenario this method
+     * has complexity of <pre>O(S * N/64)</pre> where {@code N} is the size of internal hash
+     * table and {@code S} is the number of hash table buckets to sample, which is {@code 5}
+     * by default. However, if the table is pretty dense, with density factor of {@code N/64},
+     * which is true for near fully populated caches, this method will generally perform significantly
+     * faster with complexity of O(S) where {@code S = 5}.
+     *
+     * @return Random entry, or {@code null} if cache is empty.
+     */
+    @Deprecated
+    public Entry<K, V> randomEntry();
+
+    /**
      * Returns cache with the specified expired policy set. This policy will be used for each operation
      * invoked on the returned cache.
      * <p>
@@ -127,14 +138,6 @@ public interface IgniteCache<K, V> extends javax.cache.Cache<K, V>, IgniteAsyncS
      * @return Cache with no-retries behavior enabled.
      */
     public IgniteCache<K, V> withNoRetries();
-
-    /**
-     * Gets an instance of {@code IgniteCache} that will be allowed to execute cache operations (read, write)
-     * regardless of partition loss policy.
-     *
-     * @return Cache without partition loss protection.
-     */
-    public IgniteCache<K, V> withPartitionRecover();
 
     /**
      * Returns cache that will operate with binary objects.
@@ -348,7 +351,6 @@ public interface IgniteCache<K, V> extends javax.cache.Cache<K, V>, IgniteAsyncS
 
     /**
      * Queries cache. Accepts any subclass of {@link Query} interface.
-     * See also {@link #query(SqlFieldsQuery)}.
      *
      * @param qry Query.
      * @return Cursor.
@@ -357,18 +359,8 @@ public interface IgniteCache<K, V> extends javax.cache.Cache<K, V>, IgniteAsyncS
      * @see SqlFieldsQuery
      * @see TextQuery
      * @see SpiQuery
-     *
      */
     public <R> QueryCursor<R> query(Query<R> qry);
-
-    /**
-     * Queries cache. Accepts {@link SqlFieldsQuery} class.
-     *
-     * @param qry SqlFieldsQuery.
-     * @return Cursor.
-     * @see SqlFieldsQuery
-     */
-    public FieldsQueryCursor<List<?>> query(SqlFieldsQuery qry);
 
     /**
      * Queries the cache transforming the entries on the server nodes. Can be used, for example,
@@ -440,6 +432,17 @@ public interface IgniteCache<K, V> extends javax.cache.Cache<K, V>, IgniteAsyncS
      * @throws NullPointerException If key is {@code null}.
      */
     public V localPeek(K key, CachePeekMode... peekModes);
+
+    /**
+     * This method unswaps cache entries by given keys, if any, from swap storage
+     * into memory.
+     * <h2 class="header">Transactions</h2>
+     * This method is not transactional.
+     *
+     * @param keys Keys to promote entries for.
+     * @throws CacheException If promote failed.
+     */
+    public void localPromote(Set<? extends K> keys) throws CacheException;
 
     /**
      * Gets the number of all entries cached across all nodes. By default, if {@code peekModes} value isn't defined,
@@ -1353,7 +1356,7 @@ public interface IgniteCache<K, V> extends javax.cache.Cache<K, V>, IgniteAsyncS
      * For distributed caches, if called on clients, stops client cache, if called on a server node,
      * just closes this cache instance and does not destroy cache data.
      * <p>
-     * After cache instance is closed another {@code IgniteCache} instance for the same
+     * After cache instance is closed another {@link IgniteCache} instance for the same
      * cache can be created using {@link Ignite#cache(String)} method.
      */
     @Override public void close();
@@ -1384,13 +1387,6 @@ public interface IgniteCache<K, V> extends javax.cache.Cache<K, V>, IgniteAsyncS
      * @return Future that will be completed when rebalancing is finished.
      */
     public IgniteFuture<?> rebalance();
-
-    /**
-     * Returns future that will be completed when all indexes for this cache are ready to use.
-     *
-     * @return Future.
-     */
-    public IgniteFuture<?> indexReadyFuture();
 
     /**
      * Gets whole cluster snapshot metrics (statistics) for this cache.
@@ -1427,11 +1423,4 @@ public interface IgniteCache<K, V> extends javax.cache.Cache<K, V>, IgniteAsyncS
      * @return MxBean.
      */
     public CacheMetricsMXBean localMxBean();
-
-    /**
-     * Gets a collection of lost partition IDs.
-     *
-     * @return Lost paritions.
-     */
-    public Collection<Integer> lostPartitions();
 }

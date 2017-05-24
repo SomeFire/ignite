@@ -90,6 +90,7 @@ public class IgniteBinaryObjectFieldsQuerySelfTest extends GridCommonAbstractTes
     protected CacheConfiguration cache(CacheMode cacheMode, CacheAtomicityMode atomicity) throws Exception {
         CacheConfiguration cache = defaultCacheConfiguration();
 
+        cache.setName(null);
         cache.setWriteSynchronizationMode(CacheWriteSynchronizationMode.FULL_SYNC);
         cache.setRebalanceMode(CacheRebalanceMode.SYNC);
         cache.setCacheMode(cacheMode);
@@ -197,7 +198,7 @@ public class IgniteBinaryObjectFieldsQuerySelfTest extends GridCommonAbstractTes
             }
         }
         finally {
-            grid(3).destroyCache(DEFAULT_CACHE_NAME);
+            grid(3).destroyCache(null);
         }
     }
 
@@ -220,7 +221,7 @@ public class IgniteBinaryObjectFieldsQuerySelfTest extends GridCommonAbstractTes
             for (int i = 0; i < 100; i++) {
                 Object person = all.get(i).getValue();
 
-                assertEquals(Integer.valueOf(i), U.field(person, "id"));
+                assertEquals((Integer) i, U.field(person, "id"));
                 assertEquals("person-" + i, U.field(person, "name"));
                 assertEquals("person-last-" + i, U.field(person, "lastName"));
                 assertEquals((double)(i * 25), U.field(person, "salary"));
@@ -232,7 +233,7 @@ public class IgniteBinaryObjectFieldsQuerySelfTest extends GridCommonAbstractTes
             ScanQuery<BinaryObject, BinaryObject> scanQry = new ScanQuery<>(new PersonKeyFilter(max));
 
             QueryCursor<Cache.Entry<BinaryObject, BinaryObject>> curs = grid(GRID_CNT - 1)
-                .cache(DEFAULT_CACHE_NAME).withKeepBinary().query(scanQry);
+                .cache(null).withKeepBinary().query(scanQry);
 
             List<Cache.Entry<BinaryObject, BinaryObject>> records = curs.getAll();
 
@@ -247,8 +248,7 @@ public class IgniteBinaryObjectFieldsQuerySelfTest extends GridCommonAbstractTes
             }
         }
         finally {
-            grid(GRID_CNT - 1).cache(DEFAULT_CACHE_NAME).removeAll();
-            grid(GRID_CNT - 1).destroyCache(DEFAULT_CACHE_NAME);
+            grid(3).destroyCache(null);
         }
     }
 

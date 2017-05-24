@@ -63,7 +63,7 @@ public class IgniteCacheWriteBehindNoUpdateSelfTest extends GridCommonAbstractTe
     @Override protected IgniteConfiguration getConfiguration(String igniteInstanceName) throws Exception {
         IgniteConfiguration cfg = super.getConfiguration(igniteInstanceName);
 
-        CacheConfiguration<String, Long> ccfg = new CacheConfiguration<>(DEFAULT_CACHE_NAME);
+        CacheConfiguration<String, Long> ccfg = new CacheConfiguration<>();
 
         ccfg.setAtomicityMode(CacheAtomicityMode.ATOMIC);
         ccfg.setCacheMode(CacheMode.PARTITIONED);

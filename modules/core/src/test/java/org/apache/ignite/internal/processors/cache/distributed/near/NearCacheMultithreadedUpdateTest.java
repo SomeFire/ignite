@@ -117,7 +117,7 @@ public class NearCacheMultithreadedUpdateTest extends GridCommonAbstractTest {
     private void updateMultithreaded(CacheAtomicityMode atomicityMode, boolean restart) throws Exception {
         Ignite srv = ignite(0);
 
-        srv.destroyCache(DEFAULT_CACHE_NAME);
+        srv.destroyCache(null);
 
         IgniteCache<Integer, Integer> srvCache = srv.createCache(cacheConfiguration(atomicityMode));
 
@@ -126,14 +126,14 @@ public class NearCacheMultithreadedUpdateTest extends GridCommonAbstractTest {
         assertTrue(client.configuration().isClientMode());
 
         final IgniteCache<Integer, Integer> clientCache =
-            client.createNearCache(DEFAULT_CACHE_NAME, new NearCacheConfiguration<Integer, Integer>());
+            client.createNearCache(null, new NearCacheConfiguration<Integer, Integer>());
 
         final AtomicBoolean stop = new AtomicBoolean();
 
         IgniteInternalFuture<?> restartFut = null;
 
         // Primary key for restarted node.
-        final Integer key0 = primaryKey(ignite(SRV_CNT - 1).cache(DEFAULT_CACHE_NAME));
+        final Integer key0 = primaryKey(ignite(SRV_CNT - 1).cache(null));
 
         if (restart) {
             restartFut = GridTestUtils.runAsync(new Callable<Void>() {
@@ -206,7 +206,7 @@ public class NearCacheMultithreadedUpdateTest extends GridCommonAbstractTest {
      * @return Cache configuration.
      */
     private CacheConfiguration<Integer, Integer> cacheConfiguration(CacheAtomicityMode atomicityMode) {
-        CacheConfiguration<Integer, Integer> ccfg = new CacheConfiguration<>(DEFAULT_CACHE_NAME);
+        CacheConfiguration<Integer, Integer> ccfg = new CacheConfiguration<>();
 
         ccfg.setAtomicityMode(atomicityMode);
         ccfg.setWriteSynchronizationMode(FULL_SYNC);

@@ -48,7 +48,7 @@ public abstract class GridWorker implements Runnable {
     private volatile boolean finished;
 
     /** Whether or not this runnable is cancelled. */
-    protected volatile boolean isCancelled;
+    private volatile boolean isCancelled;
 
     /** Actual thread runner. */
     private volatile Thread runner;

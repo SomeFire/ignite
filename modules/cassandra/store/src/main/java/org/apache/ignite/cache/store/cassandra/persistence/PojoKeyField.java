@@ -18,6 +18,7 @@
 package org.apache.ignite.cache.store.cassandra.persistence;
 
 import java.beans.PropertyDescriptor;
+import org.apache.ignite.cache.query.annotations.QuerySqlField;
 import org.w3c.dom.Element;
 
 /**
@@ -76,5 +77,11 @@ public class PojoKeyField extends PojoField {
      */
     public SortOrder getSortOrder() {
         return sortOrder;
+    }
+
+    /** {@inheritDoc} */
+    @Override protected void init(QuerySqlField sqlField) {
+        if (sqlField.descending())
+            sortOrder = SortOrder.DESC;
     }
 }

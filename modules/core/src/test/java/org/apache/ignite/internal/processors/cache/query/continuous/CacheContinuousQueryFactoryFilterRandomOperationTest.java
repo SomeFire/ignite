@@ -62,6 +62,7 @@ import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.apache.ignite.cache.CacheAtomicityMode.ATOMIC;
 import static org.apache.ignite.cache.CacheAtomicityMode.TRANSACTIONAL;
+import static org.apache.ignite.cache.CacheMemoryMode.ONHEAP_TIERED;
 import static org.apache.ignite.cache.CacheMode.REPLICATED;
 import static org.apache.ignite.internal.processors.cache.query.continuous.CacheContinuousQueryFactoryFilterRandomOperationTest.NonSerializableFilter.isAccepted;
 import static org.apache.ignite.internal.processors.cache.query.continuous.CacheContinuousQueryRandomOperationsTest.ContinuousDeploy.CLIENT;
@@ -93,6 +94,7 @@ public class CacheContinuousQueryFactoryFilterRandomOperationTest extends CacheC
         CacheConfiguration<Object, Object> ccfg = cacheConfiguration(REPLICATED,
             1,
             ATOMIC,
+            ONHEAP_TIERED,
             false);
 
         final IgniteCache<Object, Object> cache = grid(0).createCache(ccfg);

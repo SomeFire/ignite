@@ -17,6 +17,7 @@
 
 namespace Apache.Ignite.Core.Tests.Compute
 {
+    using System;
     using System.Collections.Generic;
     using Apache.Ignite.Core.Binary;
     using Apache.Ignite.Core.Cluster;
@@ -68,6 +69,20 @@ namespace Apache.Ignite.Core.Tests.Compute
             cache.Put(1, obj);
 
             return (IBinaryObject) cache.Get(1);
+        }
+
+        /** <inheritDoc /> */
+        protected override ICollection<Type> GetBinaryTypes()
+        {
+            return new[]
+            {
+                typeof(BinarizableJobResult),
+                typeof(BinarizableTaskArgument),
+                typeof(BinarizableTaskResult),
+                typeof(BinarizableJobArgument),
+                typeof(BinarizableJob),
+                typeof(BinarizableWrapper)
+            };
         }
 
         /// <summary>

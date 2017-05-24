@@ -17,44 +17,34 @@
 
 package org.apache.ignite.internal.visor.file;
 
-import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
+import java.io.Serializable;
+import org.apache.ignite.internal.LessNamingBean;
 import org.apache.ignite.internal.util.typedef.internal.S;
-import org.apache.ignite.internal.util.typedef.internal.U;
-import org.apache.ignite.internal.visor.VisorDataTransferObject;
 
 /**
  * Represents block of bytes from a file, could be optionally zipped.
  */
-public class VisorFileBlock extends VisorDataTransferObject {
+public class VisorFileBlock implements Serializable, LessNamingBean {
     /** */
     private static final long serialVersionUID = 0L;
 
     /** File path. */
-    private String path;
+    private final String path;
 
     /** Marker position. */
-    private long off;
+    private final long off;
 
     /** File size. */
-    private long size;
+    private final long size;
 
     /** Timestamp of last modification of the file. */
-    private long lastModified;
+    private final long lastModified;
 
     /** Whether data was zipped. */
-    private boolean zipped;
+    private final boolean zipped;
 
     /** Data bytes. */
-    private byte[] data;
-
-    /**
-     * Default constructor.
-     */
-    public VisorFileBlock() {
-
-    }
+    private final byte[] data;
 
     /**
      * Create file block with given parameters.
@@ -78,63 +68,43 @@ public class VisorFileBlock extends VisorDataTransferObject {
     /**
      * @return File path.
      */
-    public String getPath() {
+    public String path() {
         return path;
     }
 
     /**
      * @return Marker position.
      */
-    public long getOffset() {
+    public long offset() {
         return off;
     }
 
     /**
      * @return File size.
      */
-    public long getSize() {
+    public long size() {
         return size;
     }
 
     /**
      * @return Timestamp of last modification of the file.
      */
-    public long getLastModified() {
+    public long lastModified() {
         return lastModified;
     }
 
     /**
      * @return Whether data was zipped.
      */
-    public boolean isZipped() {
+    public boolean zipped() {
         return zipped;
     }
 
     /**
      * @return Data bytes.
      */
-    public byte[] getData() {
+    public byte[] data() {
         return data;
-    }
-
-    /** {@inheritDoc} */
-    @Override protected void writeExternalData(ObjectOutput out) throws IOException {
-        U.writeString(out, path);
-        out.writeLong(off);
-        out.writeLong(size);
-        out.writeLong(lastModified);
-        out.writeBoolean(zipped);
-        U.writeByteArray(out, data);
-    }
-
-    /** {@inheritDoc} */
-    @Override protected void readExternalData(byte protoVer, ObjectInput in) throws IOException, ClassNotFoundException {
-        path = U.readString(in);
-        off = in.readLong();
-        size = in.readLong();
-        lastModified = in.readLong();
-        zipped = in.readBoolean();
-        data = U.readByteArray(in);
     }
 
     /** {@inheritDoc} */

@@ -27,19 +27,19 @@ import org.apache.ignite.internal.visor.VisorOneNodeTask;
  * Format IGFS instance.
  */
 @GridInternal
-public class VisorIgfsFormatTask extends VisorOneNodeTask<VisorIgfsFormatTaskArg, Void> {
+public class VisorIgfsFormatTask extends VisorOneNodeTask<String, Void> {
     /** */
     private static final long serialVersionUID = 0L;
 
     /** {@inheritDoc} */
-    @Override protected VisorIgfsFormatJob job(VisorIgfsFormatTaskArg arg) {
+    @Override protected VisorIgfsFormatJob job(String arg) {
         return new VisorIgfsFormatJob(arg, debug);
     }
 
     /**
      * Job that format IGFS.
      */
-    private static class VisorIgfsFormatJob extends VisorJob<VisorIgfsFormatTaskArg, Void> {
+    private static class VisorIgfsFormatJob extends VisorJob<String, Void> {
         /** */
         private static final long serialVersionUID = 0L;
 
@@ -47,17 +47,17 @@ public class VisorIgfsFormatTask extends VisorOneNodeTask<VisorIgfsFormatTaskArg
          * @param arg IGFS name to format.
          * @param debug Debug flag.
          */
-        private VisorIgfsFormatJob(VisorIgfsFormatTaskArg arg, boolean debug) {
+        private VisorIgfsFormatJob(String arg, boolean debug) {
             super(arg, debug);
         }
 
         /** {@inheritDoc} */
-        @Override protected Void run(VisorIgfsFormatTaskArg arg) {
+        @Override protected Void run(String igfsName) {
             try {
-                ignite.fileSystem(arg.getIgfsName()).clear();
+                ignite.fileSystem(igfsName).clear();
             }
             catch (IllegalArgumentException iae) {
-                throw new IgniteException("Failed to format IGFS: " + arg.getIgfsName(), iae);
+                throw new IgniteException("Failed to format IGFS: " + igfsName, iae);
             }
 
             return null;

@@ -43,6 +43,9 @@ public class GridFinishedFuture<T> implements IgniteInternalFuture<T> {
     /** Complete value. */
     private final Object res;
 
+    /** Start time. */
+    private final long startTime = U.currentTimeMillis();
+
     /**
      * Creates finished future with complete value.
      */
@@ -78,6 +81,16 @@ public class GridFinishedFuture<T> implements IgniteInternalFuture<T> {
     @SuppressWarnings("unchecked")
     @Override public T result() {
         return resFlag == RES ? (T)res : null;
+    }
+
+    /** {@inheritDoc} */
+    @Override public long startTime() {
+        return startTime;
+    }
+
+    /** {@inheritDoc} */
+    @Override public long duration() {
+        return 0;
     }
 
     /** {@inheritDoc} */

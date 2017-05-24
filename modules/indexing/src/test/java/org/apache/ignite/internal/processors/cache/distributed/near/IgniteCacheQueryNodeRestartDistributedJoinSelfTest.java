@@ -36,21 +36,6 @@ import java.util.concurrent.atomic.AtomicIntegerArray;
  * Test for distributed queries with node restarts.
  */
 public class IgniteCacheQueryNodeRestartDistributedJoinSelfTest extends IgniteCacheQueryAbstractDistributedJoinSelfTest {
-    /** Total nodes. */
-    private int totalNodes = 6;
-
-    /** {@inheritDoc} */
-    @Override protected void beforeTestsStarted() throws Exception {
-        super.beforeTestsStarted();
-
-        if (totalNodes > GRID_CNT) {
-            for (int i = GRID_CNT; i < totalNodes; i++)
-                startGrid(i);
-        }
-        else
-            totalNodes = GRID_CNT;
-    }
-
     /**
      * @throws Exception If failed.
      */
@@ -76,7 +61,7 @@ public class IgniteCacheQueryNodeRestartDistributedJoinSelfTest extends IgniteCa
         final int nodeLifeTime = 4000;
         final int logFreq = 100;
 
-        final AtomicIntegerArray locks = new AtomicIntegerArray(totalNodes);
+        final AtomicIntegerArray locks = new AtomicIntegerArray(GRID_CNT);
 
         SqlFieldsQuery qry0 ;
 
@@ -118,87 +103,72 @@ public class IgniteCacheQueryNodeRestartDistributedJoinSelfTest extends IgniteCa
         final AtomicInteger qryCnt = new AtomicInteger();
         final AtomicBoolean qrysDone = new AtomicBoolean();
 
-        final AtomicBoolean fail = new AtomicBoolean();
-
         IgniteInternalFuture<?> fut1 = multithreadedAsync(new CAX() {
             @Override public void applyx() throws IgniteCheckedException {
                 GridRandom rnd = new GridRandom();
 
-                try {
-                    while (!qrysDone.get()) {
-                        int g;
+                while (!qrysDone.get()) {
+                    int g;
 
-                        do {
-                            g = rnd.nextInt(locks.length());
-
-                            if (fail.get())
-                                return;
-                        }
-                        while (!locks.compareAndSet(g, 0, 1));
-
-                        if (rnd.nextBoolean()) {
-                            IgniteCache<?, ?> cache = grid(g).cache("pu");
-
-                            SqlFieldsQuery qry;
-
-                            if (broadcastQry)
-                                qry = new SqlFieldsQuery(QRY_0_BROADCAST).setDistributedJoins(true).setEnforceJoinOrder(true);
-                            else
-                                qry = new SqlFieldsQuery(QRY_0).setDistributedJoins(true);
-
-                            boolean smallPageSize = rnd.nextBoolean();
-
-                            qry.setPageSize(smallPageSize ? 30 : 1000);
-
-                            try {
-                                assertEquals(pRes, cache.query(qry).getAll());
-                            }
-                            catch (CacheException e) {
-                                assertTrue("On large page size must retry.", smallPageSize);
-
-                                boolean failedOnRemoteFetch = false;
-
-                                for (Throwable th = e; th != null; th = th.getCause()) {
-                                    if (!(th instanceof CacheException))
-                                        continue;
-
-                                    if (th.getMessage() != null &&
-                                        th.getMessage().startsWith("Failed to fetch data from node:")) {
-                                        failedOnRemoteFetch = true;
-
-                                        break;
-                                    }
-                                }
-
-                                if (!failedOnRemoteFetch) {
-                                    e.printStackTrace();
-
-                                    fail("Must fail inside of GridResultPage.fetchNextPage or subclass.");
-                                }
-                            }
-                        }
-                        else {
-                            IgniteCache<?, ?> cache = grid(g).cache("co");
-
-                            assertEquals(rRes, cache.query(qry1).getAll());
-                        }
-
-                        locks.set(g, 0);
-
-                        int c = qryCnt.incrementAndGet();
-
-                        if (c % logFreq == 0)
-                            info("Executed queries: " + c);
+                    do {
+                        g = rnd.nextInt(locks.length());
                     }
+                    while (!locks.compareAndSet(g, 0, 1));
+
+                    if (rnd.nextBoolean()) {
+                        IgniteCache<?, ?> cache = grid(g).cache("pu");
+
+                        SqlFieldsQuery qry;
+
+                        if (broadcastQry)
+                            qry = new SqlFieldsQuery(QRY_0_BROADCAST).setDistributedJoins(true).setEnforceJoinOrder(true);
+                        else
+                            qry = new SqlFieldsQuery(QRY_0).setDistributedJoins(true);
+
+                        boolean smallPageSize = rnd.nextBoolean();
+
+                        qry.setPageSize(smallPageSize ? 30 : 1000);
+
+                        try {
+                            assertEquals(pRes, cache.query(qry).getAll());
+                        }
+                        catch (CacheException e) {
+                            assertTrue("On large page size must retry.", smallPageSize);
+
+                            boolean failedOnRemoteFetch = false;
+
+                            for (Throwable th = e; th != null; th = th.getCause()) {
+                                if (!(th instanceof CacheException))
+                                    continue;
+
+                                if (th.getMessage() != null &&
+                                    th.getMessage().startsWith("Failed to fetch data from node:")) {
+                                    failedOnRemoteFetch = true;
+
+                                    break;
+                                }
+                            }
+
+                            if (!failedOnRemoteFetch) {
+                                e.printStackTrace();
+
+                                fail("Must fail inside of GridResultPage.fetchNextPage or subclass.");
+                            }
+                        }
+                    }
+                    else {
+                        IgniteCache<?, ?> cache = grid(g).cache("co");
+
+                        assertEquals(rRes, cache.query(qry1).getAll());
+                    }
+
+                    locks.set(g, 0);
+
+                    int c = qryCnt.incrementAndGet();
+
+                    if (c % logFreq == 0)
+                        info("Executed queries: " + c);
                 }
-                catch (Throwable e){
-                    e.printStackTrace();
-
-                    error("Got exception: " + e.getMessage());
-
-                    fail.set(true);
-                }
-
             }
         }, qryThreadNum, "query-thread");
 
@@ -209,62 +179,49 @@ public class IgniteCacheQueryNodeRestartDistributedJoinSelfTest extends IgniteCa
         IgniteInternalFuture<?> fut2 = multithreadedAsync(new Callable<Object>() {
             @SuppressWarnings({"BusyWait"})
             @Override public Object call() throws Exception {
-                try {
-                    GridRandom rnd = new GridRandom();
+                GridRandom rnd = new GridRandom();
 
-                    while (!restartsDone.get()) {
-                        int g;
+                while (!restartsDone.get()) {
+                    int g;
 
-                        do {
-                            g = rnd.nextInt(locks.length());
-
-                            if (fail.get())
-                                return null;
-                        }
-                        while (!locks.compareAndSet(g, 0, -1));
-
-                        log.info("Stop node: " + g);
-
-                        stopGrid(g);
-
-                        Thread.sleep(rnd.nextInt(nodeLifeTime));
-
-                        log.info("Start node: " + g);
-
-                        startGrid(g);
-
-                        Thread.sleep(rnd.nextInt(nodeLifeTime));
-
-                        locks.set(g, 0);
-
-                        int c = restartCnt.incrementAndGet();
-
-                        if (c % logFreq == 0)
-                            info("Node restarts: " + c);
+                    do {
+                        g = rnd.nextInt(locks.length());
                     }
+                    while (!locks.compareAndSet(g, 0, -1));
 
-                    return true;
-                }
-                catch (Throwable e) {
-                    e.printStackTrace();
+                    log.info("Stop node: " + g);
 
-                    return true;
+                    stopGrid(g);
+
+                    Thread.sleep(rnd.nextInt(nodeLifeTime));
+
+                    log.info("Start node: " + g);
+
+                    startGrid(g);
+
+                    Thread.sleep(rnd.nextInt(nodeLifeTime));
+
+                    locks.set(g, 0);
+
+                    int c = restartCnt.incrementAndGet();
+
+                    if (c % logFreq == 0)
+                        info("Node restarts: " + c);
                 }
+
+                return true;
             }
         }, restartThreadsNum, "restart-thread");
 
         Thread.sleep(duration);
 
-        info("Stopping...");
+        info("Stopping..");
 
         restartsDone.set(true);
         qrysDone.set(true);
 
         fut2.get();
         fut1.get();
-
-        if (fail.get())
-            fail("See message above");
 
         info("Stopped.");
     }

@@ -23,10 +23,7 @@ import org.apache.ignite.internal.util.tostring.GridToStringExclude;
 import org.apache.ignite.internal.util.tostring.GridToStringInclude;
 import org.apache.ignite.internal.util.typedef.internal.A;
 import org.apache.ignite.internal.util.typedef.internal.S;
-import org.jetbrains.annotations.Nullable;
 
-import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -36,9 +33,6 @@ import java.util.Map;
  * Descriptor of type.
  */
 public class QueryTypeDescriptorImpl implements GridQueryTypeDescriptor {
-    /** Cache name. */
-    private final String cacheName;
-
     /** */
     private String name;
 
@@ -56,15 +50,9 @@ public class QueryTypeDescriptorImpl implements GridQueryTypeDescriptor {
     /** Map with upper cased property names to help find properties based on SQL INSERT and MERGE queries. */
     private final Map<String, GridQueryProperty> uppercaseProps = new HashMap<>();
 
-    /** Mutex for operations on indexes. */
-    private final Object idxMux = new Object();
-
     /** */
     @GridToStringInclude
-    private final Map<String, QueryIndexDescriptorImpl> idxs = new HashMap<>();
-
-    /** Aliases. */
-    private Map<String, String> aliases;
+    private final Map<String, QueryIndexDescriptorImpl> indexes = new HashMap<>();
 
     /** */
     private QueryIndexDescriptorImpl fullTextIdx;
@@ -85,35 +73,7 @@ public class QueryTypeDescriptorImpl implements GridQueryTypeDescriptor {
     private boolean valTextIdx;
 
     /** */
-    private int typeId;
-
-    /** */
     private String affKey;
-
-    /** */
-    private String keyFieldName;
-
-    /** */
-    private String valFieldName;
-
-    /** Obsolete. */
-    private volatile boolean obsolete;
-
-    /**
-     * Constructor.
-     *
-     * @param cacheName Cache name.
-     */
-    public QueryTypeDescriptorImpl(String cacheName) {
-        this.cacheName = cacheName;
-    }
-
-    /**
-     * @return Cache name.
-     */
-    public String cacheName() {
-        return cacheName;
-    }
 
     /** {@inheritDoc} */
     @Override public String name() {
@@ -133,8 +93,8 @@ public class QueryTypeDescriptorImpl implements GridQueryTypeDescriptor {
      * Gets table name for type.
      * @return Table name.
      */
-    @Override public String tableName() {
-        return tblName != null ? tblName : name;
+    public String tableName() {
+        return tblName;
     }
 
     /**
@@ -197,92 +157,56 @@ public class QueryTypeDescriptorImpl implements GridQueryTypeDescriptor {
 
     /** {@inheritDoc} */
     @Override public Map<String, GridQueryIndexDescriptor> indexes() {
-        synchronized (idxMux) {
-            return Collections.<String, GridQueryIndexDescriptor>unmodifiableMap(idxs);
-        }
-    }
-
-    /** {@inheritDoc} */
-    @Override public int typeId() {
-        return typeId;
+        return Collections.<String, GridQueryIndexDescriptor>unmodifiableMap(indexes);
     }
 
     /**
-     * @param typeId Type ID.
-     */
-    public void typeId(int typeId) {
-        this.typeId = typeId;
-    }
-
-    /**
-     * Get index by name.
-     *
-     * @param name Name.
-     * @return Index.
-     */
-    @Nullable public QueryIndexDescriptorImpl index(String name) {
-        synchronized (idxMux) {
-            return idxs.get(name);
-        }
-    }
-
-    /**
-     * @return Raw index descriptors.
-     */
-    public Collection<QueryIndexDescriptorImpl> indexes0() {
-        synchronized (idxMux) {
-            return new ArrayList<>(idxs.values());
-        }
-    }
-
-    /** {@inheritDoc} */
-    @Override public GridQueryIndexDescriptor textIndex() {
-        return fullTextIdx;
-    }
-
-    /**
-     * Add index.
-     *
-     * @param idx Index.
-     * @throws IgniteCheckedException If failed.
-     */
-    public void addIndex(QueryIndexDescriptorImpl idx) throws IgniteCheckedException {
-        synchronized (idxMux) {
-            if (idxs.put(idx.name(), idx) != null)
-                throw new IgniteCheckedException("Index with name '" + idx.name() + "' already exists.");
-        }
-    }
-
-    /**
-     * Drop index.
+     * Adds index.
      *
      * @param idxName Index name.
+     * @param type Index type.
+     * @return Index descriptor.
+     * @throws IgniteCheckedException In case of error.
      */
-    public void dropIndex(String idxName) {
-        synchronized (idxMux) {
-            idxs.remove(idxName);
-        }
+    public QueryIndexDescriptorImpl addIndex(String idxName, QueryIndexType type) throws IgniteCheckedException {
+        QueryIndexDescriptorImpl idx = new QueryIndexDescriptorImpl(type);
+
+        if (indexes.put(idxName, idx) != null)
+            throw new IgniteCheckedException("Index with name '" + idxName + "' already exists.");
+
+        return idx;
     }
 
     /**
-     * Chedk if particular field exists.
+     * Adds field to index.
      *
-     * @param field Field.
-     * @return {@code True} if exists.
+     * @param idxName Index name.
+     * @param field Field name.
+     * @param orderNum Fields order number in index.
+     * @param descending Sorting order.
+     * @throws IgniteCheckedException If failed.
      */
-    public boolean hasField(String field) {
-        return props.containsKey(field) || QueryUtils.VAL_FIELD_NAME.equalsIgnoreCase(field);
+    public void addFieldToIndex(String idxName, String field, int orderNum,
+        boolean descending) throws IgniteCheckedException {
+        QueryIndexDescriptorImpl desc = indexes.get(idxName);
+
+        if (desc == null)
+            desc = addIndex(idxName, QueryIndexType.SORTED);
+
+        desc.addField(field, orderNum, descending);
     }
 
     /**
      * Adds field to text index.
      *
      * @param field Field name.
-     * @throws IgniteCheckedException If failed.
      */
-    public void addFieldToTextIndex(String field) throws IgniteCheckedException {
-        if (fullTextIdx == null)
-            fullTextIdx = new QueryIndexDescriptorImpl(this, null, QueryIndexType.FULLTEXT, 0);
+    public void addFieldToTextIndex(String field) {
+        if (fullTextIdx == null) {
+            fullTextIdx = new QueryIndexDescriptorImpl(QueryIndexType.FULLTEXT);
+
+            indexes.put(null, fullTextIdx);
+        }
 
         fullTextIdx.addField(field, 0, false);
     }
@@ -389,62 +313,8 @@ public class QueryTypeDescriptorImpl implements GridQueryTypeDescriptor {
         this.affKey = affKey;
     }
 
-    /**
-     * @return Aliases.
-     */
-    public Map<String, String> aliases() {
-        return aliases != null ? aliases : Collections.<String, String>emptyMap();
-    }
-
-    /**
-     * @param aliases Aliases.
-     */
-    public void aliases(Map<String, String> aliases) {
-        this.aliases = aliases;
-    }
-
-    /**
-     * @return {@code True} if obsolete.
-     */
-    public boolean obsolete() {
-        return obsolete;
-    }
-
-    /**
-     * Mark index as obsolete.
-     */
-    public void markObsolete() {
-        obsolete = true;
-    }
-
     /** {@inheritDoc} */
     @Override public String toString() {
         return S.toString(QueryTypeDescriptorImpl.class, this);
-    }
-
-    /**
-     * Sets key field name.
-     * @param keyFieldName Key field name.
-     */
-    public void keyFieldName(String keyFieldName) {
-        this.keyFieldName = keyFieldName;
-    }
-
-    /** {@inheritDoc} */
-    @Override public String keyFieldName() {
-        return keyFieldName;
-    }
-
-    /**
-     * Sets value field name.
-     * @param valueFieldName value field name.
-     */
-    public void valueFieldName(String valueFieldName) {
-        this.valFieldName = valueFieldName;
-    }
-
-    /** {@inheritDoc} */
-    @Override public String valueFieldName() {
-        return valFieldName;
     }
 }

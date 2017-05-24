@@ -20,6 +20,7 @@ package org.apache.ignite.internal.processors.cache;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteCache;
 import org.apache.ignite.IgniteCheckedException;
+import org.apache.ignite.cache.CacheMemoryMode;
 import org.apache.ignite.cache.CachePeekMode;
 import org.apache.ignite.cache.eviction.fifo.FifoEvictionPolicy;
 import org.apache.ignite.configuration.CacheConfiguration;
@@ -155,7 +156,9 @@ public class IgniteCacheReadThroughEvictionSelfTest extends IgniteCacheConfigVar
         CacheConfiguration<Object, Object> cc = variationConfig("eviction");
 
         cc.setEvictionPolicy(new FifoEvictionPolicy(1));
-        cc.setOnheapCacheEnabled(true);
+
+        if (cc.getMemoryMode() == CacheMemoryMode.OFFHEAP_TIERED)
+            cc.setOffHeapMaxMemory(2 * 1024);
 
         final IgniteCache<Object, Object> cache = ig.createCache(cc);
 
@@ -170,9 +173,9 @@ public class IgniteCacheReadThroughEvictionSelfTest extends IgniteCacheConfigVar
 
                     System.out.println("Cache [onHeap=" + size + ", offHeap=" + offheapSize + ']');
 
-                    return size <= testsCfg.gridCount();
+                    return size <= testsCfg.gridCount() && offheapSize < KEYS;
                 }
-            }, 30_000));
+            }, getTestTimeout()));
 
             for (int i = 0; i < KEYS; i++)
                 assertEquals(value(i), cache.get(key(i)));
@@ -233,6 +236,9 @@ public class IgniteCacheReadThroughEvictionSelfTest extends IgniteCacheConfigVar
                         return true;
 
                     if (!cache.isEmpty())
+                        return false;
+
+                    if (cache.context().offheap().entriesCount(null) > 0)
                         return false;
                 }
 

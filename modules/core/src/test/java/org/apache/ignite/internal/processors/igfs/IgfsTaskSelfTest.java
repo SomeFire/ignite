@@ -117,7 +117,7 @@ public class IgfsTaskSelfTest extends IgfsCommonAbstractTest {
         igfsCfg.setDefaultMode(PRIMARY);
         igfsCfg.setFragmentizerEnabled(false);
 
-        CacheConfiguration dataCacheCfg = new CacheConfiguration(DEFAULT_CACHE_NAME);
+        CacheConfiguration dataCacheCfg = new CacheConfiguration();
 
         dataCacheCfg.setCacheMode(PARTITIONED);
         dataCacheCfg.setAtomicityMode(TRANSACTIONAL);
@@ -125,7 +125,7 @@ public class IgfsTaskSelfTest extends IgfsCommonAbstractTest {
         dataCacheCfg.setAffinityMapper(new IgfsGroupDataBlocksKeyMapper(1));
         dataCacheCfg.setBackups(0);
 
-        CacheConfiguration metaCacheCfg = new CacheConfiguration(DEFAULT_CACHE_NAME);
+        CacheConfiguration metaCacheCfg = new CacheConfiguration();
 
         metaCacheCfg.setCacheMode(REPLICATED);
         metaCacheCfg.setAtomicityMode(TRANSACTIONAL);

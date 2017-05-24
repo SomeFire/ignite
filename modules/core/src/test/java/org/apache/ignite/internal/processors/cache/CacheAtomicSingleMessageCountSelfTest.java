@@ -42,6 +42,7 @@ import org.apache.ignite.spi.discovery.tcp.ipfinder.TcpDiscoveryIpFinder;
 import org.apache.ignite.spi.discovery.tcp.ipfinder.vm.TcpDiscoveryVmIpFinder;
 import org.apache.ignite.testframework.junits.common.GridCommonAbstractTest;
 
+import static org.apache.ignite.cache.CacheAtomicWriteOrderMode.PRIMARY;
 import static org.apache.ignite.cache.CacheMode.PARTITIONED;
 import static org.apache.ignite.cache.CacheWriteSynchronizationMode.FULL_SYNC;
 
@@ -66,11 +67,12 @@ public class CacheAtomicSingleMessageCountSelfTest extends GridCommonAbstractTes
 
         cfg.setDiscoverySpi(discoSpi);
 
-        CacheConfiguration cCfg = new CacheConfiguration(DEFAULT_CACHE_NAME);
+        CacheConfiguration cCfg = new CacheConfiguration();
 
         cCfg.setCacheMode(PARTITIONED);
         cCfg.setBackups(1);
         cCfg.setWriteSynchronizationMode(FULL_SYNC);
+        cCfg.setAtomicWriteOrderMode(PRIMARY);
 
         cfg.setCacheConfiguration(cCfg);
 
@@ -120,7 +122,7 @@ public class CacheAtomicSingleMessageCountSelfTest extends GridCommonAbstractTes
     public void testSingleTransformMessage() throws Exception {
         startGrids(2);
 
-        int cacheId = ((IgniteKernal)grid(0)).internalCache(DEFAULT_CACHE_NAME).context().cacheId();
+        int cacheId = ((IgniteKernal)grid(0)).internalCache(null).context().cacheId();
 
         try {
             awaitPartitionMapExchange();

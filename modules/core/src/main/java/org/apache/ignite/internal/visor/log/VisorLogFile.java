@@ -18,35 +18,24 @@
 package org.apache.ignite.internal.visor.log;
 
 import java.io.File;
-import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
+import java.io.Serializable;
 import org.apache.ignite.internal.util.typedef.internal.S;
-import org.apache.ignite.internal.util.typedef.internal.U;
-import org.apache.ignite.internal.visor.VisorDataTransferObject;
 
 /**
  * Visor log file.
  */
-public class VisorLogFile extends VisorDataTransferObject {
+public class VisorLogFile implements Serializable {
     /** */
     private static final long serialVersionUID = 0L;
 
     /** File path. */
-    private String path;
+    private final String path;
 
     /** File size. */
-    private long size;
+    private final long size;
 
     /** File last modified timestamp. */
-    private long lastModified;
-
-    /**
-     * Default constructor.
-     */
-    public VisorLogFile() {
-        // No-op.
-    }
+    private final long lastModified;
 
     /**
      * Create log file for given file.
@@ -73,36 +62,22 @@ public class VisorLogFile extends VisorDataTransferObject {
     /**
      * @return File path.
      */
-    public String getPath() {
+    public String path() {
         return path;
     }
 
     /**
      * @return File size.
      */
-    public long getSize() {
+    public long size() {
         return size;
     }
 
     /**
      * @return File last modified timestamp.
      */
-    public long getLastModified() {
+    public long lastModified() {
         return lastModified;
-    }
-
-    /** {@inheritDoc} */
-    @Override protected void writeExternalData(ObjectOutput out) throws IOException {
-        U.writeString(out, path);
-        out.writeLong(size);
-        out.writeLong(lastModified);
-    }
-
-    /** {@inheritDoc} */
-    @Override protected void readExternalData(byte protoVer, ObjectInput in) throws IOException, ClassNotFoundException {
-        path = U.readString(in);
-        size = in.readLong();
-        lastModified = in.readLong();
     }
 
     /** {@inheritDoc} */

@@ -20,7 +20,8 @@ package org.apache.ignite.visor.commands.cache
 import org.apache.ignite.cluster.{ClusterGroupEmptyException, ClusterNode}
 import org.apache.ignite.visor.commands.common.VisorTextTable
 import org.apache.ignite.visor.visor._
-import org.apache.ignite.internal.visor.cache.{VisorCacheClearTask, VisorCacheClearTaskArg}
+
+import org.apache.ignite.internal.visor.cache.VisorCacheClearTask
 import org.apache.ignite.internal.visor.util.VisorTaskUtils._
 
 import scala.language.reflectiveCalls
@@ -102,9 +103,9 @@ class VisorCacheClearCommand {
 
             t #= ("Node ID8(@)", "Cache Size Before", "Cache Size After")
 
-            val res = executeOne(nid, classOf[VisorCacheClearTask], new VisorCacheClearTaskArg(cacheName))
+            val res = executeOne(nid, classOf[VisorCacheClearTask], cacheName)
 
-            t += (nodeId8(nid), res.getSizeBefore, res.getSizeAfter)
+            t += (nodeId8(nid), res.get1(), res.get2())
 
             println("Cleared cache with name: " + escapeName(cacheName))
 

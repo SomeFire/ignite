@@ -20,6 +20,7 @@ import templateUrl from './dialog.tpl.pug';
 export default ['IgniteDialog', ['$modal', ($modal) => {
     const defaults = {
         templateUrl,
+        placement: 'center',
         show: false
     };
 

@@ -19,10 +19,8 @@ package org.apache.ignite.testsuites;
 
 import junit.framework.TestSuite;
 import org.apache.ignite.internal.processors.cache.transactions.DepthFirstSearchTest;
-import org.apache.ignite.internal.processors.cache.transactions.TxDeadlockDetectionMessageMarshallingTest;
 import org.apache.ignite.internal.processors.cache.transactions.TxDeadlockDetectionNoHangsTest;
 import org.apache.ignite.internal.processors.cache.transactions.TxDeadlockDetectionTest;
-import org.apache.ignite.internal.processors.cache.transactions.TxDeadlockDetectionUnmasrhalErrorsTest;
 import org.apache.ignite.internal.processors.cache.transactions.TxOptimisticDeadlockDetectionCrossCacheTest;
 import org.apache.ignite.internal.processors.cache.transactions.TxOptimisticDeadlockDetectionTest;
 import org.apache.ignite.internal.processors.cache.transactions.TxPessimisticDeadlockDetectionCrossCacheTest;
@@ -46,8 +44,6 @@ public class TxDeadlockDetectionTestSuite extends TestSuite {
         suite.addTestSuite(TxPessimisticDeadlockDetectionCrossCacheTest.class);
         suite.addTestSuite(TxDeadlockDetectionTest.class);
         suite.addTestSuite(TxDeadlockDetectionNoHangsTest.class);
-        suite.addTestSuite(TxDeadlockDetectionUnmasrhalErrorsTest.class);
-        suite.addTestSuite(TxDeadlockDetectionMessageMarshallingTest.class);
 
         return suite;
     }

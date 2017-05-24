@@ -18,10 +18,12 @@
 package org.apache.ignite.internal.processors.cache.datastructures.local;
 
 import org.apache.ignite.cache.CacheAtomicityMode;
+import org.apache.ignite.cache.CacheMemoryMode;
 import org.apache.ignite.cache.CacheMode;
 import org.apache.ignite.internal.processors.cache.datastructures.GridCacheSetAbstractSelfTest;
 
 import static org.apache.ignite.cache.CacheAtomicityMode.ATOMIC;
+import static org.apache.ignite.cache.CacheMemoryMode.ONHEAP_TIERED;
 import static org.apache.ignite.cache.CacheMode.LOCAL;
 
 /**
@@ -36,6 +38,11 @@ public class GridCacheLocalAtomicSetSelfTest extends GridCacheSetAbstractSelfTes
     /** {@inheritDoc} */
     @Override protected CacheMode collectionCacheMode() {
         return LOCAL;
+    }
+
+    /** {@inheritDoc} */
+    @Override protected CacheMemoryMode collectionMemoryMode() {
+        return ONHEAP_TIERED;
     }
 
     /** {@inheritDoc} */

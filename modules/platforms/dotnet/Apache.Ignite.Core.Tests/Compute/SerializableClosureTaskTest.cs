@@ -25,7 +25,6 @@ namespace Apache.Ignite.Core.Tests.Compute
     /// <summary>
     /// Closure execution tests for serializable objects.
     /// </summary>
-    [TestFixture]
     public class SerializableClosureTaskTest : ClosureTaskTest
     {
         /// <summary>
@@ -54,11 +53,11 @@ namespace Apache.Ignite.Core.Tests.Compute
         /** <inheritDoc /> */
         protected override void CheckResult(object res)
         {
-            Assert.IsNotNull(res);
+            Assert.IsTrue(res != null);
 
-            var res0 = res as SerializableResult;
+            SerializableResult res0 = res as SerializableResult;
 
-            Assert.IsNotNull(res0);
+            Assert.IsTrue(res0 != null);
             Assert.AreEqual(1, res0.Res);
         }
 
@@ -72,10 +71,9 @@ namespace Apache.Ignite.Core.Tests.Compute
             if (aggregate != null)
                 err = aggregate.InnerException;
 
-            Assert.IsNotNull(err);
-            SerializableException err0 = err.InnerException as SerializableException;
+            SerializableException err0 = err as SerializableException;
 
-            Assert.IsNotNull(err0);
+            Assert.IsTrue(err0 != null);
             Assert.AreEqual(ErrMsg, err0.Msg);
         }
 
@@ -86,12 +84,12 @@ namespace Apache.Ignite.Core.Tests.Compute
         private class SerializableOutFunc : IComputeFunc<object>
         {
             /** Error. */
-            private readonly bool _err;
+            private bool _err;
 
             /// <summary>
             ///
             /// </summary>
-            private SerializableOutFunc()
+            public SerializableOutFunc()
             {
                 // No-op.
             }
@@ -110,7 +108,6 @@ namespace Apache.Ignite.Core.Tests.Compute
             {
                 if (_err)
                     throw new SerializableException(ErrMsg);
-
                 return new SerializableResult(1);
             }
         }
@@ -122,12 +119,12 @@ namespace Apache.Ignite.Core.Tests.Compute
         private class SerializableFunc : IComputeFunc<object, object>
         {
             /** Error. */
-            private readonly bool _err;
+            private bool _err;
 
             /// <summary>
             ///
             /// </summary>
-            private SerializableFunc()
+            public SerializableFunc()
             {
                 // No-op.
             }
@@ -159,12 +156,12 @@ namespace Apache.Ignite.Core.Tests.Compute
         private class SerializableException : Exception
         {
             /** */
-            public readonly string Msg;
+            public string Msg;
 
             /// <summary>
             ///
             /// </summary>
-            private SerializableException()
+            public SerializableException()
             {
                 // No-op.
             }
@@ -182,7 +179,7 @@ namespace Apache.Ignite.Core.Tests.Compute
             /// </summary>
             /// <param name="info"></param>
             /// <param name="context"></param>
-            protected SerializableException(SerializationInfo info, StreamingContext context) : base(info, context)
+            public SerializableException(SerializationInfo info, StreamingContext context) : base(info, context)
             {
                 Msg = info.GetString("msg");
             }
@@ -202,12 +199,12 @@ namespace Apache.Ignite.Core.Tests.Compute
         [Serializable]
         private class SerializableResult
         {
-            public readonly int Res;
+            public int Res;
 
             /// <summary>
             ///
             /// </summary>
-            private SerializableResult()
+            public SerializableResult()
             {
                 // No-op.
             }

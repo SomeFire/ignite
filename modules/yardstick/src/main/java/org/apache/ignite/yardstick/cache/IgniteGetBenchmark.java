@@ -29,9 +29,6 @@ import static org.yardstickframework.BenchmarkUtils.println;
  * Ignite benchmark that performs get operations.
  */
 public class IgniteGetBenchmark extends IgniteCacheAbstractBenchmark<Integer, Object> {
-    /** */
-    private static final String CACHE_NAME = "atomic";
-
     /** {@inheritDoc} */
     @Override public void setUp(BenchmarkConfiguration cfg) throws Exception {
         super.setUp(cfg);
@@ -73,6 +70,6 @@ public class IgniteGetBenchmark extends IgniteCacheAbstractBenchmark<Integer, Ob
 
     /** {@inheritDoc} */
     @Override protected IgniteCache<Integer, Object> cache() {
-        return ignite().cache(CACHE_NAME);
+        return ignite().cache("atomic");
     }
 }

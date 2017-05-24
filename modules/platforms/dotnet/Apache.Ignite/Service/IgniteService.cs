@@ -32,7 +32,7 @@ namespace Apache.Ignite.Service
     /// <summary>
     /// Ignite windows service.
     /// </summary>
-    internal class IgniteService : ServiceBase, ILifecycleHandler
+    internal class IgniteService : ServiceBase, ILifecycleBean
     {
         /** Service name. */
         public const string SvcName = "Apache Ignite.NET";
@@ -66,11 +66,11 @@ namespace Apache.Ignite.Service
             _cfg = cfg;
 
             // Subscribe to lifecycle events
-            var beans = _cfg.LifecycleHandlers ?? new List<ILifecycleHandler>();
+            var beans = _cfg.LifecycleBeans ?? new List<ILifecycleBean>();
 
             beans.Add(this);
 
-            _cfg.LifecycleHandlers = beans;
+            _cfg.LifecycleBeans = beans;
         }
 
         /** <inheritDoc /> */

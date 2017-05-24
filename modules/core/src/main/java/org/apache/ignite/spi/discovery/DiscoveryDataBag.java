@@ -188,15 +188,14 @@ public class DiscoveryDataBag {
     }
 
     /**
-     * @return ID of joining node.
+     *
      */
     public UUID joiningNodeId() {
         return joiningNodeId;
     }
 
     /**
-     * @param cmpId Component ID.
-     * @return Discovery data for given component.
+     * @param cmpId component ID.
      */
     public GridDiscoveryData gridDiscoveryData(int cmpId) {
         if (gridData == null)
@@ -208,8 +207,7 @@ public class DiscoveryDataBag {
     }
 
     /**
-     * @param cmpId Component ID.
-     * @return Joining node discovery data.
+     * @param cmpId component ID.
      */
     public JoiningNodeDiscoveryData newJoinerDiscoveryData(int cmpId) {
         if (newJoinerData == null)
@@ -221,7 +219,7 @@ public class DiscoveryDataBag {
     }
 
     /**
-     * @param cmpId Component ID.
+     * @param cmpId component ID.
      * @param data Data.
      */
     public void addJoiningNodeData(Integer cmpId, Serializable data) {
@@ -229,7 +227,7 @@ public class DiscoveryDataBag {
     }
 
     /**
-     * @param cmpId Component ID.
+     * @param cmpId component ID.
      * @param data Data.
      */
     public void addGridCommonData(Integer cmpId, Serializable data) {
@@ -237,7 +235,7 @@ public class DiscoveryDataBag {
     }
 
     /**
-     * @param cmpId Component ID.
+     * @param cmpId component ID.
      * @param data Data.
      */
     public void addNodeSpecificData(Integer cmpId, Serializable data) {
@@ -248,8 +246,7 @@ public class DiscoveryDataBag {
     }
 
     /**
-     * @param cmpId Component ID.
-     * @return {@code True} if common data collected for given component.
+     * @param cmpId component ID.
      */
     public boolean commonDataCollectedFor(Integer cmpId) {
         assert cmnDataInitializedCmps != null;
@@ -298,4 +295,5 @@ public class DiscoveryDataBag {
     @Nullable public Map<Integer, Serializable> localNodeSpecificData() {
         return nodeSpecificData.get(DEFAULT_KEY);
     }
+
 }

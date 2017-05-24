@@ -43,6 +43,7 @@ import org.apache.ignite.IgniteCache;
 import org.apache.ignite.IgniteException;
 import org.apache.ignite.cache.CacheAtomicityMode;
 import org.apache.ignite.cache.CacheEntryEventSerializableFilter;
+import org.apache.ignite.cache.CacheMemoryMode;
 import org.apache.ignite.cache.CacheMode;
 import org.apache.ignite.cache.CachePeekMode;
 import org.apache.ignite.cache.query.ContinuousQuery;
@@ -78,6 +79,7 @@ import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.apache.ignite.cache.CacheAtomicityMode.ATOMIC;
 import static org.apache.ignite.cache.CacheAtomicityMode.TRANSACTIONAL;
+import static org.apache.ignite.cache.CacheMemoryMode.ONHEAP_TIERED;
 import static org.apache.ignite.cache.CacheMode.LOCAL;
 import static org.apache.ignite.cache.CacheMode.PARTITIONED;
 import static org.apache.ignite.cache.CacheMode.REPLICATED;
@@ -119,6 +121,7 @@ public abstract class GridCacheContinuousQueryAbstractSelfTest extends GridCommo
             cacheCfg.setReadThrough(true);
             cacheCfg.setWriteThrough(true);
             cacheCfg.setLoadPreviousValue(true);
+            cacheCfg.setMemoryMode(memoryMode());
 
             cfg.setCacheConfiguration(cacheCfg);
         }
@@ -134,6 +137,13 @@ public abstract class GridCacheContinuousQueryAbstractSelfTest extends GridCommo
         ((TcpCommunicationSpi)cfg.getCommunicationSpi()).setSharedMemoryPort(-1);
 
         return cfg;
+    }
+
+    /**
+     * @return Cache memory mode.
+     */
+    protected CacheMemoryMode memoryMode() {
+        return ONHEAP_TIERED;
     }
 
     /**
@@ -179,7 +189,7 @@ public abstract class GridCacheContinuousQueryAbstractSelfTest extends GridCommo
         for (int i = 0; i < gridCount(); i++) {
             for (int j = 0; j < 5; j++) {
                 try {
-                    IgniteCache<Object, Object> cache = grid(i).cache(DEFAULT_CACHE_NAME);
+                    IgniteCache<Object, Object> cache = grid(i).cache(null);
 
                     for (Cache.Entry<Object, Object> entry : cache.localEntries(new CachePeekMode[] {CachePeekMode.ALL}))
                         cache.remove(entry.getKey());
@@ -198,20 +208,6 @@ public abstract class GridCacheContinuousQueryAbstractSelfTest extends GridCommo
             }
         }
 
-        // Wait for all routines are unregistered
-        GridTestUtils.waitForCondition(new PA() {
-            @Override public boolean apply() {
-                for (int i = 0; i < gridCount(); i++) {
-                    GridContinuousProcessor proc = grid(i).context().continuous();
-
-                    if(((Map)U.field(proc, "rmtInfos")).size() > 0)
-                        return false;
-                }
-
-                return true;
-            }
-        }, 3000);
-
         for (int i = 0; i < gridCount(); i++) {
             GridContinuousProcessor proc = grid(i).context().continuous();
 
@@ -221,7 +217,7 @@ public abstract class GridCacheContinuousQueryAbstractSelfTest extends GridCommo
             assertEquals(String.valueOf(i), 0, ((Map)U.field(proc, "stopFuts")).size());
             assertEquals(String.valueOf(i), 0, ((Map)U.field(proc, "bufCheckThreads")).size());
 
-            CacheContinuousQueryManager mgr = grid(i).context().cache().internalCache(DEFAULT_CACHE_NAME).context().continuousQueries();
+            CacheContinuousQueryManager mgr = grid(i).context().cache().internalCache().context().continuousQueries();
 
             assertEquals(0, ((Map)U.field(mgr, "lsnrs")).size());
         }
@@ -291,7 +287,7 @@ public abstract class GridCacheContinuousQueryAbstractSelfTest extends GridCommo
      * @throws Exception If failed.
      */
     public void testAllEntries() throws Exception {
-        IgniteCache<Integer, Integer> cache = grid(0).cache(DEFAULT_CACHE_NAME);
+        IgniteCache<Integer, Integer> cache = grid(0).cache(null);
 
         ContinuousQuery<Integer, Integer> qry = new ContinuousQuery<>();
 
@@ -357,7 +353,7 @@ public abstract class GridCacheContinuousQueryAbstractSelfTest extends GridCommo
      * @throws Exception If failed.
      */
     public void testFilterException() throws Exception {
-        IgniteCache<Integer, Integer> cache = grid(0).cache(DEFAULT_CACHE_NAME);
+        IgniteCache<Integer, Integer> cache = grid(0).cache(null);
 
         ContinuousQuery<Integer, Integer> qry = new ContinuousQuery<>();
 
@@ -386,8 +382,8 @@ public abstract class GridCacheContinuousQueryAbstractSelfTest extends GridCommo
         if (cacheMode() == LOCAL)
             return;
 
-        IgniteCache<Integer, Integer> cache = grid(0).cache(DEFAULT_CACHE_NAME);
-        IgniteCache<Integer, Integer> cache1 = grid(1).cache(DEFAULT_CACHE_NAME);
+        IgniteCache<Integer, Integer> cache = grid(0).cache(null);
+        IgniteCache<Integer, Integer> cache1 = grid(1).cache(null);
 
         final AtomicInteger cntr = new AtomicInteger(0);
         final AtomicInteger cntr1 = new AtomicInteger(0);
@@ -412,7 +408,7 @@ public abstract class GridCacheContinuousQueryAbstractSelfTest extends GridCommo
         try (QueryCursor<Cache.Entry<Integer, Integer>> qryCur2 = cache1.query(qry2);
              QueryCursor<Cache.Entry<Integer, Integer>> qryCur1 = cache.query(qry1)) {
             for (int i = 0; i < gridCount(); i++) {
-                IgniteCache<Object, Object> cache0 = grid(i).cache(DEFAULT_CACHE_NAME);
+                IgniteCache<Object, Object> cache0 = grid(i).cache(null);
 
                 cache0.put(1, 1);
                 cache0.put(2, 2);
@@ -441,9 +437,9 @@ public abstract class GridCacheContinuousQueryAbstractSelfTest extends GridCommo
         if (cacheMode() == LOCAL)
             return;
 
-        IgniteCache<Integer, Integer> cache = grid(0).cache(DEFAULT_CACHE_NAME);
+        IgniteCache<Integer, Integer> cache = grid(0).cache(null);
 
-        final int parts = grid(0).affinity(DEFAULT_CACHE_NAME).partitions();
+        final int parts = grid(0).affinity(null).partitions();
 
         final int keyCnt = parts * 2;
 
@@ -491,7 +487,7 @@ public abstract class GridCacheContinuousQueryAbstractSelfTest extends GridCommo
      * @throws Exception If failed.
      */
     public void testEntriesByFilter() throws Exception {
-        IgniteCache<Integer, Integer> cache = grid(0).cache(DEFAULT_CACHE_NAME);
+        IgniteCache<Integer, Integer> cache = grid(0).cache(null);
 
         ContinuousQuery<Integer, Integer> qry = new ContinuousQuery<>();
 
@@ -560,9 +556,9 @@ public abstract class GridCacheContinuousQueryAbstractSelfTest extends GridCommo
      * @throws Exception If failed.
      */
     public void testLocalNodeOnly() throws Exception {
-        IgniteCache<Integer, Integer> cache = grid(0).cache(DEFAULT_CACHE_NAME);
+        IgniteCache<Integer, Integer> cache = grid(0).cache(null);
 
-        if (grid(0).cache(DEFAULT_CACHE_NAME).getConfiguration(CacheConfiguration.class).getCacheMode() != PARTITIONED)
+        if (grid(0).cache(null).getConfiguration(CacheConfiguration.class).getCacheMode() != PARTITIONED)
             return;
 
         ContinuousQuery<Integer, Integer> qry = new ContinuousQuery<>();
@@ -597,7 +593,7 @@ public abstract class GridCacheContinuousQueryAbstractSelfTest extends GridCommo
             int key = 0;
 
             while (true) {
-                ClusterNode n = grid(0).affinity(DEFAULT_CACHE_NAME).mapKeyToNode(key);
+                ClusterNode n = grid(0).affinity(null).mapKeyToNode(key);
 
                 assert n != null;
 
@@ -631,10 +627,10 @@ public abstract class GridCacheContinuousQueryAbstractSelfTest extends GridCommo
      * @throws Exception If failed.
      */
     public void testBuffering() throws Exception {
-        if (grid(0).cache(DEFAULT_CACHE_NAME).getConfiguration(CacheConfiguration.class).getCacheMode() != PARTITIONED)
+        if (grid(0).cache(null).getConfiguration(CacheConfiguration.class).getCacheMode() != PARTITIONED)
             return;
 
-        IgniteCache<Integer, Integer> cache = grid(0).cache(DEFAULT_CACHE_NAME);
+        IgniteCache<Integer, Integer> cache = grid(0).cache(null);
 
         ContinuousQuery<Integer, Integer> qry = new ContinuousQuery<>();
 
@@ -671,7 +667,7 @@ public abstract class GridCacheContinuousQueryAbstractSelfTest extends GridCommo
             int key = 0;
 
             while (true) {
-                ClusterNode n = grid(0).affinity(DEFAULT_CACHE_NAME).mapKeyToNode(key);
+                ClusterNode n = grid(0).affinity(null).mapKeyToNode(key);
 
                 assert n != null;
 
@@ -716,7 +712,7 @@ public abstract class GridCacheContinuousQueryAbstractSelfTest extends GridCommo
      * @throws Exception If failed.
      */
     public void testTimeInterval() throws Exception {
-        IgniteCache<Integer, Integer> cache = grid(0).cache(DEFAULT_CACHE_NAME);
+        IgniteCache<Integer, Integer> cache = grid(0).cache(null);
 
         if (cache.getConfiguration(CacheConfiguration.class).getCacheMode() != PARTITIONED)
             return;
@@ -757,7 +753,7 @@ public abstract class GridCacheContinuousQueryAbstractSelfTest extends GridCommo
             int key = 0;
 
             while (true) {
-                ClusterNode n = grid(0).affinity(DEFAULT_CACHE_NAME).mapKeyToNode(key);
+                ClusterNode n = grid(0).affinity(null).mapKeyToNode(key);
 
                 assert n != null;
 
@@ -796,7 +792,7 @@ public abstract class GridCacheContinuousQueryAbstractSelfTest extends GridCommo
      * @throws Exception If failed.
      */
     public void testInitialQuery() throws Exception {
-        IgniteCache<Integer, Integer> cache = grid(0).cache(DEFAULT_CACHE_NAME);
+        IgniteCache<Integer, Integer> cache = grid(0).cache(null);
 
         ContinuousQuery<Integer, Integer> qry = new ContinuousQuery<>();
 
@@ -841,7 +837,7 @@ public abstract class GridCacheContinuousQueryAbstractSelfTest extends GridCommo
      * @throws Exception If failed.
      */
     public void testInitialQueryAndUpdates() throws Exception {
-        IgniteCache<Integer, Integer> cache = grid(0).cache(DEFAULT_CACHE_NAME);
+        IgniteCache<Integer, Integer> cache = grid(0).cache(null);
 
         ContinuousQuery<Integer, Integer> qry = new ContinuousQuery<>();
 
@@ -903,7 +899,7 @@ public abstract class GridCacheContinuousQueryAbstractSelfTest extends GridCommo
      * @throws Exception If failed.
      */
     public void testLoadCache() throws Exception {
-        IgniteCache<Integer, Integer> cache = grid(0).cache(DEFAULT_CACHE_NAME);
+        IgniteCache<Integer, Integer> cache = grid(0).cache(null);
 
         ContinuousQuery<Integer, Integer> qry = new ContinuousQuery<>();
 
@@ -939,7 +935,7 @@ public abstract class GridCacheContinuousQueryAbstractSelfTest extends GridCommo
         if (atomicityMode() == ATOMIC)
             return;
 
-        IgniteCache<Object, Object> cache = grid(0).cache(DEFAULT_CACHE_NAME);
+        IgniteCache<Object, Object> cache = grid(0).cache(null);
 
         ContinuousQuery<Object, Object> qry = new ContinuousQuery<>();
 
@@ -976,7 +972,7 @@ public abstract class GridCacheContinuousQueryAbstractSelfTest extends GridCommo
      */
     @SuppressWarnings("TryFinallyCanBeTryWithResources")
     public void testNodeJoinWithoutCache() throws Exception {
-        IgniteCache<Integer, Integer> cache = grid(0).cache(DEFAULT_CACHE_NAME);
+        IgniteCache<Integer, Integer> cache = grid(0).cache(null);
 
         ContinuousQuery<Integer, Integer> qry = new ContinuousQuery<>();
 
@@ -1019,7 +1015,7 @@ public abstract class GridCacheContinuousQueryAbstractSelfTest extends GridCommo
                 CacheQueryReadEvent qe = (CacheQueryReadEvent)evt;
 
                 assertEquals(CONTINUOUS.name(), qe.queryType());
-                assertEquals(DEFAULT_CACHE_NAME, qe.cacheName());
+                assertNull(qe.cacheName());
 
                 assertEquals(grid(0).localNode().id(), qe.subjectId());
 
@@ -1043,7 +1039,7 @@ public abstract class GridCacheContinuousQueryAbstractSelfTest extends GridCommo
                 CacheQueryExecutedEvent qe = (CacheQueryExecutedEvent)evt;
 
                 assertEquals(CONTINUOUS.name(), qe.queryType());
-                assertEquals(DEFAULT_CACHE_NAME, qe.cacheName());
+                assertNull(qe.cacheName());
 
                 assertEquals(grid(0).localNode().id(), qe.subjectId());
 
@@ -1065,7 +1061,7 @@ public abstract class GridCacheContinuousQueryAbstractSelfTest extends GridCommo
                 grid(i).events().localListen(execLsnr, EVT_CACHE_QUERY_EXECUTED);
             }
 
-            IgniteCache<Integer, Integer> cache = grid(0).cache(DEFAULT_CACHE_NAME);
+            IgniteCache<Integer, Integer> cache = grid(0).cache(null);
 
             ContinuousQuery<Integer, Integer> qry = new ContinuousQuery<>();
 
@@ -1103,7 +1099,7 @@ public abstract class GridCacheContinuousQueryAbstractSelfTest extends GridCommo
      * @throws Exception If failed.
      */
     public void testExpired() throws Exception {
-        IgniteCache<Object, Object> cache = grid(0).cache(DEFAULT_CACHE_NAME).
+        IgniteCache<Object, Object> cache = grid(0).cache(null).
             withExpiryPolicy(new CreatedExpiryPolicy(new Duration(MILLISECONDS, 1000)));
 
         final Map<Object, Object> map = new ConcurrentHashMap8<>();

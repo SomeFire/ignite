@@ -28,6 +28,7 @@ import org.apache.ignite.internal.util.typedef.internal.U;
 import org.apache.ignite.internal.visor.VisorJob;
 import org.apache.ignite.internal.visor.VisorOneNodeTask;
 import org.apache.ignite.internal.visor.log.VisorLogFile;
+import org.apache.ignite.lang.IgniteBiTuple;
 import org.jetbrains.annotations.Nullable;
 
 import static org.apache.ignite.internal.visor.util.VisorTaskUtils.LOG_FILES_COUNT_LIMIT;
@@ -37,19 +38,19 @@ import static org.apache.ignite.internal.visor.util.VisorTaskUtils.matchedFiles;
  * Get list files matching filter.
  */
 @GridInternal
-public class VisorLatestTextFilesTask extends VisorOneNodeTask<VisorLatestTextFilesTaskArg, Collection<VisorLogFile>> {
+public class VisorLatestTextFilesTask extends VisorOneNodeTask<IgniteBiTuple<String, String>, Collection<VisorLogFile>> {
     /** */
     private static final long serialVersionUID = 0L;
 
     /** {@inheritDoc} */
-    @Override protected VisorLatestTextFilesJob job(VisorLatestTextFilesTaskArg arg) {
+    @Override protected VisorLatestTextFilesJob job(IgniteBiTuple<String, String> arg) {
         return new VisorLatestTextFilesJob(arg, debug);
     }
 
     /**
      * Job that gets list of files.
      */
-    private static class VisorLatestTextFilesJob extends VisorJob<VisorLatestTextFilesTaskArg, Collection<VisorLogFile>> {
+    private static class VisorLatestTextFilesJob extends VisorJob<IgniteBiTuple<String, String>, Collection<VisorLogFile>> {
         /** */
         private static final long serialVersionUID = 0L;
 
@@ -57,14 +58,14 @@ public class VisorLatestTextFilesTask extends VisorOneNodeTask<VisorLatestTextFi
          * @param arg Folder and regexp.
          * @param debug Debug flag.
          */
-        private VisorLatestTextFilesJob(VisorLatestTextFilesTaskArg arg, boolean debug) {
+        private VisorLatestTextFilesJob(IgniteBiTuple<String, String> arg, boolean debug) {
             super(arg, debug);
         }
 
         /** {@inheritDoc} */
-        @Nullable @Override protected Collection<VisorLogFile> run(final VisorLatestTextFilesTaskArg arg) {
-            String path = arg.getPath();
-            String regexp = arg.getRegexp();
+        @Nullable @Override protected Collection<VisorLogFile> run(final IgniteBiTuple<String, String> arg) {
+            String path = arg.get1();
+            String regexp = arg.get2();
 
             assert path != null;
             assert regexp != null;

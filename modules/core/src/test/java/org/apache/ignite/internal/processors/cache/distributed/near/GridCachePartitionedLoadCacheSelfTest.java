@@ -103,7 +103,7 @@ public class GridCachePartitionedLoadCacheSelfTest extends GridCommonAbstractTes
             else
                 cache.localLoadCache(null, PUT_CNT);
 
-            Affinity<Integer> aff = grid(0).affinity(DEFAULT_CACHE_NAME);
+            Affinity<Integer> aff = grid(0).affinity(null);
 
             int[] parts = aff.allPartitions(grid(0).localNode());
 

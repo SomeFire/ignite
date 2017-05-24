@@ -26,7 +26,6 @@ import org.apache.ignite.internal.processors.cache.store.GridCacheWriteBehindSto
 import org.apache.ignite.internal.processors.cache.store.GridCacheWriteBehindStoreReplicatedTest;
 import org.apache.ignite.internal.processors.cache.store.GridCacheWriteBehindStoreSelfTest;
 import org.apache.ignite.internal.processors.cache.store.IgnteCacheClientWriteBehindStoreAtomicTest;
-import org.apache.ignite.internal.processors.cache.store.IgnteCacheClientWriteBehindStoreNonCoalescingTest;
 import org.apache.ignite.internal.processors.cache.store.IgnteCacheClientWriteBehindStoreTxTest;
 
 /**
@@ -50,7 +49,6 @@ public class IgniteCacheWriteBehindTestSuite extends TestSuite {
         suite.addTest(new TestSuite(GridCachePartitionedWritesTest.class));
         suite.addTest(new TestSuite(IgnteCacheClientWriteBehindStoreAtomicTest.class));
         suite.addTest(new TestSuite(IgnteCacheClientWriteBehindStoreTxTest.class));
-        suite.addTest(new TestSuite(IgnteCacheClientWriteBehindStoreNonCoalescingTest.class));
 
         return suite;
     }

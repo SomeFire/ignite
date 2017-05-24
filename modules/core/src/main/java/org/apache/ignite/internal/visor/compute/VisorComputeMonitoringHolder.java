@@ -55,7 +55,7 @@ public class VisorComputeMonitoringHolder {
                 cleanupStopped = false;
             }
 
-            listenVisor.put(visorKey, Boolean.TRUE);
+            listenVisor.put(visorKey, true);
 
             ignite.events().enableLocal(VISOR_TASK_EVTS);
         }
@@ -68,7 +68,7 @@ public class VisorComputeMonitoringHolder {
      * @return {@code true} if task events should remain enabled.
      */
     private boolean tryDisableEvents(IgniteEx ignite) {
-        if (!listenVisor.values().contains(Boolean.TRUE)) {
+        if (!listenVisor.values().contains(true)) {
             listenVisor.clear();
 
             ignite.events().disableLocal(VISOR_TASK_EVTS);
@@ -103,7 +103,7 @@ public class VisorComputeMonitoringHolder {
                 synchronized (listenVisor) {
                     if (tryDisableEvents(ignite)) {
                         for (String visorKey : listenVisor.keySet())
-                            listenVisor.put(visorKey, Boolean.FALSE);
+                            listenVisor.put(visorKey, false);
 
                         scheduleCleanupJob(ignite);
                     }

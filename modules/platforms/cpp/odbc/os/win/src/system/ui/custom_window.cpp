@@ -27,7 +27,7 @@ namespace ignite
         {
             namespace ui
             {
-                Result::Type ProcessMessages(Window& window)
+                Result ProcessMessages(Window& window)
                 {
                     MSG msg;
 
@@ -41,7 +41,7 @@ namespace ignite
                         }
                     }
 
-                    return static_cast<Result::Type>(msg.wParam);
+                    return static_cast<Result>(msg.wParam);
                 }
 
                 LRESULT CALLBACK CustomWindow::WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)

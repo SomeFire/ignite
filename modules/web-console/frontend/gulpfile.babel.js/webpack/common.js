@@ -30,7 +30,6 @@ import {srcDir, destDir, rootDir, igniteModulesDir} from '../paths';
 
 const viewsDir = path.resolve('views');
 const imagesDir = path.resolve('public/images');
-const iconsDir = path.resolve('public/images/icons');
 
 const NODE_ENV = process.env.NODE_ENV || 'production';
 const development = NODE_ENV === 'development';
@@ -150,13 +149,7 @@ export default {
             },
             {
                 test: /\.(ttf|eot|svg|woff(2)?)(\?v=[\d.]+)?(\?[a-z0-9#-]+)?$/,
-                exclude: [iconsDir],
                 loader: 'file?name=assets/fonts/[name].[ext]'
-            },
-            {
-                test: /.*\.svg$/,
-                include: [iconsDir],
-                use: ['svg-sprite-loader']
             },
             {
                 test: /\.(jpe?g|png|gif)$/i,
@@ -182,8 +175,7 @@ export default {
             options: {
                 pug: {
                     basedir: rootDir
-                },
-                target: 'web'
+                }
             }
         }),
         new webpack.ProvidePlugin({

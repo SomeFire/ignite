@@ -109,9 +109,6 @@ public final class GridDhtGetFuture<K, V> extends GridCompoundIdentityFuture<Col
     /** Skip values flag. */
     private boolean skipVals;
 
-    /** */
-    private final boolean recovery;
-
     /**
      * @param cctx Context.
      * @param msgId Message ID.
@@ -134,8 +131,7 @@ public final class GridDhtGetFuture<K, V> extends GridCompoundIdentityFuture<Col
         @Nullable UUID subjId,
         int taskNameHash,
         @Nullable IgniteCacheExpiryPolicy expiryPlc,
-        boolean skipVals,
-        boolean recovery
+        boolean skipVals
     ) {
         super(CU.<GridCacheEntryInfo>collectionsReducer(keys.size()));
 
@@ -152,7 +148,6 @@ public final class GridDhtGetFuture<K, V> extends GridCompoundIdentityFuture<Col
         this.taskNameHash = taskNameHash;
         this.expiryPlc = expiryPlc;
         this.skipVals = skipVals;
-        this.recovery = recovery;
 
         futId = IgniteUuid.randomUuid();
 
@@ -291,36 +286,27 @@ public final class GridDhtGetFuture<K, V> extends GridCompoundIdentityFuture<Col
      * @return {@code True} if mapped.
      */
     private boolean map(KeyCacheObject key) {
-        try {
-            GridDhtLocalPartition part = topVer.topologyVersion() > 0 ?
-                cache().topology().localPartition(cctx.affinity().partition(key), topVer, true) :
-                cache().topology().localPartition(key, false);
+        GridDhtLocalPartition part = topVer.topologyVersion() > 0 ?
+            cache().topology().localPartition(cctx.affinity().partition(key), topVer, true) :
+            cache().topology().localPartition(key, false);
 
-            if (part == null)
-                return false;
+        if (part == null)
+            return false;
 
-            if (parts == null || !F.contains(parts, part.id())) {
-                // By reserving, we make sure that partition won't be unloaded while processed.
-                if (part.reserve()) {
-                    parts = parts == null ? new int[1] : Arrays.copyOf(parts, parts.length + 1);
+        if (parts == null || !F.contains(parts, part.id())) {
+            // By reserving, we make sure that partition won't be unloaded while processed.
+            if (part.reserve()) {
+                parts = parts == null ? new int[1] : Arrays.copyOf(parts, parts.length + 1);
 
-                    parts[parts.length - 1] = part.id();
+                parts[parts.length - 1] = part.id();
 
-                    return true;
-                }
-                else
-                    return false;
+                return true;
             }
             else
-                return true;
+                return false;
         }
-        catch (GridDhtInvalidPartitionException e) {
-            if (log.isDebugEnabled())
-                log.debug("Attempted to create a partition which does not belong to local node, will remap " +
-                    "[key=" + key + ", part=" + e.partition() + ']');
-
-            return false;
-        }
+        else
+            return true;
     }
 
     /**
@@ -415,8 +401,7 @@ public final class GridDhtGetFuture<K, V> extends GridCompoundIdentityFuture<Col
                 taskName,
                 expiryPlc,
                 skipVals,
-                /*can remap*/true,
-                recovery);
+                /*can remap*/true);
         }
         else {
             final ReaderArguments args = readerArgs;
@@ -439,8 +424,7 @@ public final class GridDhtGetFuture<K, V> extends GridCompoundIdentityFuture<Col
                             taskName,
                             expiryPlc,
                             skipVals,
-                            /*can remap*/true,
-                            recovery);
+                            /*can remap*/true);
                     }
                 }
             );

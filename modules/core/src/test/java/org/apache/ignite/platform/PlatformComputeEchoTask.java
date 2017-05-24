@@ -110,9 +110,6 @@ public class PlatformComputeEchoTask extends ComputeTaskAdapter<Integer, Object>
     /** Type: ignite uuid. */
     private static final int TYPE_IGNITE_UUID = 22;
 
-    /** Default cache name. */
-    public static final String DEFAULT_CACHE_NAME = "default";
-
     /** {@inheritDoc} */
     @Nullable @Override public Map<? extends ComputeJob, ClusterNode> map(List<ClusterNode> subgrid,
         @Nullable Integer arg) {
@@ -203,7 +200,7 @@ public class PlatformComputeEchoTask extends ComputeTaskAdapter<Integer, Object>
                     return PlatformComputeEnum.BAR;
 
                 case TYPE_ENUM_FROM_CACHE:
-                    return ignite.cache(DEFAULT_CACHE_NAME).get(TYPE_ENUM_FROM_CACHE);
+                    return ignite.cache(null).get(TYPE_ENUM_FROM_CACHE);
 
                 case TYPE_ENUM_ARRAY:
                     return new PlatformComputeEnum[] {
@@ -213,10 +210,10 @@ public class PlatformComputeEchoTask extends ComputeTaskAdapter<Integer, Object>
                     };
 
                 case TYPE_ENUM_ARRAY_FROM_CACHE:
-                    return ignite.cache(DEFAULT_CACHE_NAME).get(TYPE_ENUM_ARRAY_FROM_CACHE);
+                    return ignite.cache(null).get(TYPE_ENUM_ARRAY_FROM_CACHE);
 
                 case TYPE_ENUM_FIELD:
-                    IgniteCache<Integer, BinaryObject> cache = ignite.cache(DEFAULT_CACHE_NAME).withKeepBinary();
+                    IgniteCache<Integer, BinaryObject> cache = ignite.cache(null).withKeepBinary();
                     BinaryObject obj = cache.get(TYPE_ENUM_FIELD);
                     BinaryObject val = obj.field("interopEnum");
 
@@ -226,7 +223,7 @@ public class PlatformComputeEchoTask extends ComputeTaskAdapter<Integer, Object>
                     return new AffinityKey<>("interopAffinityKey");
 
                 case TYPE_IGNITE_UUID:
-                    return ignite.cache(DEFAULT_CACHE_NAME).get(TYPE_IGNITE_UUID);
+                    return ignite.cache(null).get(TYPE_IGNITE_UUID);
 
                 default:
                     throw new IgniteException("Unknown type: " + type);

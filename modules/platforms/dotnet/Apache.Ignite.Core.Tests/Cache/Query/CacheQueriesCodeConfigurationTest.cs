@@ -40,8 +40,10 @@ namespace Apache.Ignite.Core.Tests.Cache.Query
         [Test]
         public void TestQueryEntityConfiguration()
         {
-            var cfg = new IgniteConfiguration(TestUtils.GetTestConfiguration())
+            var cfg = new IgniteConfiguration
             {
+                JvmOptions = TestUtils.TestJavaOptions(),
+                JvmClasspath = TestUtils.CreateTestClasspath(),
                 BinaryConfiguration = new BinaryConfiguration(typeof (QueryPerson)),
                 CacheConfiguration = new[]
                 {
@@ -130,10 +132,12 @@ namespace Apache.Ignite.Core.Tests.Cache.Query
         [Test]
         public void TestAttributeConfigurationQuery()
         {
-            var cfg = new IgniteConfiguration(TestUtils.GetTestConfiguration())
+            var cfg = new IgniteConfiguration
             {
+                JvmOptions = TestUtils.TestJavaOptions(),
+                JvmClasspath = TestUtils.CreateTestClasspath(),
                 BinaryConfiguration = new BinaryConfiguration(
-                    typeof (AttributeQueryPerson), typeof (AttributeQueryAddress))
+                    typeof (AttributeQueryPerson), typeof (AttributeQueryAddress)),
             };
 
             using (var ignite = Ignition.Start(cfg))

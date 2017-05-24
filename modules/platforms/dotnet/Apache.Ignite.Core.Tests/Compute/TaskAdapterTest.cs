@@ -100,6 +100,12 @@ namespace Apache.Ignite.Core.Tests.Compute
             }
         }
 
+        /** <inheritDoc /> */
+        protected override ICollection<Type> GetBinaryTypes()
+        {
+            return new[] { typeof(BinarizableJob) };
+        }
+
         /// <summary>
         /// Test task.
         /// </summary>

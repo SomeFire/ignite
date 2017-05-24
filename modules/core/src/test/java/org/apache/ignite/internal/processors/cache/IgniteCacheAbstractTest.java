@@ -23,6 +23,7 @@ import javax.cache.configuration.Factory;
 import javax.cache.integration.CacheLoader;
 import javax.cache.integration.CacheWriter;
 import org.apache.ignite.IgniteCache;
+import org.apache.ignite.cache.CacheAtomicWriteOrderMode;
 import org.apache.ignite.cache.CacheAtomicityMode;
 import org.apache.ignite.cache.CacheMode;
 import org.apache.ignite.cache.CacheWriteSynchronizationMode;
@@ -93,17 +94,17 @@ public abstract class IgniteCacheAbstractTest extends GridCommonAbstractTest {
 
         TcpDiscoverySpi disco = new TcpDiscoverySpi().setForceServerMode(true);
 
+        disco.setMaxMissedHeartbeats(Integer.MAX_VALUE);
+
         disco.setIpFinder(ipFinder);
 
         if (isDebug())
             disco.setAckTimeout(Integer.MAX_VALUE);
 
-        MemoryEventStorageSpi evtSpi = new MemoryEventStorageSpi();
-        evtSpi.setExpireCount(100);
+        MemoryEventStorageSpi eventSpi = new MemoryEventStorageSpi();
+        eventSpi.setExpireCount(100);
 
-        cfg.setFailureDetectionTimeout(Integer.MAX_VALUE);
-
-        cfg.setEventStorageSpi(evtSpi);
+        cfg.setEventStorageSpi(eventSpi);
 
         cfg.setDiscoverySpi(disco);
 
@@ -121,8 +122,15 @@ public abstract class IgniteCacheAbstractTest extends GridCommonAbstractTest {
     protected CacheConfiguration cacheConfiguration(String igniteInstanceName) throws Exception {
         CacheConfiguration cfg = defaultCacheConfiguration();
 
+        cfg.setSwapEnabled(swapEnabled());
         cfg.setCacheMode(cacheMode());
         cfg.setAtomicityMode(atomicityMode());
+
+        if (atomicityMode() == ATOMIC && cacheMode() != LOCAL) {
+            assert atomicWriteOrderMode() != null;
+
+            cfg.setAtomicWriteOrderMode(atomicWriteOrderMode());
+        }
 
         cfg.setWriteSynchronizationMode(writeSynchronization());
         cfg.setNearConfiguration(nearConfiguration());
@@ -148,8 +156,6 @@ public abstract class IgniteCacheAbstractTest extends GridCommonAbstractTest {
 
         if (cacheMode() == PARTITIONED)
             cfg.setBackups(1);
-
-        cfg.setOnheapCacheEnabled(onheapCacheEnabled());
 
         return cfg;
     }
@@ -186,6 +192,13 @@ public abstract class IgniteCacheAbstractTest extends GridCommonAbstractTest {
     protected abstract CacheAtomicityMode atomicityMode();
 
     /**
+     * @return Atomic cache write order mode.
+     */
+    protected CacheAtomicWriteOrderMode atomicWriteOrderMode() {
+        return null;
+    }
+
+    /**
      * @return Partitioned mode.
      */
     protected abstract NearCacheConfiguration nearConfiguration();
@@ -198,9 +211,9 @@ public abstract class IgniteCacheAbstractTest extends GridCommonAbstractTest {
     }
 
     /**
-     * @return {@code True} if on-heap cache is enabled.
+     * @return {@code true} if swap should be enabled.
      */
-    protected boolean onheapCacheEnabled() {
+    protected boolean swapEnabled() {
         return false;
     }
 
@@ -216,7 +229,7 @@ public abstract class IgniteCacheAbstractTest extends GridCommonAbstractTest {
      * @return Cache.
      */
     protected <K, V> IgniteCache<K, V> jcache(int idx) {
-        return grid(idx).cache(DEFAULT_CACHE_NAME);
+        return grid(idx).cache(null);
     }
 
     /**

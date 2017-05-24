@@ -71,4 +71,11 @@ public interface GridCacheVersionedEntry<K, V> {
      * @return Entry's order in initiator data center
      */
     public long order();
+
+    /**
+     * Gets entry's global time in initiator data center.
+     *
+     * @return Entry's global time in initiator data center
+     */
+    public long globalTime();
 }

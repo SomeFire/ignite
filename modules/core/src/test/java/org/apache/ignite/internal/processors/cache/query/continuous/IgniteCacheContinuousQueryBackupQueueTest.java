@@ -34,7 +34,6 @@ import org.apache.ignite.cache.query.ContinuousQuery;
 import org.apache.ignite.cache.query.QueryCursor;
 import org.apache.ignite.configuration.CacheConfiguration;
 import org.apache.ignite.configuration.IgniteConfiguration;
-import org.apache.ignite.configuration.MemoryConfiguration;
 import org.apache.ignite.internal.IgniteKernal;
 import org.apache.ignite.internal.processors.continuous.GridContinuousHandler;
 import org.apache.ignite.internal.processors.continuous.GridContinuousProcessor;
@@ -89,11 +88,6 @@ public class IgniteCacheContinuousQueryBackupQueueTest extends GridCommonAbstrac
         cfg.setClientMode(client);
 
         ((TcpDiscoverySpi)cfg.getDiscoverySpi()).setIpFinder(ipFinder);
-
-        MemoryConfiguration memCfg = new MemoryConfiguration();
-        memCfg.setPageSize(16 * 1024);
-
-        cfg.setMemoryConfiguration(memCfg);
 
         return cfg;
     }

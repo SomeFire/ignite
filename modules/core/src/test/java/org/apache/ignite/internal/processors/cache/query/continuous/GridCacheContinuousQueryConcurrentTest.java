@@ -60,7 +60,6 @@ import static javax.cache.configuration.FactoryBuilder.factoryOf;
 /**
  *
  */
-@SuppressWarnings("unchecked")
 public class GridCacheContinuousQueryConcurrentTest extends GridCommonAbstractTest {
     /** */
     private static TcpDiscoveryIpFinder ipFinder = new TcpDiscoveryVmIpFinder(true);
@@ -153,10 +152,9 @@ public class GridCacheContinuousQueryConcurrentTest extends GridCommonAbstractTe
     }
 
     /**
-     * @param ccfg Cache configuration.
      * @throws Exception If failed.
      */
-    private void testRegistration(CacheConfiguration ccfg) throws Exception {
+    public void testRegistration(CacheConfiguration ccfg) throws Exception {
         ExecutorService execSrv = newSingleThreadExecutor();
 
         try {
@@ -173,16 +171,16 @@ public class GridCacheContinuousQueryConcurrentTest extends GridCommonAbstractTe
                 Future<List<IgniteFuture<String>>> fut = execSrv.submit(
                     new Callable<List<IgniteFuture<String>>>() {
                         @Override public List<IgniteFuture<String>> call() throws Exception {
-                            int cnt = 0;
+                            int count = 0;
                             List<IgniteFuture<String>> futures = new ArrayList<>();
 
                             while (!stop.get()) {
-                                futures.add(waitForKey(i0, cache, cnt));
+                                futures.add(waitForKey(i0, cache, count));
 
                                 if (log.isDebugEnabled())
-                                    log.debug("Started cont query count: " + cnt);
+                                    log.debug("Started cont query count: " + count);
 
-                                if (++cnt >= conQryCnt)
+                                if (++count >= conQryCnt)
                                     latch.countDown();
                             }
 
@@ -210,10 +208,9 @@ public class GridCacheContinuousQueryConcurrentTest extends GridCommonAbstractTe
     }
 
     /**
-     * @param ccfg Cache configuration.
      * @throws Exception If failed.
      */
-    private void testRestartRegistration(CacheConfiguration ccfg) throws Exception {
+    public void testRestartRegistration(CacheConfiguration ccfg) throws Exception {
         ExecutorService execSrv = newSingleThreadExecutor();
 
         final AtomicBoolean stopRes = new AtomicBoolean(false);
@@ -264,16 +261,16 @@ public class GridCacheContinuousQueryConcurrentTest extends GridCommonAbstractTe
                 Future<List<IgniteFuture<String>>> fut = execSrv.submit(
                     new Callable<List<IgniteFuture<String>>>() {
                         @Override public List<IgniteFuture<String>> call() throws Exception {
-                            int cnt = 0;
+                            int count = 0;
                             List<IgniteFuture<String>> futures = new ArrayList<>();
 
                             while (!stop.get()) {
-                                futures.add(waitForKey(i0, cache, cnt));
+                                futures.add(waitForKey(i0, cache, count));
 
                                 if (log.isDebugEnabled())
-                                    log.debug("Started cont query count: " + cnt);
+                                    log.debug("Started cont query count: " + count);
 
-                                if (++cnt >= conQryCnt)
+                                if (++count >= conQryCnt)
                                     latch.countDown();
                             }
 
@@ -316,7 +313,7 @@ public class GridCacheContinuousQueryConcurrentTest extends GridCommonAbstractTe
      * @param id ID.
      * @return Future.
      */
-    private IgniteFuture<String> waitForKey(Integer key, final IgniteCache<Integer, String> cache, final int id) {
+    public IgniteFuture<String> waitForKey(Integer key, final IgniteCache<Integer, String> cache, final int id) {
         String v = cache.get(key);
 
         // From now on, all futures will be completed immediately (since the key has been
@@ -330,7 +327,7 @@ public class GridCacheContinuousQueryConcurrentTest extends GridCommonAbstractTe
             createCacheListener(key, promise, id);
 
         promise.listen(new IgniteInClosure<IgniteFuture<String>>() {
-            @Override public void apply(IgniteFuture<String> fut) {
+            @Override public void apply(IgniteFuture<String> future) {
                 GridTestUtils.runAsync(new Callable<Object>() {
                     @Override public Object call() throws Exception {
                         cache.deregisterCacheEntryListener(cfg);
@@ -351,9 +348,9 @@ public class GridCacheContinuousQueryConcurrentTest extends GridCommonAbstractTe
         // Complete the promise if the key was inserted concurrently.
         cache.getAsync(key).listen(new IgniteInClosure<IgniteFuture<String>>() {
             @Override public void apply(IgniteFuture<String> f) {
-                String val = f.get();
+                String value = f.get();
 
-                if (val != null) {
+                if (value != null) {
                     log.info("Completed by get: " + id);
 
                     (((GridFutureAdapter)((IgniteFutureImpl)promise).internalFuture())).onDone("by get");
@@ -366,16 +363,16 @@ public class GridCacheContinuousQueryConcurrentTest extends GridCommonAbstractTe
 
     /**
      * @param key Key.
-     * @param res Result.
+     * @param result Result.
      * @param id Listener ID.
      * @return Listener
      */
     private CacheEntryListenerConfiguration<Integer, String> createCacheListener(
         Integer key,
-        IgniteFuture<String> res,
+        IgniteFuture<String> result,
         int id) {
         return new MutableCacheEntryListenerConfiguration<>(
-            factoryOf(new CacheListener(res, id)),
+            factoryOf(new CacheListener(result, id)),
             new SingletonFactory<>(new KeyEventFilter(key, id)), false, true);
     }
 
@@ -405,23 +402,23 @@ public class GridCacheContinuousQueryConcurrentTest extends GridCommonAbstractTe
      */
     private static class CacheListener implements CacheEntryCreatedListener<Integer, String>, Serializable {
         /** */
-        final IgniteFuture<String> res;
+        final IgniteFuture<String> result;
 
         /** */
         private final int id;
 
         /**
-         * @param res Result.
+         * @param result Result.
          * @param id ID.
          */
-        CacheListener(IgniteFuture<String> res, int id) {
-            this.res = res;
+        CacheListener(IgniteFuture<String> result, int id) {
+            this.result = result;
             this.id = id;
         }
 
         /** {@inheritDoc} */
         @Override public void onCreated(Iterable<CacheEntryEvent<? extends Integer, ? extends String>> evts) {
-            (((GridFutureAdapter)((IgniteFutureImpl)res).internalFuture())).onDone("by listener");
+            (((GridFutureAdapter)((IgniteFutureImpl)result).internalFuture())).onDone("by listener");
         }
     }
 

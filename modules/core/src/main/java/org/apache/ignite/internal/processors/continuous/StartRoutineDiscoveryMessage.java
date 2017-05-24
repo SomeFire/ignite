@@ -22,7 +22,6 @@ import java.util.Map;
 import java.util.UUID;
 import org.apache.ignite.IgniteCheckedException;
 import org.apache.ignite.internal.managers.discovery.DiscoveryCustomMessage;
-import org.apache.ignite.internal.util.typedef.T2;
 import org.apache.ignite.internal.util.typedef.internal.S;
 
 /**
@@ -39,10 +38,10 @@ public class StartRoutineDiscoveryMessage extends AbstractContinuousMessage {
     private final Map<UUID, IgniteCheckedException> errs = new HashMap<>();
 
     /** */
-    private Map<Integer, T2<Long, Long>> updateCntrs;
+    private Map<Integer, Long> updateCntrs;
 
     /** */
-    private Map<UUID, Map<Integer, T2<Long, Long>>> updateCntrsPerNode;
+    private Map<UUID, Map<Integer, Long>> updateCntrsPerNode;
 
     /** Keep binary flag. */
     private boolean keepBinary;
@@ -76,15 +75,15 @@ public class StartRoutineDiscoveryMessage extends AbstractContinuousMessage {
     /**
      * @param cntrs Update counters.
      */
-    private void addUpdateCounters(Map<Integer, T2<Long, Long>> cntrs) {
+    private void addUpdateCounters(Map<Integer, Long> cntrs) {
         if (updateCntrs == null)
             updateCntrs = new HashMap<>();
 
-        for (Map.Entry<Integer, T2<Long, Long>> e : cntrs.entrySet()) {
-            T2<Long, Long> cntr0 = updateCntrs.get(e.getKey());
-            T2<Long, Long> cntr1 = e.getValue();
+        for (Map.Entry<Integer, Long> e : cntrs.entrySet()) {
+            Long cntr0 = updateCntrs.get(e.getKey());
+            Long cntr1 = e.getValue();
 
-            if (cntr0 == null || cntr1.get2() > cntr0.get2())
+            if (cntr0 == null || cntr1 > cntr0)
                 updateCntrs.put(e.getKey(), cntr1);
         }
     }
@@ -93,13 +92,13 @@ public class StartRoutineDiscoveryMessage extends AbstractContinuousMessage {
      * @param nodeId Local node ID.
      * @param cntrs Update counters.
      */
-    public void addUpdateCounters(UUID nodeId, Map<Integer, T2<Long, Long>> cntrs) {
+    public void addUpdateCounters(UUID nodeId, Map<Integer, Long> cntrs) {
         addUpdateCounters(cntrs);
 
         if (updateCntrsPerNode == null)
             updateCntrsPerNode = new HashMap<>();
 
-        Map<Integer, T2<Long, Long>> old = updateCntrsPerNode.put(nodeId, cntrs);
+        Map<Integer, Long> old = updateCntrsPerNode.put(nodeId, cntrs);
 
         assert old == null : old;
     }

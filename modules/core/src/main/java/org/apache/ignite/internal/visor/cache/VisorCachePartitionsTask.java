@@ -21,12 +21,14 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import org.apache.ignite.IgniteCheckedException;
 import org.apache.ignite.IgniteException;
 import org.apache.ignite.cache.CacheMode;
 import org.apache.ignite.compute.ComputeJobResult;
 import org.apache.ignite.configuration.CacheConfiguration;
 import org.apache.ignite.internal.processors.affinity.AffinityTopologyVersion;
 import org.apache.ignite.internal.processors.cache.GridCacheAdapter;
+import org.apache.ignite.internal.processors.cache.GridCacheSwapManager;
 import org.apache.ignite.internal.processors.cache.distributed.dht.GridDhtCacheAdapter;
 import org.apache.ignite.internal.processors.cache.distributed.dht.GridDhtLocalPartition;
 import org.apache.ignite.internal.processors.cache.distributed.dht.GridDhtPartitionState;
@@ -45,13 +47,12 @@ import static org.apache.ignite.internal.visor.util.VisorTaskUtils.escapeName;
  * Task that collect keys distribution in partitions.
  */
 @GridInternal
-public class VisorCachePartitionsTask extends VisorMultiNodeTask<VisorCachePartitionsTaskArg,
-    Map<UUID, VisorCachePartitions>, VisorCachePartitions> {
+public class VisorCachePartitionsTask extends VisorMultiNodeTask<String, Map<UUID, VisorCachePartitions>, VisorCachePartitions> {
     /** */
     private static final long serialVersionUID = 0L;
 
     /** {@inheritDoc} */
-    @Override protected VisorCachePartitionsJob job(VisorCachePartitionsTaskArg arg) {
+    @Override protected VisorCachePartitionsJob job(String arg) {
         return new VisorCachePartitionsJob(arg, debug);
     }
 
@@ -72,24 +73,22 @@ public class VisorCachePartitionsTask extends VisorMultiNodeTask<VisorCacheParti
     /**
      * Job that collect cache metrics from node.
      */
-    private static class VisorCachePartitionsJob extends VisorJob<VisorCachePartitionsTaskArg, VisorCachePartitions> {
+    private static class VisorCachePartitionsJob extends VisorJob<String, VisorCachePartitions> {
         /** */
         private static final long serialVersionUID = 0L;
 
         /**
          * Create job with given argument.
          *
-         * @param arg Tasks arguments.
+         * @param cacheName Cache name.
          * @param debug Debug flag.
          */
-        private VisorCachePartitionsJob(VisorCachePartitionsTaskArg arg, boolean debug) {
-            super(arg, debug);
+        private VisorCachePartitionsJob(String cacheName, boolean debug) {
+            super(cacheName, debug);
         }
 
         /** {@inheritDoc} */
-        @Override protected VisorCachePartitions run(VisorCachePartitionsTaskArg arg) throws IgniteException {
-            String cacheName = arg.getCacheName();
-
+        @Override protected VisorCachePartitions run(final String cacheName) throws IgniteException {
             if (debug)
                 log(ignite.log(), "Collecting partitions for cache: " + escapeName(cacheName));
 
@@ -109,6 +108,8 @@ public class VisorCachePartitionsTask extends VisorMultiNodeTask<VisorCacheParti
                 && ca.context().affinityNode();
 
             if (partitioned) {
+                GridCacheSwapManager swap = ca.context().swap();
+
                 GridDhtCacheAdapter dca = null;
 
                 if (ca instanceof GridNearCacheAdapter)
@@ -121,16 +122,21 @@ public class VisorCachePartitionsTask extends VisorMultiNodeTask<VisorCacheParti
 
                     List<GridDhtLocalPartition> locParts = top.localPartitions();
 
-                    for (GridDhtLocalPartition part : locParts) {
-                        int p = part.id();
+                    try {
+                        for (GridDhtLocalPartition part : locParts) {
+                            int p = part.id();
 
-                        long sz = part.dataStore().size();
+                            int sz = part.publicSize();
 
-                        // Pass NONE as topology version in order not to wait for topology version.
-                        if (part.primary(AffinityTopologyVersion.NONE))
-                            parts.addPrimary(p, sz);
-                        else if (part.state() == GridDhtPartitionState.OWNING && part.backup(AffinityTopologyVersion.NONE))
-                            parts.addBackup(p, sz);
+                            // Pass -1 as topology version in order not to wait for topology version.
+                            if (part.primary(AffinityTopologyVersion.NONE))
+                                parts.addPrimary(p, sz, swap.offheapEntriesCount(p), swap.swapEntriesCount(p));
+                            else if (part.state() == GridDhtPartitionState.OWNING && part.backup(AffinityTopologyVersion.NONE))
+                                parts.addBackup(p, sz, swap.offheapEntriesCount(p), swap.swapEntriesCount(p));
+                        }
+                    }
+                    catch (IgniteCheckedException e) {
+                        throw new IgniteException("Failed to collect keys distribution in partitions", e);
                     }
                 }
             }

@@ -31,11 +31,11 @@ import org.apache.ignite.internal.processors.rest.request.GridRestCacheRequest;
 import org.apache.ignite.internal.processors.rest.request.GridRestRequest;
 import org.apache.ignite.internal.util.future.GridEmbeddedFuture;
 import org.apache.ignite.internal.util.lang.GridTuple3;
-import org.apache.ignite.internal.util.lang.IgniteClosure2X;
 import org.apache.ignite.internal.util.nio.GridNioFuture;
 import org.apache.ignite.internal.util.nio.GridNioServerListenerAdapter;
 import org.apache.ignite.internal.util.nio.GridNioSession;
 import org.apache.ignite.internal.util.typedef.C2;
+import org.apache.ignite.internal.util.typedef.CIX1;
 import org.apache.ignite.internal.util.typedef.internal.U;
 import org.jetbrains.annotations.Nullable;
 
@@ -63,9 +63,6 @@ import static org.apache.ignite.internal.util.nio.GridNioSessionMetaKey.LAST_FUT
  * Handles memcache requests.
  */
 public class GridTcpMemcachedNioListener extends GridNioServerListenerAdapter<GridMemcachedMessage> {
-    /** Used cache name in case the name was not defined in a request. */
-    private static final String CACHE_NAME = "default";
-
     /** Logger */
     private final IgniteLogger log;
 
@@ -181,11 +178,11 @@ public class GridTcpMemcachedNioListener extends GridNioServerListenerAdapter<Gr
             return null;
         }
 
-        return new GridEmbeddedFuture<>(new IgniteClosure2X<GridRestResponse, Exception, GridRestResponse>() {
-            @Override public GridRestResponse applyx(GridRestResponse restRes,
-                Exception ex) throws IgniteCheckedException {
-                if(ex != null)
-                    throw U.cast(ex);
+        IgniteInternalFuture<GridRestResponse> f = hnd.handleAsync(createRestRequest(req, cmd.get1()));
+
+        f.listen(new CIX1<IgniteInternalFuture<GridRestResponse>>() {
+            @Override public void applyx(IgniteInternalFuture<GridRestResponse> f) throws IgniteCheckedException {
+                GridRestResponse restRes = f.get();
 
                 // Handle 'Stat' command (special case because several packets are included in response).
                 if (cmd.get1() == CACHE_METRICS) {
@@ -240,7 +237,7 @@ public class GridTcpMemcachedNioListener extends GridNioServerListenerAdapter<Gr
                     else
                         res.status(FAILURE);
 
-                    if (cmd.get3() == Boolean.TRUE)
+                    if (cmd.get3())
                         res.key(req.key());
 
                     if (restRes.getSuccessStatus() == GridRestResponse.STATUS_SUCCESS && res.addData() &&
@@ -249,10 +246,10 @@ public class GridTcpMemcachedNioListener extends GridNioServerListenerAdapter<Gr
 
                     sendResponse(ses, res);
                 }
-
-                return restRes;
             }
-        }, hnd.handleAsync(createRestRequest(req, cmd.get1())));
+        });
+
+        return f;
     }
 
     /**
@@ -291,7 +288,7 @@ public class GridTcpMemcachedNioListener extends GridNioServerListenerAdapter<Gr
             restReq.command(cmd);
             restReq.clientId(req.clientId());
             restReq.ttl(req.expiration());
-            restReq.cacheName(req.cacheName() == null ? CACHE_NAME : req.cacheName());
+            restReq.cacheName(req.cacheName());
             restReq.key(req.key());
 
             if (cmd == CACHE_REMOVE_ALL) {

@@ -75,6 +75,7 @@ import org.apache.ignite.internal.util.typedef.internal.U;
 import org.apache.ignite.lang.IgniteBiTuple;
 import org.apache.ignite.lang.IgniteClosure;
 import org.apache.ignite.lang.IgniteFuture;
+import org.apache.ignite.lang.IgniteProductVersion;
 import org.apache.ignite.marshaller.Marshaller;
 import org.apache.ignite.spi.IgniteNodeValidationResult;
 import org.apache.ignite.spi.discovery.DiscoveryDataBag;
@@ -108,7 +109,7 @@ public class CacheObjectBinaryProcessorImpl extends IgniteCacheObjectProcessorIm
     @GridToStringExclude
     private IgniteBinary binaries;
 
-    /** Listener removes all registered binary schemas after the local client reconnected. */
+    /** Listener removes all registred binary schemas after the local client reconnected. */
     private final GridLocalEventListener clientDisconLsnr = new GridLocalEventListener() {
         @Override public void onEvent(Event evt) {
             binaryContext().unregisterBinarySchemas();
@@ -136,7 +137,7 @@ public class CacheObjectBinaryProcessorImpl extends IgniteCacheObjectProcessorIm
     }
 
     /** {@inheritDoc} */
-    @Override public void start(boolean activeOnStart) throws IgniteCheckedException {
+    @Override public void start() throws IgniteCheckedException {
         if (marsh instanceof BinaryMarshaller) {
             if (ctx.clientNode())
                 ctx.event().addLocalEventListener(clientDisconLsnr, EVT_CLIENT_NODE_DISCONNECTED);
@@ -242,8 +243,8 @@ public class CacheObjectBinaryProcessorImpl extends IgniteCacheObjectProcessorIm
     }
 
     /** {@inheritDoc} */
-    @Override public void onKernalStart(boolean activeOnStart) throws IgniteCheckedException {
-        super.onKernalStart(activeOnStart);
+    @Override public void onKernalStart() throws IgniteCheckedException {
+        super.onKernalStart();
 
         discoveryStarted = true;
     }
@@ -452,12 +453,6 @@ public class CacheObjectBinaryProcessorImpl extends IgniteCacheObjectProcessorIm
             if (holder.pendingVersion() - holder.acceptedVersion() > 0) {
                 GridFutureAdapter<MetadataUpdateResult> fut = transport.awaitMetadataUpdate(typeId, holder.pendingVersion());
 
-                if (log.isDebugEnabled() && !fut.isDone())
-                    log.debug("Waiting for update for" +
-                            " [typeId=" + typeId +
-                            ", pendingVer=" + holder.pendingVersion() +
-                            ", acceptedVer=" + holder.acceptedVersion() + "]");
-
                 try {
                     fut.get();
                 }
@@ -493,13 +488,6 @@ public class CacheObjectBinaryProcessorImpl extends IgniteCacheObjectProcessorIm
                 GridFutureAdapter<MetadataUpdateResult> fut = transport.awaitMetadataUpdate(
                         typeId,
                         holder.pendingVersion());
-
-                if (log.isDebugEnabled() && !fut.isDone())
-                    log.debug("Waiting for update for" +
-                            " [typeId=" + typeId
-                            + ", schemaId=" + schemaId
-                            + ", pendingVer=" + holder.pendingVersion()
-                            + ", acceptedVer=" + holder.acceptedVersion() + "]");
 
                 try {
                     fut.get();
@@ -756,11 +744,17 @@ public class CacheObjectBinaryProcessorImpl extends IgniteCacheObjectProcessorIm
     }
 
     /** {@inheritDoc} */
-    @Override public KeyCacheObject toKeyCacheObject(CacheObjectContext ctx, byte type, byte[] bytes) throws IgniteCheckedException {
-        if (type == BinaryObjectImpl.TYPE_BINARY)
-            return new BinaryObjectImpl(binaryContext(), bytes, 0);
+    @Override public CacheObject toCacheObject(GridCacheContext ctx, long valPtr, boolean tmp)
+        throws IgniteCheckedException {
+        if (!((CacheObjectBinaryContext)ctx.cacheObjectContext()).binaryEnabled())
+            return super.toCacheObject(ctx, valPtr, tmp);
 
-        return super.toKeyCacheObject(ctx, type, bytes);
+        Object val = unmarshal(valPtr, !tmp);
+
+        if (val instanceof CacheObject)
+            return (CacheObject)val;
+
+        return toCacheObject(ctx.cacheObjectContext(), val, false);
     }
 
     /** {@inheritDoc} */
@@ -842,14 +836,7 @@ public class CacheObjectBinaryProcessorImpl extends IgniteCacheObjectProcessorIm
             for (Map.Entry<Integer, BinaryMetadataHolder> e : receivedData.entrySet()) {
                 BinaryMetadataHolder holder = e.getValue();
 
-                BinaryMetadataHolder localHolder = new BinaryMetadataHolder(holder.metadata(),
-                        holder.pendingVersion(),
-                        holder.pendingVersion());
-
-                if (log.isDebugEnabled())
-                    log.debug("Received metadata on join: " + localHolder);
-
-                metadataLocCache.put(e.getKey(), localHolder);
+                metadataLocCache.put(e.getKey(), new BinaryMetadataHolder(holder.metadata(), holder.pendingVersion(), holder.pendingVersion()));
             }
         }
     }

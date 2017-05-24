@@ -209,8 +209,19 @@ public class GridCacheProxyImpl<K, V> implements IgniteInternalCache<K, V>, Exte
     }
 
     /** {@inheritDoc} */
-    @Override public void localLoadCache(IgniteBiPredicate<K, V> p,
-        @Nullable Object[] args) throws IgniteCheckedException {
+    @Override public long overflowSize() throws IgniteCheckedException {
+        CacheOperationContext prev = gate.enter(opCtx);
+
+        try {
+            return delegate.overflowSize();
+        }
+        finally {
+            gate.leave(prev);
+        }
+    }
+
+    /** {@inheritDoc} */
+    @Override public void localLoadCache(IgniteBiPredicate<K, V> p, @Nullable Object[] args) throws IgniteCheckedException {
         CacheOperationContext prev = gate.enter(opCtx);
 
         try {
@@ -237,7 +248,7 @@ public class GridCacheProxyImpl<K, V> implements IgniteInternalCache<K, V>, Exte
     @Override public GridCacheProxyImpl<K, V> forSubjectId(UUID subjId) {
         return new GridCacheProxyImpl<>(ctx, delegate,
             opCtx != null ? opCtx.forSubjectId(subjId) :
-                new CacheOperationContext(false, subjId, false, null, false, null, false));
+                new CacheOperationContext(false, subjId, false, null, false, null));
     }
 
     /** {@inheritDoc} */
@@ -250,7 +261,7 @@ public class GridCacheProxyImpl<K, V> implements IgniteInternalCache<K, V>, Exte
 
             return new GridCacheProxyImpl<>(ctx, delegate,
                 opCtx != null ? opCtx.setSkipStore(skipStore) :
-                    new CacheOperationContext(true, null, false, null, false, null, false));
+                    new CacheOperationContext(true, null, false, null, false, null));
         }
         finally {
             gate.leave(prev);
@@ -265,7 +276,7 @@ public class GridCacheProxyImpl<K, V> implements IgniteInternalCache<K, V>, Exte
 
         return new GridCacheProxyImpl<>((GridCacheContext<K1, V1>)ctx,
             (GridCacheAdapter<K1, V1>)delegate,
-            opCtx != null ? opCtx.keepBinary() : new CacheOperationContext(false, null, true, null, false, null, false));
+            opCtx != null ? opCtx.keepBinary() : new CacheOperationContext(false, null, true, null, false, null));
     }
 
     /** {@inheritDoc} */
@@ -447,6 +458,18 @@ public class GridCacheProxyImpl<K, V> implements IgniteInternalCache<K, V>, Exte
 
         try {
             return delegate.igfsDataSpaceUsed();
+        }
+        finally {
+            gate.leave(prev);
+        }
+    }
+
+    /** {@inheritDoc} */
+    @Override public long igfsDataSpaceMax() {
+        CacheOperationContext prev = gate.enter(opCtx);
+
+        try {
+            return delegate.igfsDataSpaceMax();
         }
         finally {
             gate.leave(prev);
@@ -844,6 +867,42 @@ public class GridCacheProxyImpl<K, V> implements IgniteInternalCache<K, V>, Exte
     }
 
     /** {@inheritDoc} */
+    @Override public Set<K> keySetx() {
+        CacheOperationContext prev = gate.enter(opCtx);
+
+        try {
+            return delegate.keySetx();
+        }
+        finally {
+            gate.leave(prev);
+        }
+    }
+
+    /** {@inheritDoc} */
+    @Override public Set<K> primaryKeySet() {
+        CacheOperationContext prev = gate.enter(opCtx);
+
+        try {
+            return delegate.primaryKeySet();
+        }
+        finally {
+            gate.leave(prev);
+        }
+    }
+
+    /** {@inheritDoc} */
+    @Override public Iterable<V> values() {
+        CacheOperationContext prev = gate.enter(opCtx);
+
+        try {
+            return delegate.values();
+        }
+        finally {
+            gate.leave(prev);
+        }
+    }
+
+    /** {@inheritDoc} */
     @Override public Set<Cache.Entry<K, V>> entrySet() {
         CacheOperationContext prev = gate.enter(opCtx);
 
@@ -856,12 +915,23 @@ public class GridCacheProxyImpl<K, V> implements IgniteInternalCache<K, V>, Exte
     }
 
     /** {@inheritDoc} */
-    @Override public Iterator<Cache.Entry<K, V>> scanIterator(boolean keepBinary,
-        @Nullable IgniteBiPredicate<Object, Object> p) throws IgniteCheckedException {
+    @Override public Set<Cache.Entry<K, V>> entrySet(int part) {
         CacheOperationContext prev = gate.enter(opCtx);
 
         try {
-            return delegate.scanIterator(keepBinary, p);
+            return delegate.entrySet(part);
+        }
+        finally {
+            gate.leave(prev);
+        }
+    }
+
+    /** {@inheritDoc} */
+    @Override public Set<Cache.Entry<K, V>> entrySetx(CacheEntryPredicate... filter) {
+        CacheOperationContext prev = gate.enter(opCtx);
+
+        try {
+            return delegate.entrySetx(filter);
         }
         finally {
             gate.leave(prev);
@@ -922,7 +992,8 @@ public class GridCacheProxyImpl<K, V> implements IgniteInternalCache<K, V>, Exte
     @Nullable @Override public V localPeek(K key,
         CachePeekMode[] peekModes,
         @Nullable IgniteCacheExpiryPolicy plc)
-        throws IgniteCheckedException {
+        throws IgniteCheckedException
+    {
         CacheOperationContext prev = gate.enter(opCtx);
 
         try {
@@ -1130,7 +1201,8 @@ public class GridCacheProxyImpl<K, V> implements IgniteInternalCache<K, V>, Exte
 
     /** {@inheritDoc} */
     @Override public IgniteInternalFuture<?> removeAllConflictAsync(Map<KeyCacheObject, GridCacheVersion> drMap)
-        throws IgniteCheckedException {
+        throws IgniteCheckedException
+    {
         CacheOperationContext prev = gate.enter(opCtx);
 
         try {
@@ -1195,6 +1267,18 @@ public class GridCacheProxyImpl<K, V> implements IgniteInternalCache<K, V>, Exte
 
         try {
             return delegate.removeAllAsync(keys);
+        }
+        finally {
+            gate.leave(prev);
+        }
+    }
+
+    /** {@inheritDoc} */
+    @Nullable @Override public V tryGetAndPut(K key, V val) throws IgniteCheckedException {
+        CacheOperationContext prev = gate.enter(opCtx);
+
+        try {
+            return delegate.tryGetAndPut(key, val);
         }
         finally {
             gate.leave(prev);
@@ -1268,8 +1352,7 @@ public class GridCacheProxyImpl<K, V> implements IgniteInternalCache<K, V>, Exte
     }
 
     /** {@inheritDoc} */
-    @Override public boolean lockAll(@Nullable Collection<? extends K> keys,
-        long timeout) throws IgniteCheckedException {
+    @Override public boolean lockAll(@Nullable Collection<? extends K> keys, long timeout) throws IgniteCheckedException {
         CacheOperationContext prev = gate.enter(opCtx);
 
         try {
@@ -1509,6 +1592,18 @@ public class GridCacheProxyImpl<K, V> implements IgniteInternalCache<K, V>, Exte
     }
 
     /** {@inheritDoc} */
+    @Override public void promoteAll(@Nullable Collection<? extends K> keys) throws IgniteCheckedException {
+        CacheOperationContext prev = gate.enter(opCtx);
+
+        try {
+            delegate.promoteAll(keys);
+        }
+        finally {
+            gate.leave(prev);
+        }
+    }
+
+    /** {@inheritDoc} */
     @Override public long offHeapEntriesCount() {
         CacheOperationContext prev = gate.enter(opCtx);
 
@@ -1526,6 +1621,30 @@ public class GridCacheProxyImpl<K, V> implements IgniteInternalCache<K, V>, Exte
 
         try {
             return delegate.offHeapAllocatedSize();
+        }
+        finally {
+            gate.leave(prev);
+        }
+    }
+
+    /** {@inheritDoc} */
+    @Override public long swapSize() throws IgniteCheckedException {
+        CacheOperationContext prev = gate.enter(opCtx);
+
+        try {
+            return delegate.swapSize();
+        }
+        finally {
+            gate.leave(prev);
+        }
+    }
+
+    /** {@inheritDoc} */
+    @Override public long swapKeys() throws IgniteCheckedException {
+        CacheOperationContext prev = gate.enter(opCtx);
+
+        try {
+            return delegate.swapKeys();
         }
         finally {
             gate.leave(prev);
@@ -1568,7 +1687,7 @@ public class GridCacheProxyImpl<K, V> implements IgniteInternalCache<K, V>, Exte
         try {
             return new GridCacheProxyImpl<>(ctx, delegate,
                 opCtx != null ? opCtx.withExpiryPolicy(plc) :
-                    new CacheOperationContext(false, null, false, plc, false, null, false));
+                    new CacheOperationContext(false, null, false, plc, false, null));
         }
         finally {
             gate.leave(prev);
@@ -1581,19 +1700,7 @@ public class GridCacheProxyImpl<K, V> implements IgniteInternalCache<K, V>, Exte
 
         try {
             return new GridCacheProxyImpl<>(ctx, delegate,
-                new CacheOperationContext(false, null, false, null, true, null, false));
-        }
-        finally {
-            gate.leave(prev);
-        }
-    }
-
-    /** {@inheritDoc} */
-    @Override public Collection<Integer> lostPartitions() {
-        CacheOperationContext prev = gate.enter(opCtx);
-
-        try {
-            return delegate.lostPartitions();
+                new CacheOperationContext(false, null, false, null, true, null));
         }
         finally {
             gate.leave(prev);

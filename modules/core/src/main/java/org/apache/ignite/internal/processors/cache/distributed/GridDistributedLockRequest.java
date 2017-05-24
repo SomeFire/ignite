@@ -38,18 +38,15 @@ import org.apache.ignite.plugin.extensions.communication.MessageWriter;
 import org.apache.ignite.transactions.TransactionIsolation;
 import org.jetbrains.annotations.Nullable;
 
+import static org.apache.ignite.internal.processors.cache.GridCacheUtils.KEEP_BINARY_FLAG_MASK;
+import static org.apache.ignite.internal.processors.cache.GridCacheUtils.SKIP_STORE_FLAG_MASK;
+
 /**
  * Lock request message.
  */
 public class GridDistributedLockRequest extends GridDistributedBaseMessage {
     /** */
     private static final long serialVersionUID = 0L;
-
-    /** Skip store flag bit mask. */
-    private static final int SKIP_STORE_FLAG_MASK = 0x01;
-
-    /** Keep binary flag. */
-    private static final int KEEP_BINARY_FLAG_MASK = 0x02;
 
     /** Sender node ID. */
     private UUID nodeId;
@@ -93,7 +90,10 @@ public class GridDistributedLockRequest extends GridDistributedBaseMessage {
     /** Key count. */
     private int txSize;
 
-    /** Additional flags. */
+    /**
+     * Additional flags.
+     * GridCacheUtils.SKIP_STORE_FLAG_MASK - for skipStore flag value.
+     */
     private byte flags;
 
     /**

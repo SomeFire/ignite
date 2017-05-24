@@ -223,7 +223,7 @@ public class CacheBinaryKeyConcurrentQueryTest extends GridCommonAbstractTest {
      * @return Cache configuration.
      */
     private CacheConfiguration cacheConfiguration(String name, CacheAtomicityMode atomicityMode) {
-        CacheConfiguration ccfg = new CacheConfiguration(DEFAULT_CACHE_NAME);
+        CacheConfiguration ccfg = new CacheConfiguration();
 
         ccfg.setName(name);
         ccfg.setCacheMode(PARTITIONED);

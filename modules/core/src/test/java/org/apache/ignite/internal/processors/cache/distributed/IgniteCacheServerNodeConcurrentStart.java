@@ -48,20 +48,20 @@ public class IgniteCacheServerNodeConcurrentStart extends GridCommonAbstractTest
 
         ((TcpCommunicationSpi)cfg.getCommunicationSpi()).setSharedMemoryPort(-1);
 
-        CacheConfiguration ccfg1 = new CacheConfiguration(DEFAULT_CACHE_NAME);
+        CacheConfiguration ccfg1 = new CacheConfiguration();
 
         ccfg1.setName("cache-1");
         ccfg1.setCacheMode(REPLICATED);
         ccfg1.setRebalanceMode(SYNC);
 
-        CacheConfiguration ccfg2 = new CacheConfiguration(DEFAULT_CACHE_NAME);
+        CacheConfiguration ccfg2 = new CacheConfiguration();
 
         ccfg2.setName("cache-2");
         ccfg2.setCacheMode(PARTITIONED);
         ccfg2.setRebalanceMode(SYNC);
         ccfg2.setBackups(2);
 
-        CacheConfiguration ccfg3 = new CacheConfiguration(DEFAULT_CACHE_NAME);
+        CacheConfiguration ccfg3 = new CacheConfiguration();
 
         ccfg3.setName("cache-3");
         ccfg3.setCacheMode(PARTITIONED);

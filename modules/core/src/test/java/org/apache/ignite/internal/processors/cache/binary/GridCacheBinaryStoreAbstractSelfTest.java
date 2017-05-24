@@ -67,7 +67,7 @@ public abstract class GridCacheBinaryStoreAbstractSelfTest extends GridCommonAbs
 
         cfg.setMarshaller(new BinaryMarshaller());
 
-        CacheConfiguration cacheCfg = new CacheConfiguration(DEFAULT_CACHE_NAME);
+        CacheConfiguration cacheCfg = new CacheConfiguration();
 
         cacheCfg.setCacheStoreFactory(singletonFactory(STORE));
         cacheCfg.setStoreKeepBinary(keepBinaryInStore());

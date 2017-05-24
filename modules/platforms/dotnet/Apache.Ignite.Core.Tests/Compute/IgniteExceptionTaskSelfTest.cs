@@ -34,10 +34,10 @@ namespace Apache.Ignite.Core.Tests.Compute
     public class IgniteExceptionTaskSelfTest : AbstractTaskTest
     {
         /** Error mode. */
-        private static ErrorMode _mode;
+        public static ErrorMode Mode;
 
         /** Observed job errors. */
-        private static readonly ICollection<Exception> JobErrs = new List<Exception>();
+        public static readonly ICollection<Exception> JobErrs = new List<Exception>();
 
         /// <summary>
         /// Constructor.
@@ -56,7 +56,7 @@ namespace Apache.Ignite.Core.Tests.Compute
         [Test]
         public void TestMapError()
         {
-            _mode = ErrorMode.MapErr;
+            Mode = ErrorMode.MapErr;
 
             GoodException e = ExecuteWithError() as GoodException;
 
@@ -71,7 +71,7 @@ namespace Apache.Ignite.Core.Tests.Compute
         [Test]
         public void TestMapNotMarshalableError()
         {
-            _mode = ErrorMode.MapErrNotMarshalable;
+            Mode = ErrorMode.MapErrNotMarshalable;
 
             BadException e = ExecuteWithError() as BadException;
 
@@ -86,7 +86,7 @@ namespace Apache.Ignite.Core.Tests.Compute
         [Test]
         public void TestMapNotMarshalableJob()
         {
-            _mode = ErrorMode.MapJobNotMarshalable;
+            Mode = ErrorMode.MapJobNotMarshalable;
 
             Assert.IsInstanceOf<BinaryObjectException>(ExecuteWithError());
         }
@@ -97,16 +97,15 @@ namespace Apache.Ignite.Core.Tests.Compute
         [Test]
         public void TestLocalJobError()
         {
-            _mode = ErrorMode.LocJobErr;
+            Mode = ErrorMode.LocJobErr;
 
             int res = Execute();
 
             Assert.AreEqual(1, res);
 
             Assert.AreEqual(4, JobErrs.Count);
-            var goodEx = JobErrs.First().InnerException as GoodException;
-            Assert.IsNotNull(goodEx);
-            Assert.AreEqual(ErrorMode.LocJobErr, goodEx.Mode);
+            Assert.IsNotNull(JobErrs.First() as GoodException);
+            Assert.AreEqual(ErrorMode.LocJobErr, ((GoodException) JobErrs.First()).Mode);
         }
 
         /// <summary>
@@ -115,14 +114,14 @@ namespace Apache.Ignite.Core.Tests.Compute
         [Test]
         public void TestLocalJobErrorNotMarshalable()
         {
-            _mode = ErrorMode.LocJobErrNotMarshalable;
+            Mode = ErrorMode.LocJobErrNotMarshalable;
 
             int res = Execute();
 
             Assert.AreEqual(1, res);
 
             Assert.AreEqual(4, JobErrs.Count);
-            Assert.IsInstanceOf<BadException>(JobErrs.First().InnerException); // Local job exception is not marshalled.
+            Assert.IsNotNull(JobErrs.First() as BadException); // Local job exception is not marshalled.
         }
 
         /// <summary>
@@ -131,7 +130,7 @@ namespace Apache.Ignite.Core.Tests.Compute
         [Test]
         public void TestLocalJobResultNotMarshalable()
         {
-            _mode = ErrorMode.LocJobResNotMarshalable;
+            Mode = ErrorMode.LocJobResNotMarshalable;
 
             int res = Execute();
 
@@ -146,7 +145,7 @@ namespace Apache.Ignite.Core.Tests.Compute
         [Test]
         public void TestRemoteJobError()
         {
-            _mode = ErrorMode.RmtJobErr;
+            Mode = ErrorMode.RmtJobErr;
 
             int res = Execute();
 
@@ -154,10 +153,9 @@ namespace Apache.Ignite.Core.Tests.Compute
 
             Assert.AreEqual(4, JobErrs.Count);
 
-            var goodEx = JobErrs.First().InnerException as GoodException;
-            Assert.IsNotNull(goodEx);
+            Assert.IsNotNull(JobErrs.ElementAt(0) as GoodException);
 
-            Assert.AreEqual(ErrorMode.RmtJobErr, goodEx.Mode);
+            Assert.AreEqual(ErrorMode.RmtJobErr, ((GoodException) JobErrs.ElementAt(0)).Mode);
         }
 
         /// <summary>
@@ -166,7 +164,7 @@ namespace Apache.Ignite.Core.Tests.Compute
         [Test]
         public void TestRemoteJobErrorNotMarshalable()
         {
-            _mode = ErrorMode.RmtJobErrNotMarshalable;
+            Mode = ErrorMode.RmtJobErrNotMarshalable;
 
             Assert.Throws<SerializationException>(() => Execute());
         }
@@ -177,7 +175,7 @@ namespace Apache.Ignite.Core.Tests.Compute
         [Test]
         public void TestRemoteJobResultNotMarshalable()
         {
-            _mode = ErrorMode.RmtJobResNotMarshalable;
+            Mode = ErrorMode.RmtJobResNotMarshalable;
 
             int res = Execute();
 
@@ -194,7 +192,7 @@ namespace Apache.Ignite.Core.Tests.Compute
         [Test]
         public void TestLocalResultError()
         {
-            _mode = ErrorMode.LocResErr;
+            Mode = ErrorMode.LocResErr;
 
             GoodException e = ExecuteWithError() as GoodException;
 
@@ -209,7 +207,7 @@ namespace Apache.Ignite.Core.Tests.Compute
         [Test]
         public void TestLocalResultErrorNotMarshalable()
         {
-            _mode = ErrorMode.LocResErrNotMarshalable;
+            Mode = ErrorMode.LocResErrNotMarshalable;
 
             BadException e = ExecuteWithError() as BadException;
 
@@ -224,7 +222,7 @@ namespace Apache.Ignite.Core.Tests.Compute
         [Test]
         public void TestRemoteResultError()
         {
-            _mode = ErrorMode.RmtResErr;
+            Mode = ErrorMode.RmtResErr;
 
             GoodException e = ExecuteWithError() as GoodException;
 
@@ -239,7 +237,7 @@ namespace Apache.Ignite.Core.Tests.Compute
         [Test]
         public void TestRemoteResultErrorNotMarshalable()
         {
-            _mode = ErrorMode.RmtResErrNotMarshalable;
+            Mode = ErrorMode.RmtResErrNotMarshalable;
 
             BadException e = ExecuteWithError() as BadException;
 
@@ -254,7 +252,7 @@ namespace Apache.Ignite.Core.Tests.Compute
         [Test]
         public void TestReduceError()
         {
-            _mode = ErrorMode.ReduceErr;
+            Mode = ErrorMode.ReduceErr;
 
             GoodException e = ExecuteWithError() as GoodException;
 
@@ -269,7 +267,7 @@ namespace Apache.Ignite.Core.Tests.Compute
         [Test]
         public void TestReduceErrorNotMarshalable()
         {
-            _mode = ErrorMode.ReduceErrNotMarshalable;
+            Mode = ErrorMode.ReduceErrNotMarshalable;
 
             BadException e = ExecuteWithError() as BadException;
 
@@ -284,7 +282,7 @@ namespace Apache.Ignite.Core.Tests.Compute
         [Test]
         public void TestReduceResultNotMarshalable()
         {
-            _mode = ErrorMode.ReduceResNotMarshalable;
+            Mode = ErrorMode.ReduceResNotMarshalable;
 
             int res = Execute();
 
@@ -328,7 +326,7 @@ namespace Apache.Ignite.Core.Tests.Compute
         /// <summary>
         /// Error modes.
         /// </summary>
-        private enum ErrorMode
+        public enum ErrorMode
         {
             /** Error during map step. */
             MapErr,
@@ -394,7 +392,7 @@ namespace Apache.Ignite.Core.Tests.Compute
             /** <inheritDoc /> */
             public IDictionary<IComputeJob<object>, IClusterNode> Map(IList<IClusterNode> subgrid, object arg)
             {
-                switch (_mode)
+                switch (Mode)
                 {
                     case ErrorMode.MapErr:
                         throw new GoodException(ErrorMode.MapErr);
@@ -426,19 +424,16 @@ namespace Apache.Ignite.Core.Tests.Compute
             public ComputeJobResultPolicy OnResult(IComputeJobResult<object> res, IList<IComputeJobResult<object>> rcvd)
             {
                 if (res.Exception != null)
-                {
                     JobErrs.Add(res.Exception);
-                }
                 else
                 {
                     object res0 = res.Data;
 
-                    var result = res0 as GoodJobResult;
-                    bool rmt = result != null ? result.Rmt : ((BadJobResult) res0).Rmt;
+                    bool rmt = res0 is GoodJobResult ? ((GoodJobResult)res0).Rmt : ((BadJobResult)res0).Rmt;
 
                     if (rmt)
                     {
-                        switch (_mode)
+                        switch (Mode)
                         {
                             case ErrorMode.RmtResErr:
                                 throw new GoodException(ErrorMode.RmtResErr);
@@ -449,7 +444,7 @@ namespace Apache.Ignite.Core.Tests.Compute
                     }
                     else
                     {
-                        switch (_mode)
+                        switch (Mode)
                         {
                             case ErrorMode.LocResErr:
                                 throw new GoodException(ErrorMode.LocResErr);
@@ -468,7 +463,7 @@ namespace Apache.Ignite.Core.Tests.Compute
             /** <inheritDoc /> */
             public object Reduce(IList<IComputeJobResult<object>> results)
             {
-                switch (_mode)
+                switch (Mode)
                 {
                     case ErrorMode.ReduceErr:
                         throw new GoodException(ErrorMode.ReduceErr);
@@ -488,10 +483,10 @@ namespace Apache.Ignite.Core.Tests.Compute
         /// 
         /// </summary>
         [Serializable]
-        private class GoodJob : IComputeJob<object>, ISerializable
+        public class GoodJob : IComputeJob<object>
         {
             /** Whether the job is remote. */
-            private readonly bool _rmt;
+            private bool _rmt;
 
             /// <summary>
             /// 
@@ -507,7 +502,7 @@ namespace Apache.Ignite.Core.Tests.Compute
             /// </summary>
             /// <param name="info"></param>
             /// <param name="context"></param>
-            protected GoodJob(SerializationInfo info, StreamingContext context)
+            public GoodJob(SerializationInfo info, StreamingContext context)
             {
                 _rmt = info.GetBoolean("rmt");
             }
@@ -523,7 +518,7 @@ namespace Apache.Ignite.Core.Tests.Compute
             {
                 if (_rmt)
                 {
-                    switch (_mode)
+                    switch (Mode)
                     {
                         case ErrorMode.RmtJobErr:
                             throw new GoodException(ErrorMode.RmtJobErr);
@@ -537,7 +532,7 @@ namespace Apache.Ignite.Core.Tests.Compute
                 }
                 else
                 {
-                    switch (_mode)
+                    switch (Mode)
                     {
                         case ErrorMode.LocJobErr:
                             throw new GoodException(ErrorMode.LocJobErr);
@@ -563,7 +558,7 @@ namespace Apache.Ignite.Core.Tests.Compute
         /// <summary>
         /// 
         /// </summary>
-        private class BadJob : IComputeJob<object>, IBinarizable
+        public class BadJob : IComputeJob<object>, IBinarizable
         {
             [InstanceResource]
 
@@ -596,10 +591,10 @@ namespace Apache.Ignite.Core.Tests.Compute
         /// 
         /// </summary>
         [Serializable]
-        private class GoodJobResult : ISerializable
+        public class GoodJobResult
         {
             /** */
-            public readonly bool Rmt;
+            public bool Rmt;
             
             /// <summary>
             /// 
@@ -615,7 +610,7 @@ namespace Apache.Ignite.Core.Tests.Compute
             /// </summary>
             /// <param name="info"></param>
             /// <param name="context"></param>
-            protected GoodJobResult(SerializationInfo info, StreamingContext context)
+            public GoodJobResult(SerializationInfo info, StreamingContext context)
             {
                 Rmt = info.GetBoolean("rmt");
             }
@@ -630,10 +625,10 @@ namespace Apache.Ignite.Core.Tests.Compute
         /// <summary>
         /// 
         /// </summary>
-        private class BadJobResult : IBinarizable
+        public class BadJobResult : IBinarizable
         {
             /** */
-            public readonly bool Rmt;
+            public bool Rmt;
 
             /// <summary>
             /// 
@@ -661,10 +656,10 @@ namespace Apache.Ignite.Core.Tests.Compute
         /// 
         /// </summary>
         [Serializable]
-        private class GoodTaskResult : ISerializable
+        public class GoodTaskResult
         {
             /** */
-            public readonly int Res;
+            public int Res;
 
             /// <summary>
             /// 
@@ -680,7 +675,7 @@ namespace Apache.Ignite.Core.Tests.Compute
             /// </summary>
             /// <param name="info"></param>
             /// <param name="context"></param>
-            protected GoodTaskResult(SerializationInfo info, StreamingContext context)
+            public GoodTaskResult(SerializationInfo info, StreamingContext context)
             {
                 Res = info.GetInt32("res");
             }
@@ -695,10 +690,10 @@ namespace Apache.Ignite.Core.Tests.Compute
         /// <summary>
         /// 
         /// </summary>
-        private class BadTaskResult
+        public class BadTaskResult
         {
             /** */
-            public readonly int Res;
+            public int Res;
 
             /// <summary>
             /// 
@@ -714,10 +709,10 @@ namespace Apache.Ignite.Core.Tests.Compute
         /// Marshalable exception.
         /// </summary>
         [Serializable]
-        private class GoodException : Exception
+        public class GoodException : Exception
         {
             /** */
-            public readonly ErrorMode Mode;
+            public ErrorMode Mode;
             
             /// <summary>
             /// 
@@ -733,7 +728,7 @@ namespace Apache.Ignite.Core.Tests.Compute
             /// </summary>
             /// <param name="info"></param>
             /// <param name="context"></param>
-            protected GoodException(SerializationInfo info, StreamingContext context)
+            public GoodException(SerializationInfo info, StreamingContext context)
             {
                 Mode = (ErrorMode)info.GetInt32("mode");
             }
@@ -750,10 +745,10 @@ namespace Apache.Ignite.Core.Tests.Compute
         /// <summary>
         /// Not marshalable exception.
         /// </summary>
-        private class BadException : Exception
+        public class BadException : Exception
         {
             /** */
-            public readonly ErrorMode Mode;
+            public ErrorMode Mode;
 
             /// <summary>
             /// 

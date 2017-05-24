@@ -17,21 +17,14 @@
 
 package org.apache.ignite.internal.visor.debug;
 
-import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
+import java.io.Serializable;
 import java.lang.management.ThreadInfo;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import org.apache.ignite.internal.util.typedef.F;
-import org.apache.ignite.internal.util.typedef.internal.U;
-import org.apache.ignite.internal.visor.VisorDataTransferObject;
+import org.apache.ignite.internal.LessNamingBean;
 
 /**
  * Data transfer object for Visor {@link ThreadInfo}.
  */
-public class VisorThreadInfo extends VisorDataTransferObject {
+public class VisorThreadInfo implements Serializable, LessNamingBean {
     /** */
     private static final long serialVersionUID = 0L;
 
@@ -39,260 +32,241 @@ public class VisorThreadInfo extends VisorDataTransferObject {
     private static final int MAX_FRAMES = 8;
 
     /** Thread name. */
-    private String name;
+    private final String name;
 
     /** Thread ID. */
-    private long id;
+    private final Long id;
 
     /** Thread state. */
-    private Thread.State state;
+    private final Thread.State state;
 
     /** Lock information. */
-    private VisorThreadLockInfo lock;
+    private final VisorThreadLockInfo lock;
 
     /** Lock name. */
-    private String lockName;
+    private final String lockName;
 
     /** Lock owner thread ID. */
-    private long lockOwnerId;
+    private final Long lockOwnerId;
 
     /** Lock owner name. */
-    private String lockOwnerName;
+    private final String lockOwnerName;
 
     /** Thread executing native code. */
-    private boolean inNative;
+    private final Boolean inNative;
 
     /** Thread is suspended. */
-    private boolean suspended;
+    private final Boolean suspended;
 
     /** Waited count. */
-    private long waitedCnt;
+    private final Long waitedCnt;
 
     /** Waited time. */
-    private long waitedTime;
+    private final Long waitedTime;
 
     /** Blocked count. */
-    private long blockedCnt;
+    private final Long blockedCnt;
 
     /** Blocked time. */
-    private long blockedTime;
+    private final Long blockedTime;
 
     /** Stack trace. */
-    private List<StackTraceElement> stackTrace;
+    private final StackTraceElement[] stackTrace;
 
     /** Locks info. */
-    private List<VisorThreadLockInfo> locks;
+    private final VisorThreadLockInfo[] locks;
 
     /** Locked monitors. */
-    private List<VisorThreadMonitorInfo> lockedMonitors;
+    private final VisorThreadMonitorInfo[] lockedMonitors;
 
-    /**
-     * Default constructor.
-     */
-    public VisorThreadInfo() {
-        // No-op.
+    /** Create thread info with given parameters. */
+    public VisorThreadInfo(String name,
+        Long id,
+        Thread.State state,
+        VisorThreadLockInfo lock,
+        String lockName,
+        Long lockOwnerId,
+        String lockOwnerName,
+        Boolean inNative,
+        Boolean suspended,
+        Long waitedCnt,
+        Long waitedTime,
+        Long blockedCnt,
+        Long blockedTime,
+        StackTraceElement[] stackTrace,
+        VisorThreadLockInfo[] locks,
+        VisorThreadMonitorInfo[] lockedMonitors
+    ) {
+        this.name = name;
+        this.id = id;
+        this.state = state;
+        this.lock = lock;
+        this.lockName = lockName;
+        this.lockOwnerId = lockOwnerId;
+        this.lockOwnerName = lockOwnerName;
+        this.inNative = inNative;
+        this.suspended = suspended;
+        this.waitedCnt = waitedCnt;
+        this.waitedTime = waitedTime;
+        this.blockedCnt = blockedCnt;
+        this.blockedTime = blockedTime;
+        this.stackTrace = stackTrace;
+        this.locks = locks;
+        this.lockedMonitors = lockedMonitors;
     }
 
-    /**
-     * Create data transfer object for given thread info.
-     *
-     * @param ti Thread info.
-     */
-    public VisorThreadInfo(ThreadInfo ti) {
+    /** Create data transfer object for given thread info. */
+    public static VisorThreadInfo from(ThreadInfo ti) {
         assert ti != null;
 
-        name = ti.getThreadName();
-        id = ti.getThreadId();
-        state = ti.getThreadState();
-        lock = ti.getLockInfo() != null ? new VisorThreadLockInfo(ti.getLockInfo()) : null;
-        lockName =ti.getLockName();
-        lockOwnerId = ti.getLockOwnerId();
-        lockOwnerName = ti.getLockOwnerName();
-        inNative = ti.isInNative();
-        suspended = ti.isSuspended();
-        waitedCnt = ti.getWaitedCount();
-        waitedTime = ti.getWaitedTime();
-        blockedCnt = ti.getBlockedCount();
-        blockedTime = ti.getBlockedTime();
-        stackTrace = Arrays.asList(ti.getStackTrace());
-
-        locks = ti.getLockedSynchronizers() != null ?
-            new ArrayList<VisorThreadLockInfo>(ti.getLockedSynchronizers().length) : null;
+        VisorThreadLockInfo[] linfos = ti.getLockedSynchronizers() != null ?
+            new VisorThreadLockInfo[ti.getLockedSynchronizers().length] : null;
 
         if (ti.getLockedSynchronizers() != null)
             for (int i = 0; i < ti.getLockedSynchronizers().length; i++)
-                locks.add(new VisorThreadLockInfo(ti.getLockedSynchronizers()[i]));
+                linfos[i] = VisorThreadLockInfo.from(ti.getLockedSynchronizers()[i]);
 
-        lockedMonitors = ti.getLockedMonitors() != null ?
-            new ArrayList<VisorThreadMonitorInfo>(ti.getLockedMonitors().length) : null;
+        VisorThreadMonitorInfo[] minfos = ti.getLockedMonitors() != null ?
+            new VisorThreadMonitorInfo[ti.getLockedMonitors().length] : null;
 
         if (ti.getLockedMonitors() != null)
             for (int i = 0; i < ti.getLockedMonitors().length; i++)
-                lockedMonitors.add(new VisorThreadMonitorInfo(ti.getLockedMonitors()[i]));
+                minfos[i] = VisorThreadMonitorInfo.from(ti.getLockedMonitors()[i]);
+
+        return new VisorThreadInfo(ti.getThreadName(),
+            ti.getThreadId(),
+            ti.getThreadState(),
+            ti.getLockInfo() != null ? VisorThreadLockInfo.from(ti.getLockInfo()) : null,
+            ti.getLockName(),
+            ti.getLockOwnerId(),
+            ti.getLockOwnerName(),
+            ti.isInNative(),
+            ti.isSuspended(),
+            ti.getWaitedCount(),
+            ti.getWaitedTime(),
+            ti.getBlockedCount(),
+            ti.getBlockedTime(),
+            ti.getStackTrace(),
+            linfos,
+            minfos
+        );
     }
 
     /**
      * @return Thread name.
      */
-    public String getName() {
+    public String name() {
         return name;
     }
 
     /**
      * @return Thread ID.
      */
-    public long getId() {
+    public Long id() {
         return id;
     }
 
     /**
      * @return Thread state.
      */
-    public Thread.State getState() {
+    public Thread.State state() {
         return state;
     }
 
     /**
      * @return Lock information.
      */
-    public VisorThreadLockInfo getLock() {
+    public VisorThreadLockInfo lock() {
         return lock;
     }
 
     /**
      * @return Lock name.
      */
-    public String getLockName() {
+    public String lockName() {
         return lockName;
     }
 
     /**
      * @return Lock owner thread ID.
      */
-    public long getLockOwnerId() {
+    public Long lockOwnerId() {
         return lockOwnerId;
     }
 
     /**
      * @return Lock owner name.
      */
-    public String getLockOwnerName() {
+    public String lockOwnerName() {
         return lockOwnerName;
     }
 
     /**
      * @return Thread executing native code.
      */
-    public boolean isInNative() {
+    public Boolean inNative() {
         return inNative;
     }
 
     /**
      * @return Thread is suspended.
      */
-    public boolean isSuspended() {
+    public Boolean suspended() {
         return suspended;
     }
 
     /**
      * @return Waited count.
      */
-    public long getWaitedCount() {
+    public Long waitedCount() {
         return waitedCnt;
     }
 
     /**
      * @return Waited time.
      */
-    public long getWaitedTime() {
+    public Long waitedTime() {
         return waitedTime;
     }
 
     /**
      * @return Blocked count.
      */
-    public long getBlockedCount() {
+    public Long blockedCount() {
         return blockedCnt;
     }
 
     /**
      * @return Blocked time.
      */
-    public long getBlockedTime() {
+    public Long blockedTime() {
         return blockedTime;
     }
 
     /**
      * @return Stack trace.
      */
-    public List<StackTraceElement> getStackTrace() {
+    public StackTraceElement[] stackTrace() {
         return stackTrace;
     }
 
     /**
      * @return Locks info.
      */
-    public List<VisorThreadLockInfo> getLocks() {
+    public VisorThreadLockInfo[] locks() {
         return locks;
     }
 
     /**
      * @return Locked monitors.
      */
-    public List<VisorThreadMonitorInfo> getLockedMonitors() {
+    public VisorThreadMonitorInfo[] lockedMonitors() {
         return lockedMonitors;
     }
 
     /** {@inheritDoc} */
-    @Override protected void writeExternalData(ObjectOutput out) throws IOException {
-        U.writeString(out, name);
-        out.writeLong(id);
-        U.writeString(out, state.toString());
-        out.writeObject(lock);
-        U.writeString(out, lockName);
-        out.writeLong(lockOwnerId);
-        U.writeString(out, lockOwnerName);
-        out.writeBoolean(inNative);
-        out.writeBoolean(suspended);
-        out.writeLong(waitedCnt);
-        out.writeLong(waitedTime);
-        out.writeLong(blockedCnt);
-        out.writeLong(blockedTime);
-        U.writeCollection(out, stackTrace);
-        U.writeCollection(out, locks);
-        U.writeCollection(out, lockedMonitors);
-    }
-
-    /** {@inheritDoc} */
-    @Override protected void readExternalData(byte protoVer, ObjectInput in) throws IOException, ClassNotFoundException {
-        name = U.readString(in);
-        id = in.readLong();
-
-        String statePresentation = U.readString(in);
-
-        if (statePresentation != null)
-            state = Enum.valueOf(Thread.State.class, statePresentation);
-
-        lock = (VisorThreadLockInfo)in.readObject();
-        lockName = U.readString(in);
-        lockOwnerId = in.readLong();
-        lockOwnerName = U.readString(in);
-        inNative = in.readBoolean();
-        suspended = in.readBoolean();
-        waitedCnt = in.readLong();
-        waitedTime = in.readLong();
-        blockedCnt = in.readLong();
-        blockedTime = in.readLong();
-        stackTrace = U.readList(in);
-        locks = U.readList(in);
-        lockedMonitors = U.readList(in);
-    }
-
-    /** {@inheritDoc} */
     @Override public String toString() {
-        StringBuilder sb = new StringBuilder(512);
-
-        sb.append('"').append(name).append('"').append(" Id=").append(id).append(' ').append(state);
+        StringBuilder sb = new StringBuilder("\"" + name + "\"" + " Id=" + id + " " + state);
 
         if (lockName != null)
             sb.append(" on ").append(lockName);
@@ -308,12 +282,12 @@ public class VisorThreadInfo extends VisorDataTransferObject {
 
         sb.append('\n');
 
-        int maxFrames = Math.min(stackTrace.size(), MAX_FRAMES);
+        int maxFrames = Math.min(stackTrace.length, MAX_FRAMES);
 
         for (int i = 0; i < maxFrames; i++) {
-            StackTraceElement ste = stackTrace.get(i);
+            StackTraceElement ste = stackTrace[i];
 
-            sb.append("\tat ").append(ste).append('\n');
+            sb.append("\tat ").append(ste.toString()).append('\n');
 
             if (i == 0 && lock != null) {
                 switch (state) {
@@ -334,16 +308,16 @@ public class VisorThreadInfo extends VisorDataTransferObject {
             }
 
             for (VisorThreadMonitorInfo mi : lockedMonitors) {
-                if (mi.getStackDepth() == i)
+                if (mi.stackDepth() == i)
                     sb.append("\t-  locked ").append(mi).append('\n');
             }
         }
 
-        if (maxFrames < stackTrace.size())
+        if (maxFrames < stackTrace.length)
             sb.append("\t...").append('\n');
 
-        if (!F.isEmpty(locks)) {
-            sb.append("\n\tNumber of locked synchronizers = ").append(locks.size()).append('\n');
+        if (locks.length > 0) {
+            sb.append("\n\tNumber of locked synchronizers = ").append(locks.length).append('\n');
 
             for (VisorThreadLockInfo li : locks)
                 sb.append("\t- ").append(li).append('\n');

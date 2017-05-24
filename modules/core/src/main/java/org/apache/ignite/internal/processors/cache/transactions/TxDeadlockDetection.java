@@ -214,6 +214,9 @@ public class TxDeadlockDetection {
         /** Timed out flag. */
         private volatile boolean timedOut;
 
+        /** Mutex. */
+        private final Object mux = new Object();
+
         /**
          * @param cctx Context.
          * @param txId Tx ID.
@@ -518,7 +521,7 @@ public class TxDeadlockDetection {
          * @param val Value.
          */
         private boolean compareAndSet(UUID exp, UUID val) {
-            synchronized (this) {
+            synchronized (mux) {
                 if (Objects.equals(curNodeId, exp)) {
                     curNodeId = val;
 

@@ -30,6 +30,7 @@ import org.apache.ignite.internal.processors.cache.IgniteCacheAbstractQuerySelfT
 import org.apache.ignite.spi.discovery.tcp.TcpDiscoverySpi;
 import org.apache.ignite.spi.discovery.tcp.ipfinder.TcpDiscoveryIpFinder;
 import org.apache.ignite.spi.discovery.tcp.ipfinder.vm.TcpDiscoveryVmIpFinder;
+import org.apache.ignite.spi.swapspace.noop.NoopSwapSpaceSpi;
 import org.apache.ignite.testframework.junits.common.GridCommonAbstractTest;
 
 import static org.apache.ignite.cache.CacheAtomicityMode.TRANSACTIONAL;
@@ -56,18 +57,20 @@ public class GridIndexingWithNoopSwapSelfTest extends GridCommonAbstractTest {
 
         c.setDiscoverySpi(disco);
 
+        c.setSwapSpaceSpi(new NoopSwapSpaceSpi());
+
         CacheConfiguration<?,?> cc = defaultCacheConfiguration();
 
         cc.setCacheMode(PARTITIONED);
         cc.setWriteSynchronizationMode(CacheWriteSynchronizationMode.FULL_SYNC);
         cc.setRebalanceMode(SYNC);
+        cc.setSwapEnabled(true);
         cc.setNearConfiguration(new NearCacheConfiguration());
 
         FifoEvictionPolicy plc = new FifoEvictionPolicy();
         plc.setMaxSize(1000);
 
         cc.setEvictionPolicy(plc);
-        cc.setOnheapCacheEnabled(true);
         cc.setBackups(1);
         cc.setAtomicityMode(TRANSACTIONAL);
         cc.setIndexedTypes(
@@ -93,7 +96,7 @@ public class GridIndexingWithNoopSwapSelfTest extends GridCommonAbstractTest {
 
     /** @throws Exception If failed. */
     public void testQuery() throws Exception {
-        IgniteCache<Integer, ObjectValue> cache = ignite.cache(DEFAULT_CACHE_NAME);
+        IgniteCache<Integer, ObjectValue> cache = ignite.cache(null);
 
         int cnt = 10;
 
@@ -109,6 +112,6 @@ public class GridIndexingWithNoopSwapSelfTest extends GridCommonAbstractTest {
         SqlQuery<Integer, ObjectValue> qry =
             new SqlQuery(ObjectValue.class, "intVal >= ? order by intVal");
 
-        assertEquals(10, cache.query(qry.setArgs(0)).getAll().size());
+        assertEquals(0, cache.query(qry.setArgs(0)).getAll().size());
     }
 }

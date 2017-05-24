@@ -42,19 +42,16 @@ namespace ignite
         /**
          * Callback codes.
          */
-        struct OperationCallback
+        enum CallbackOp
         {
-            enum Type
-            {
-                CACHE_INVOKE = 8,
-                CONTINUOUS_QUERY_LISTENER_APPLY = 18,
-                CONTINUOUS_QUERY_FILTER_CREATE = 19,
-                CONTINUOUS_QUERY_FILTER_APPLY = 20,
-                CONTINUOUS_QUERY_FILTER_RELEASE = 21,
-                REALLOC = 36,
-                ON_START = 49,
-                ON_STOP = 50 
-            };
+            CACHE_INVOKE = 8,
+            CONTINUOUS_QUERY_LISTENER_APPLY = 18,
+            CONTINUOUS_QUERY_FILTER_CREATE = 19,
+            CONTINUOUS_QUERY_FILTER_APPLY = 20,
+            CONTINUOUS_QUERY_FILTER_RELEASE = 21,
+            REALLOC = 36,
+            ON_START = 49,
+            ON_STOP = 50 
         };
 
         /**
@@ -71,14 +68,14 @@ namespace ignite
 
             switch (type)
             {
-                case OperationCallback::ON_STOP:
+                case ON_STOP:
                 {
                     delete env;
 
                     break;
                 }
 
-                case OperationCallback::CONTINUOUS_QUERY_LISTENER_APPLY:
+                case CONTINUOUS_QUERY_LISTENER_APPLY:
                 {
                     SharedPointer<InteropMemory> mem = env->Get()->GetMemory(val);
 
@@ -87,7 +84,7 @@ namespace ignite
                     break;
                 }
 
-                case OperationCallback::CONTINUOUS_QUERY_FILTER_CREATE:
+                case CONTINUOUS_QUERY_FILTER_CREATE:
                 {
                     SharedPointer<InteropMemory> mem = env->Get()->GetMemory(val);
 
@@ -96,7 +93,7 @@ namespace ignite
                     break;
                 }
 
-                case OperationCallback::CONTINUOUS_QUERY_FILTER_APPLY:
+                case CONTINUOUS_QUERY_FILTER_APPLY:
                 {
                     SharedPointer<InteropMemory> mem = env->Get()->GetMemory(val);
 
@@ -105,13 +102,13 @@ namespace ignite
                     break;
                 }
 
-                case OperationCallback::CONTINUOUS_QUERY_FILTER_RELEASE:
+                case CONTINUOUS_QUERY_FILTER_RELEASE:
                 {
                     // No-op.
                     break;
                 }
 
-                case OperationCallback::CACHE_INVOKE:
+                case CACHE_INVOKE:
                 {
                     SharedPointer<InteropMemory> mem = env->Get()->GetMemory(val);
 
@@ -146,14 +143,14 @@ namespace ignite
 
             switch (type)
             {
-                case OperationCallback::ON_START:
+                case ON_START:
                 {
                     env->Get()->OnStartCallback(val1, reinterpret_cast<jobject>(arg));
 
                     break;
                 }
 
-                case OperationCallback::REALLOC:
+                case REALLOC:
                 {
                     SharedPointer<InteropMemory> mem = env->Get()->GetMemory(val1);
 
@@ -366,7 +363,7 @@ namespace ignite
             bool invoked = false;
 
             int64_t res = binding.Get()->InvokeCallback(invoked,
-                IgniteBindingImpl::CallbackType::CACHE_ENTRY_FILTER_CREATE, filterId, reader, writer);
+                IgniteBindingImpl::CACHE_ENTRY_FILTER_CREATE, filterId, reader, writer);
 
             if (!invoked)
             {
@@ -427,8 +424,7 @@ namespace ignite
 
             bool invoked = false;
 
-            binding.Get()->InvokeCallback(invoked,
-                IgniteBindingImpl::CallbackType::CACHE_ENTRY_PROCESSOR_APPLY, procId, reader, writer);
+            binding.Get()->InvokeCallback(invoked, IgniteBindingImpl::CACHE_ENTRY_PROCESSOR_APPLY, procId, reader, writer);
 
             if (!invoked)
             {

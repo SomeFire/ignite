@@ -104,48 +104,48 @@ namespace ignite
                     int sectionBegin = margin;
 
                     const char* val = config.GetDsn().c_str();
-                    nameLabel = CreateLabel(labelPosX, rowPos, labelSizeX, rowSize, "DSN name:", ChildId::NAME_LABEL);
-                    nameEdit = CreateEdit(editPosX, rowPos, editSizeX, rowSize, val, ChildId::NAME_EDIT);
+                    nameLabel = CreateLabel(labelPosX, rowPos, labelSizeX, rowSize, "DSN name:", ID_NAME_LABEL);
+                    nameEdit = CreateEdit(editPosX, rowPos, editSizeX, rowSize, val, ID_NAME_EDIT);
 
                     rowPos += interval + rowSize;
 
                     val = config.GetAddress().c_str();
-                    addressLabel = CreateLabel(labelPosX, rowPos, labelSizeX, rowSize, "Address:", ChildId::ADDRESS_LABEL);
-                    addressEdit = CreateEdit(editPosX, rowPos, editSizeX, rowSize, val, ChildId::ADDRESS_EDIT);
+                    addressLabel = CreateLabel(labelPosX, rowPos, labelSizeX, rowSize, "Address:", ID_ADDRESS_LABEL);
+                    addressEdit = CreateEdit(editPosX, rowPos, editSizeX, rowSize, val, ID_ADDRESS_EDIT);
 
                     rowPos += interval + rowSize;
 
                     val = config.GetCache().c_str();
-                    cacheLabel = CreateLabel(labelPosX, rowPos, labelSizeX, rowSize, "Cache name:", ChildId::CACHE_LABEL);
-                    cacheEdit = CreateEdit(editPosX, rowPos, editSizeX, rowSize, val, ChildId::CACHE_EDIT);
+                    cacheLabel = CreateLabel(labelPosX, rowPos, labelSizeX, rowSize, "Cache name:", ID_CACHE_LABEL);
+                    cacheEdit = CreateEdit(editPosX, rowPos, editSizeX, rowSize, val, ID_CACHE_EDIT);
 
                     rowPos += interval + rowSize;
 
                     std::string tmp = common::LexicalCast<std::string>(config.GetPageSize());
                     val = tmp.c_str();
                     pageSizeLabel = CreateLabel(labelPosX, rowPos, labelSizeX,
-                        rowSize, "Page size:", ChildId::PAGE_SIZE_LABEL);
+                        rowSize, "Page size:", ID_PAGE_SIZE_LABEL);
 
                     pageSizeEdit = CreateEdit(editPosX, rowPos, editSizeX, 
-                        rowSize, val, ChildId::PAGE_SIZE_EDIT, ES_NUMBER);
+                        rowSize, val, ID_PAGE_SIZE_EDIT, ES_NUMBER);
 
                     rowPos += interval + rowSize;
 
                     protocolVersionLabel = CreateLabel(labelPosX, rowPos, labelSizeX, rowSize,
-                        "Protocol version:", ChildId::PROTOCOL_VERSION_LABEL);
+                        "Protocol version:", ID_PROTOCOL_VERSION_LABEL);
                     protocolVersionComboBox = CreateComboBox(editPosX, rowPos, editSizeX, rowSize,
-                        "Protocol version", ChildId::PROTOCOL_VERSION_COMBO_BOX);
+                        "Protocol version", ID_PROTOCOL_VERSION_COMBO_BOX);
 
                     int id = 0;
 
-                    const ProtocolVersion::VersionSet& supported = ProtocolVersion::GetSupported();
+                    const ProtocolVersion::StringToVersionMap& versionMap = ProtocolVersion::GetMap();
 
-                    ProtocolVersion::VersionSet::const_iterator it;
-                    for (it = supported.begin(); it != supported.end(); ++it)
+                    ProtocolVersion::StringToVersionMap::const_iterator it;
+                    for (it = versionMap.begin(); it != versionMap.end(); ++it)
                     {
-                        protocolVersionComboBox->AddString(it->ToString());
+                        protocolVersionComboBox->AddString(it->first);
 
-                        if (*it == config.GetProtocolVersion())
+                        if (it->second == config.GetProtocolVersion())
                             protocolVersionComboBox->SetSelection(id);
 
                         ++id;
@@ -154,15 +154,21 @@ namespace ignite
                     rowPos += interval + rowSize;
 
                     distributedJoinsCheckBox = CreateCheckBox(editPosX, rowPos, checkBoxSize, rowSize,
-                        "Distributed Joins", ChildId::DISTRIBUTED_JOINS_CHECK_BOX, config.IsDistributedJoins());
+                        "Distributed Joins", ID_DISTRIBUTED_JOINS_CHECK_BOX, config.IsDistributedJoins());
 
                     enforceJoinOrderCheckBox = CreateCheckBox(editPosX + checkBoxSize + interval, rowPos, checkBoxSize,
-                        rowSize, "Enforce Join Order", ChildId::ENFORCE_JOIN_ORDER_CHECK_BOX, config.IsEnforceJoinOrder());
+                        rowSize, "Enforce Join Order", ID_ENFORCE_JOIN_ORDER_CHECK_BOX, config.IsEnforceJoinOrder());
+
+                    if (!config.GetProtocolVersion().IsDistributedJoinsSupported())
+                    {
+                        distributedJoinsCheckBox->SetEnabled(false);
+                        enforceJoinOrderCheckBox->SetEnabled(false);
+                    }
 
                     rowPos += interval * 2 + rowSize;
 
                     connectionSettingsGroupBox = CreateGroupBox(margin, sectionBegin, width - 2 * margin,
-                        rowPos - interval - sectionBegin, "Connection settings", ChildId::CONNECTION_SETTINGS_GROUP_BOX);
+                        rowPos - interval - sectionBegin, "Connection settings", ID_CONNECTION_SETTINGS_GROUP_BOX);
 
                     int buttonSizeX = 80;
                     int cancelPosX = width - margin - buttonSizeX;
@@ -170,8 +176,8 @@ namespace ignite
 
                     rowSize = 25;
 
-                    okButton = CreateButton(okPosX, rowPos, buttonSizeX, rowSize, "Ok", ChildId::OK_BUTTON);
-                    cancelButton = CreateButton(cancelPosX, rowPos, buttonSizeX, rowSize, "Cancel", ChildId::CANCEL_BUTTON);
+                    okButton = CreateButton(okPosX, rowPos, buttonSizeX, rowSize, "Ok", ID_OK_BUTTON);
+                    cancelButton = CreateButton(cancelPosX, rowPos, buttonSizeX, rowSize, "Cancel", ID_CANCEL_BUTTON);
                 }
 
                 bool DsnConfigurationWindow::OnMessage(UINT msg, WPARAM wParam, LPARAM lParam)
@@ -182,7 +188,7 @@ namespace ignite
                         {
                             switch (LOWORD(wParam))
                             {
-                                case ChildId::OK_BUTTON:
+                                case ID_OK_BUTTON:
                                 {
                                     try
                                     {
@@ -200,29 +206,53 @@ namespace ignite
                                     break;
                                 }
 
+                                case ID_PROTOCOL_VERSION_COMBO_BOX:
+                                {
+                                    if (HIWORD(wParam) == CBN_SELCHANGE)
+                                    {
+                                        std::string text;
+
+                                        protocolVersionComboBox->GetText(text);
+
+                                        ProtocolVersion version = ProtocolVersion::FromString(text);
+
+                                        if (!version.IsUnknown() && !version.IsDistributedJoinsSupported())
+                                        {
+                                            distributedJoinsCheckBox->SetEnabled(false);
+                                            enforceJoinOrderCheckBox->SetEnabled(false);
+                                        }
+                                        else
+                                        {
+                                            distributedJoinsCheckBox->SetEnabled(true);
+                                            enforceJoinOrderCheckBox->SetEnabled(true);
+                                        }
+                                    }
+
+                                    break;
+                                }
+
                                 case IDCANCEL:
-                                case ChildId::CANCEL_BUTTON:
+                                case ID_CANCEL_BUTTON:
                                 {
                                     PostMessage(GetHandle(), WM_CLOSE, 0, 0);
 
                                     break;
                                 }
 
-                                case ChildId::DISTRIBUTED_JOINS_CHECK_BOX:
+                                case ID_DISTRIBUTED_JOINS_CHECK_BOX:
                                 {
                                     distributedJoinsCheckBox->SetChecked(!distributedJoinsCheckBox->IsChecked());
 
                                     break;
                                 }
 
-                                case ChildId::ENFORCE_JOIN_ORDER_CHECK_BOX:
+                                case ID_ENFORCE_JOIN_ORDER_CHECK_BOX:
                                 {
                                     enforceJoinOrderCheckBox->SetChecked(!enforceJoinOrderCheckBox->IsChecked());
 
                                     break;
                                 }
 
-                                case ChildId::PROTOCOL_VERSION_COMBO_BOX:
                                 default:
                                     return false;
                             }
@@ -232,7 +262,7 @@ namespace ignite
 
                         case WM_DESTROY:
                         {
-                            PostQuitMessage(accepted ? Result::OK : Result::CANCEL);
+                            PostQuitMessage(accepted ? RESULT_OK : RESULT_CANCEL);
 
                             break;
                         }

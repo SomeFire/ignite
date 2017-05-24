@@ -85,7 +85,8 @@ public class IpcSharedMemoryBenchmarkReader implements IpcSharedMemoryBenchmarkP
                 final IpcEndpoint endPnt = srv.accept();
 
                 new Thread(new Runnable() {
-                    @Override public void run() {
+                    @Override
+                    public void run() {
                         InputStream space = null;
 
                         try {

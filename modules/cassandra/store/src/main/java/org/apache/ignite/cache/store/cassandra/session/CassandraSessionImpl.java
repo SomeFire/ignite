@@ -17,13 +17,6 @@
 
 package org.apache.ignite.cache.store.cassandra.session;
 
-import java.io.IOException;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.atomic.AtomicInteger;
-import javax.cache.Cache;
 import com.datastax.driver.core.BatchStatement;
 import com.datastax.driver.core.BoundStatement;
 import com.datastax.driver.core.Cluster;
@@ -37,6 +30,13 @@ import com.datastax.driver.core.Statement;
 import com.datastax.driver.core.exceptions.AlreadyExistsException;
 import com.datastax.driver.core.exceptions.InvalidQueryException;
 import com.datastax.driver.core.querybuilder.Batch;
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
+import javax.cache.Cache;
 import org.apache.ignite.IgniteException;
 import org.apache.ignite.IgniteLogger;
 import org.apache.ignite.cache.store.cassandra.common.CassandraHelper;
@@ -83,9 +83,6 @@ public class CassandraSessionImpl implements CassandraSession {
     /** Consistency level for Cassandra WRITE operations (insert/update/delete). */
     private ConsistencyLevel writeConsistency;
 
-    /** Expiration timeout. */
-    private long expirationTimeout;
-
     /** Logger. */
     private IgniteLogger log;
 
@@ -105,12 +102,11 @@ public class CassandraSessionImpl implements CassandraSession {
      * @param log Logger.
      */
     public CassandraSessionImpl(Cluster.Builder builder, Integer fetchSize, ConsistencyLevel readConsistency,
-        ConsistencyLevel writeConsistency, long expirationTimeout, IgniteLogger log) {
+        ConsistencyLevel writeConsistency, IgniteLogger log) {
         this.builder = builder;
         this.fetchSize = fetchSize;
         this.readConsistency = readConsistency;
         this.writeConsistency = writeConsistency;
-        this.expirationTimeout = expirationTimeout;
         this.log = log;
     }
 
@@ -508,8 +504,7 @@ public class CassandraSessionImpl implements CassandraSession {
     /** {@inheritDoc} */
     @Override public synchronized void close() throws IOException {
         if (decrementSessionRefs() == 0 && ses != null) {
-            SessionPool.put(this, ses, expirationTimeout);
-
+            SessionPool.put(this, ses);
             ses = null;
         }
     }

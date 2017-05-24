@@ -17,7 +17,8 @@
 
 package org.apache.ignite.visor.commands.cache
 
-import java.util.{Collection => JavaCollection, List => JavaList, Collections, UUID}
+import java.lang.{Boolean => JavaBoolean}
+import java.util.{Collection => JavaCollection, Collections, UUID}
 
 import org.apache.ignite._
 import org.apache.ignite.cluster.ClusterNode
@@ -25,6 +26,7 @@ import org.apache.ignite.internal.util.lang.{GridFunc => F}
 import org.apache.ignite.internal.util.typedef.X
 import org.apache.ignite.internal.visor.cache._
 import org.apache.ignite.internal.visor.util.VisorTaskUtils._
+import org.apache.ignite.lang.IgniteBiTuple
 import org.apache.ignite.visor.VisorTag
 import org.apache.ignite.visor.commands.cache.VisorCacheCommand._
 import org.apache.ignite.visor.commands.common.VisorTextTable
@@ -69,6 +71,7 @@ import scala.language.{implicitConversions, reflectiveCalls}
  *     cache {-c=<cache-name>} {-id=<node-id>|id8=<node-id8>} {-s=hi|mi|rd|wr|cn} {-a} {-r} {-system}
  *     cache -clear {-c=<cache-name>}
  *     cache -scan -c=<cache-name> {-id=<node-id>|id8=<node-id8>} {-p=<page size>} {-system}
+ *     cache -swap {-c=<cache-name>} {-id=<node-id>|id8=<node-id8>}
  *     cache -stop -c=<cache-name>
  *     cache -reset -c=<cache-name>
  * }}}
@@ -111,6 +114,8 @@ import scala.language.{implicitConversions, reflectiveCalls}
  *          Clears cache.
  *     -scan
  *          Prints list of all entries from cache.
+ *     -swap
+ *          Swaps backup entries in cache.
  *     -stop
  *          Stop cache with specified name.
  *     -reset
@@ -147,6 +152,12 @@ import scala.language.{implicitConversions, reflectiveCalls}
  *         with page of 50 items from all nodes with this cache.
  *     cache -scan -c=cache -id8=12345678
  *         Prints list entries from cache with name 'cache' and node '12345678' ID8.
+ *     cache -swap
+ *         Swaps entries in interactively selected cache.
+ *     cache -swap -c=cache
+ *         Swaps entries in cache with name 'cache'.
+ *     cache -swap -c=@c0
+ *         Swaps entries in cache with name taken from 'c0' memory variable.
  *     cache -stop -c=cache
  *         Stops cache with name 'cache'.
  *     cache -reset -c=cache
@@ -197,6 +208,15 @@ class VisorCacheCommand {
      * <br>
      * <ex>cache -scan -c=cache -id8=12345678</ex>
      *     Prints list entries from cache with name 'cache' and node '12345678' ID8.
+     * <br>
+     * <ex>cache -swap</ex>
+     *     Swaps entries in interactively selected cache.
+     * <br>
+     * <ex>cache -swap -c=cache</ex>
+     *     Swaps entries in cache with name 'cache'.
+     * <br>
+     * <ex>cache -swap -c=@c0</ex>
+     *     Swaps entries in cache with name taken from 'c0' memory variable.
      * <br>
      * <ex>cache -stop -c=@c0</ex>
      *     Stop cache with name taken from 'c0' memory variable.
@@ -253,9 +273,9 @@ class VisorCacheCommand {
             // Get cache stats data from all nodes.
             val aggrData = cacheData(node, cacheName, showSystem)
 
-            if (hasArgFlagIn("clear", "scan", "stop", "reset")) {
+            if (hasArgFlagIn("clear", "swap", "scan", "stop", "reset")) {
                 if (cacheName.isEmpty)
-                    askForCache("Select cache from:", node, showSystem && !hasArgFlagIn("clear", "stop", "reset"), aggrData) match {
+                    askForCache("Select cache from:", node, showSystem && !hasArgFlagIn("clear", "swap", "stop", "reset"), aggrData) match {
                         case Some(name) =>
                             argLst = argLst ++ Seq("c" -> name)
 
@@ -268,9 +288,11 @@ class VisorCacheCommand {
                     if (hasArgFlag("scan", argLst))
                         VisorCacheScanCommand().scan(argLst, node)
                     else {
-                        if (aggrData.nonEmpty && !aggrData.exists(cache => F.eq(cache.getName, name) && cache.isSystem)) {
+                        if (aggrData.nonEmpty && !aggrData.exists(cache => F.eq(cache.name(), name) && cache.system())) {
                             if (hasArgFlag("clear", argLst))
                                 VisorCacheClearCommand().clear(argLst, node)
+                            else if (hasArgFlag("swap", argLst))
+                                VisorCacheSwapCommand().swap(argLst, node)
                             else if (hasArgFlag("stop", argLst))
                                 VisorCacheStopCommand().stop(argLst, node)
                             else if (hasArgFlag("reset", argLst))
@@ -279,6 +301,8 @@ class VisorCacheCommand {
                         else {
                             if (hasArgFlag("clear", argLst))
                                 warn("Clearing of system cache is not allowed: " + name)
+                            else if (hasArgFlag("swap", argLst))
+                                warn("Backup swapping of system cache is not allowed: " + name)
                             else if (hasArgFlag("stop", argLst))
                                 warn("Stopping of system cache is not allowed: " + name)
                             else if (hasArgFlag("reset", argLst))
@@ -321,39 +345,39 @@ class VisorCacheCommand {
             sortAggregatedData(aggrData, sortType.getOrElse("cn"), reversed).foreach(
                 ad => {
                     // Add cache host as visor variable.
-                    registerCacheName(ad.getName)
+                    registerCacheName(ad.name())
 
                     sumT += (
-                        mkCacheName(ad.getName),
-                        ad.getMode,
-                        ad.getNodes.size(),
+                        mkCacheName(ad.name()),
+                        ad.mode(),
+                        ad.nodes.size(),
                         (
-                            "min: " + (ad.getMinimumHeapSize + ad.getMinimumOffHeapSize) +
-                                " (" + ad.getMinimumHeapSize + " / " + ad.getMinimumOffHeapSize + ")",
-                            "avg: " + formatDouble(ad.getAverageHeapSize + ad.getAverageOffHeapSize) +
-                                " (" + formatDouble(ad.getAverageHeapSize) + " / " + formatDouble(ad.getAverageOffHeapSize) + ")",
-                            "max: " + (ad.getMaximumHeapSize + ad.getMaximumOffHeapSize) +
-                                " (" + ad.getMaximumHeapSize + " / " + ad.getMaximumOffHeapSize + ")"
+                            "min: " + (ad.minimumHeapSize() + ad.minimumOffHeapSize()) +
+                                " (" + ad.minimumHeapSize() + " / " + ad.minimumOffHeapSize() + ")",
+                            "avg: " + formatDouble(ad.averageHeapSize() + ad.averageOffHeapSize()) +
+                                " (" + formatDouble(ad.averageHeapSize()) + " / " + formatDouble(ad.averageOffHeapSize()) + ")",
+                            "max: " + (ad.maximumHeapSize() + ad.maximumOffHeapSize()) +
+                                " (" + ad.maximumHeapSize() + " / " + ad.maximumOffHeapSize() + ")"
                             ),
                         (
-                            "min: " + ad.getMinimumHits,
-                            "avg: " + formatDouble(ad.getAverageHits),
-                            "max: " + ad.getMaximumHits
+                            "min: " + ad.minimumHits,
+                            "avg: " + formatDouble(ad.averageHits),
+                            "max: " + ad.maximumHits
                             ),
                         (
-                            "min: " + ad.getMinimumMisses,
-                            "avg: " + formatDouble(ad.getAverageMisses),
-                            "max: " + ad.getMaximumMisses
+                            "min: " + ad.minimumMisses,
+                            "avg: " + formatDouble(ad.averageMisses),
+                            "max: " + ad.maximumMisses
                             ),
                         (
-                            "min: " + ad.getMinimumReads,
-                            "avg: " + formatDouble(ad.getAverageReads),
-                            "max: " + ad.getMaximumReads
+                            "min: " + ad.minimumReads,
+                            "avg: " + formatDouble(ad.averageReads),
+                            "max: " + ad.maximumReads
                             ),
                         (
-                            "min: " + ad.getMinimumWrites,
-                            "avg: " + formatDouble(ad.getAverageWrites),
-                            "max: " + ad.getMaximumWrites
+                            "min: " + ad.minimumWrites,
+                            "avg: " + formatDouble(ad.averageWrites),
+                            "max: " + ad.maximumWrites
                             )
                         )
                 }
@@ -363,11 +387,11 @@ class VisorCacheCommand {
 
             if (all) {
                 val sorted = aggrData.sortWith((k1, k2) => {
-                    if (k1.getName == null)
+                    if (k1.name() == null)
                         true
-                    else if (k2.getName == null)
+                    else if (k2.name() == null)
                         false
-                    else k1.getName.compareTo(k2.getName) < 0
+                    else k1.name().compareTo(k2.name()) < 0
                 })
 
                 val gCfg = node.map(config).collect {
@@ -375,23 +399,23 @@ class VisorCacheCommand {
                 }
 
                 sorted.foreach(ad => {
-                    val cacheNameVar = mkCacheName(ad.getName)
+                    val cacheNameVar = mkCacheName(ad.name())
 
                     println("\nCache '" + cacheNameVar + "':")
 
-                    val m = ad.getMetrics
+                    val m = ad.metrics()
 
                     val csT = VisorTextTable()
 
                     csT += ("Name(@)", cacheNameVar)
                     csT += ("Nodes", m.size())
-                    csT += ("Total size Min/Avg/Max", (ad.getMinimumHeapSize + ad.getMinimumOffHeapSize) + " / " +
-                        formatDouble(ad.getAverageHeapSize + ad.getAverageOffHeapSize) + " / " +
-                        (ad.getMaximumHeapSize + ad.getMaximumOffHeapSize))
-                    csT += ("  Heap size Min/Avg/Max", ad.getMinimumHeapSize + " / " +
-                        formatDouble(ad.getAverageHeapSize) + " / " + ad.getMaximumHeapSize)
-                    csT += ("  Off-heap size Min/Avg/Max", ad.getMinimumOffHeapSize + " / " +
-                        formatDouble(ad.getAverageOffHeapSize) + " / " + ad.getMaximumOffHeapSize)
+                    csT += ("Total size Min/Avg/Max", (ad.minimumHeapSize() + ad.minimumOffHeapSize()) + " / " +
+                        formatDouble(ad.averageHeapSize() + ad.averageOffHeapSize()) + " / " +
+                        (ad.maximumHeapSize() + ad.maximumOffHeapSize()))
+                    csT += ("  Heap size Min/Avg/Max", ad.minimumHeapSize() + " / " +
+                        formatDouble(ad.averageHeapSize()) + " / " + ad.maximumHeapSize())
+                    csT += ("  Off-heap size Min/Avg/Max", ad.minimumOffHeapSize() + " / " +
+                        formatDouble(ad.averageOffHeapSize()) + " / " + ad.maximumOffHeapSize())
 
                     val ciT = VisorTextTable()
 
@@ -408,16 +432,16 @@ class VisorCacheCommand {
                             formatDouble(nm.getCurrentCpuLoad * 100d) + " %",
                             X.timeSpan2HMSM(nm.getUpTime),
                             (
-                                "Total: " + (cm.getKeySize + cm.offHeapEntriesCount()),
-                                "  Heap: " + cm.getKeySize,
+                                "Total: " + (cm.keySize() + cm.offHeapEntriesCount()),
+                                "  Heap: " + cm.keySize(),
                                 "  Off-Heap: " + cm.offHeapEntriesCount(),
-                                "  Off-Heap Memory: " + formatMemory(cm.getOffHeapAllocatedSize)
+                                "  Off-Heap Memory: " + formatMemory(cm.offHeapAllocatedSize())
                             ),
                             (
-                                "Hi: " + cm.getHits,
-                                "Mi: " + cm.getMisses,
-                                "Rd: " + cm.getReads,
-                                "Wr: " + cm.getWrites
+                                "Hi: " + cm.hits(),
+                                "Mi: " + cm.misses(),
+                                "Rd: " + cm.reads(),
+                                "Wr: " + cm.writes()
                             )
                         )
                     }
@@ -432,19 +456,19 @@ class VisorCacheCommand {
                     // Print footnote.
                     println("'Hi' - Number of cache hits.")
                     println("'Mi' - Number of cache misses.")
-                    println("'Rd' - number of cache reads.")
+                    println("'Rd' - Number of cache reads.")
                     println("'Wr' - Number of cache writes.")
 
                     // Print metrics.
                     nl()
                     println("Aggregated queries metrics:")
-                    println("  Minimum execution time: " + X.timeSpan2HMSM(ad.getMinimumQueryTime))
-                    println("  Maximum execution time: " + X.timeSpan2HMSM(ad.getMaximumQueryTime))
-                    println("  Average execution time: " + X.timeSpan2HMSM(ad.getAverageQueryTime.toLong))
-                    println("  Total number of executions: " + ad.getQueryExecutions)
-                    println("  Total number of failures:   " + ad.getQueryFailures)
+                    println("  Minimum execution time: " + X.timeSpan2HMSM(ad.minimumQueryTime()))
+                    println("  Maximum execution time: " + X.timeSpan2HMSM(ad.maximumQueryTime))
+                    println("  Average execution time: " + X.timeSpan2HMSM(ad.averageQueryTime.toLong))
+                    println("  Total number of executions: " + ad.execsQuery)
+                    println("  Total number of failures:   " + ad.failsQuery)
 
-                    gCfg.foreach(ccfgs => ccfgs.find(ccfg => F.eq(ccfg.getName, ad.getName))
+                    gCfg.foreach(ccfgs => ccfgs.find(ccfg => F.eq(ccfg.name(), ad.name()))
                         .foreach(ccfg => {
                             nl()
 
@@ -507,9 +531,9 @@ class VisorCacheCommand {
         assert(node != null)
 
         try {
-            val caches: JavaList[String] = name.fold(Collections.emptyList[String]())(Collections.singletonList)
+            val caches: JavaCollection[String] = name.fold(Collections.emptyList[String]())(Collections.singletonList)
 
-            val arg = new VisorCacheMetricsCollectorTaskArg(systemCaches, caches)
+            val arg = new IgniteBiTuple(JavaBoolean.valueOf(systemCaches), caches)
 
             node match {
                 case Some(n) => executeOne(n.id(), classOf[VisorCacheMetricsCollectorTask], arg).toList
@@ -563,10 +587,10 @@ class VisorCacheCommand {
         assert(arg != null)
 
         val sorted = arg.trim match {
-            case "hi" => data.toSeq.sortBy(_._2.getHits)
-            case "mi" => data.toSeq.sortBy(_._2.getMisses)
-            case "rd" => data.toSeq.sortBy(_._2.getReads)
-            case "wr" => data.toSeq.sortBy(_._2.getWrites)
+            case "hi" => data.toSeq.sortBy(_._2.hits)
+            case "mi" => data.toSeq.sortBy(_._2.misses)
+            case "rd" => data.toSeq.sortBy(_._2.reads)
+            case "wr" => data.toSeq.sortBy(_._2.writes)
             case "cn" => data.toSeq.sortBy(_._1)
 
             case _ =>
@@ -590,12 +614,12 @@ class VisorCacheCommand {
         List[VisorCacheAggregatedMetrics] = {
 
         val sorted = arg.trim match {
-            case "hi" => data.toList.sortBy(_.getAverageHits)
-            case "mi" => data.toList.sortBy(_.getAverageMisses)
-            case "rd" => data.toList.sortBy(_.getAverageReads)
-            case "wr" => data.toList.sortBy(_.getAverageWrites)
+            case "hi" => data.toList.sortBy(_.averageHits)
+            case "mi" => data.toList.sortBy(_.averageMisses)
+            case "rd" => data.toList.sortBy(_.averageReads)
+            case "wr" => data.toList.sortBy(_.averageWrites)
             case "cn" => data.toList.sortWith((x, y) =>
-                x.getName == null || (y.getName != null && x.getName.toLowerCase < y.getName.toLowerCase))
+                x.name() == null || (y.name() != null && x.name().toLowerCase < y.name().toLowerCase))
 
             case _ =>
                 assert(false, "Unknown sorting type: " + arg)
@@ -637,19 +661,19 @@ class VisorCacheCommand {
             val ad = sortedAggrData(i)
 
             // Add cache host as visor variable.
-            registerCacheName(ad.getName)
+            registerCacheName(ad.name())
 
             sumT += (
                 i,
-                mkCacheName(ad.getName),
-                ad.getMode,
+                mkCacheName(ad.name()),
+                ad.mode(),
                 (
-                    "min: " + (ad.getMinimumHeapSize + ad.getMinimumOffHeapSize) +
-                        " (" + ad.getMinimumHeapSize + " / " + ad.getMinimumOffHeapSize + ")",
-                    "avg: " + formatDouble(ad.getAverageHeapSize + ad.getAverageOffHeapSize) +
-                        " (" + formatDouble(ad.getAverageHeapSize) + " / " + formatDouble(ad.getAverageOffHeapSize) + ")",
-                    "max: " + (ad.getMaximumHeapSize + ad.getMaximumOffHeapSize) +
-                        " (" + ad.getMaximumHeapSize + " / " + ad.getMaximumOffHeapSize + ")"
+                    "min: " + (ad.minimumHeapSize() + ad.minimumOffHeapSize()) +
+                        " (" + ad.minimumHeapSize() + " / " + ad.minimumOffHeapSize() + ")",
+                    "avg: " + formatDouble(ad.averageHeapSize() + ad.averageOffHeapSize()) +
+                        " (" + formatDouble(ad.averageHeapSize()) + " / " + formatDouble(ad.averageOffHeapSize()) + ")",
+                    "max: " + (ad.maximumHeapSize() + ad.maximumOffHeapSize()) +
+                        " (" + ad.maximumHeapSize() + " / " + ad.maximumOffHeapSize() + ")"
                 ))
         })
 
@@ -661,7 +685,7 @@ class VisorCacheCommand {
             None
         else {
             try
-                Some(sortedAggrData(a.toInt).getName)
+                Some(sortedAggrData(a.toInt).name())
             catch {
                 case e: Throwable =>
                     warn("Invalid selection: " + a)
@@ -695,7 +719,9 @@ object VisorCacheCommand {
             " ",
             "Clears cache.",
             " ",
-            "Prints list of all entries from cache."
+            "Prints list of all entries from cache.",
+            " ",
+            "Swaps backup entries in cache."
         ),
         spec = Seq(
             "cache",
@@ -703,6 +729,7 @@ object VisorCacheCommand {
             "cache {-c=<cache-name>} {-id=<node-id>|id8=<node-id8>} {-s=hi|mi|rd|wr} {-a} {-r}",
             "cache -clear {-c=<cache-name>} {-id=<node-id>|id8=<node-id8>}",
             "cache -scan -c=<cache-name> {-id=<node-id>|id8=<node-id8>} {-p=<page size>}",
+            "cache -swap {-c=<cache-name>} {-id=<node-id>|id8=<node-id8>}",
             "cache -stop -c=<cache-name>",
             "cache -reset -c=<cache-name>"
   ),
@@ -732,6 +759,9 @@ object VisorCacheCommand {
             ),
             "-scan" -> Seq(
                 "Prints list of all entries from cache."
+            ),
+            "-swap" -> Seq(
+                "Swaps backup entries in cache."
             ),
             "-stop" -> Seq(
                 "Stop cache with specified name."
@@ -794,6 +824,9 @@ object VisorCacheCommand {
             "cache -scan -c=@c0 -p=50" -> ("Prints list entries from cache with name taken from 'c0' memory variable" +
                 " with page of 50 items from all nodes with this cache."),
             "cache -scan -c=cache -id8=12345678" -> "Prints list entries from cache with name 'cache' and node '12345678' ID8.",
+            "cache -swap" -> "Swaps entries in interactively selected cache.",
+            "cache -swap -c=cache" -> "Swaps entries in cache with name 'cache'.",
+            "cache -swap -c=@c0" -> "Swaps entries in cache with name taken from 'c0' memory variable.",
             "cache -stop -c=@c0" -> "Stop cache with name taken from 'c0' memory variable.",
             "cache -reset -c=@c0" -> "Reset metrics for cache with name taken from 'c0' memory variable."
         ),
@@ -826,84 +859,107 @@ object VisorCacheCommand {
      * @param cfg Config to show information.
      */
     private[commands] def printCacheConfiguration(title: String, cfg: VisorCacheConfiguration) {
-        val affinityCfg = cfg.getAffinityConfiguration
-        val nearCfg = cfg.getNearConfiguration
-        val rebalanceCfg = cfg.getRebalanceConfiguration
-        val evictCfg = cfg.getEvictionConfiguration
-        val storeCfg = cfg.getStoreConfiguration
-        val queryCfg = cfg.getQueryConfiguration
+        val affinityCfg = cfg.affinityConfiguration()
+        val nearCfg = cfg.nearConfiguration()
+        val rebalanceCfg = cfg.rebalanceConfiguration()
+        val evictCfg = cfg.evictConfiguration()
+        val defaultCfg = cfg.defaultConfiguration()
+        val storeCfg = cfg.storeConfiguration()
+        val queryCfg = cfg.queryConfiguration()
 
         val cacheT = VisorTextTable()
 
         cacheT #= ("Name", "Value")
 
-        cacheT += ("Mode", cfg.getMode)
-        cacheT += ("Atomicity Mode", safe(cfg.getAtomicityMode))
-        cacheT += ("Statistic Enabled", bool2Str(cfg.isStatisticsEnabled))
-        cacheT += ("Management Enabled", bool2Str(cfg.isManagementEnabled))
+        cacheT += ("Mode", cfg.mode)
+        cacheT += ("Atomicity Mode", safe(cfg.atomicityMode))
+        cacheT += ("Atomic Write Ordering Mode", safe(cfg.atomicWriteOrderMode))
+        cacheT += ("Statistic Enabled", bool2Str(cfg.statisticsEnabled()))
+        cacheT += ("Management Enabled", bool2Str(cfg.managementEnabled()))
 
-        cacheT += ("Time To Live Eager Flag", cfg.isEagerTtl)
+        cacheT += ("Time To Live Eager Flag", cfg.eagerTtl)
 
-        cacheT += ("Write Synchronization Mode", safe(cfg.getWriteSynchronizationMode))
-        cacheT += ("Invalidate", bool2Str(cfg.isInvalidate))
+        cacheT += ("Write Synchronization Mode", safe(cfg.writeSynchronizationMode))
+        cacheT += ("Swap Enabled", bool2Str(cfg.swapEnabled()))
+        cacheT += ("Invalidate", bool2Str(cfg.invalidate()))
+        cacheT += ("Start Size", cfg.startSize())
 
-        cacheT += ("Affinity Function", safe(affinityCfg.getFunction))
-        cacheT += ("Affinity Backups", affinityCfg.getPartitionedBackups)
-        cacheT += ("Affinity Partitions", safe(affinityCfg.getPartitions))
-        cacheT += ("Affinity Exclude Neighbors", safe(affinityCfg.isExcludeNeighbors))
-        cacheT += ("Affinity Mapper", safe(affinityCfg.getMapper))
+        cacheT += ("Affinity Function", safe(affinityCfg.function()))
+        cacheT += ("Affinity Backups", affinityCfg.partitionedBackups())
+        cacheT += ("Affinity Partitions", safe(affinityCfg.partitions()))
+        cacheT += ("Affinity Exclude Neighbors", safe(affinityCfg.excludeNeighbors()))
+        cacheT += ("Affinity Mapper", safe(affinityCfg.mapper()))
 
-        cacheT += ("Rebalance Mode", rebalanceCfg.getMode)
-        cacheT += ("Rebalance Batch Size", rebalanceCfg.getBatchSize)
-        cacheT += ("Rebalance Timeout", rebalanceCfg.getTimeout)
-        cacheT += ("Rebalance Delay", rebalanceCfg.getPartitionedDelay)
-        cacheT += ("Time Between Rebalance Messages", rebalanceCfg.getThrottle)
+        cacheT += ("Rebalance Mode", rebalanceCfg.mode())
+        cacheT += ("Rebalance Batch Size", rebalanceCfg.batchSize())
+        cacheT += ("Rebalance Thread Pool size", rebalanceCfg.threadPoolSize())
+        cacheT += ("Rebalance Timeout", rebalanceCfg.timeout())
+        cacheT += ("Rebalance Delay", rebalanceCfg.partitionedDelay())
+        cacheT += ("Time Between Rebalance Messages", rebalanceCfg.throttle())
 
-        cacheT += ("Eviction Policy Enabled", bool2Str(evictCfg.getPolicy != null))
-        cacheT += ("Eviction Policy", safe(evictCfg.getPolicy))
-        cacheT += ("Eviction Policy Max Size", safe(evictCfg.getPolicyMaxSize))
-        cacheT += ("Eviction Filter", safe(evictCfg.getFilter))
+        cacheT += ("Eviction Policy Enabled", bool2Str(evictCfg.policy() != null))
+        cacheT += ("Eviction Policy", safe(evictCfg.policy()))
+        cacheT += ("Eviction Policy Max Size", safe(evictCfg.policyMaxSize()))
+        cacheT += ("Eviction Filter", safe(evictCfg.filter()))
+        cacheT += ("Eviction Key Buffer Size", evictCfg.synchronizedKeyBufferSize())
+        cacheT += ("Eviction Synchronized", bool2Str(evictCfg.evictSynchronized()))
+        cacheT += ("Eviction Overflow Ratio", evictCfg.maxOverflowRatio())
+        cacheT += ("Synchronous Eviction Timeout", evictCfg.synchronizedTimeout())
+        cacheT += ("Synchronous Eviction Concurrency Level", evictCfg.synchronizedConcurrencyLevel())
 
-        cacheT += ("Near Cache Enabled", bool2Str(nearCfg.isNearEnabled))
-        cacheT += ("Near Start Size", nearCfg.getNearStartSize)
-        cacheT += ("Near Eviction Policy", safe(nearCfg.getNearEvictPolicy))
-        cacheT += ("Near Eviction Policy Max Size", safe(nearCfg.getNearEvictMaxSize))
+        cacheT += ("Near Cache Enabled", bool2Str(nearCfg.nearEnabled()))
+        cacheT += ("Near Start Size", nearCfg.nearStartSize())
+        cacheT += ("Near Eviction Policy", safe(nearCfg.nearEvictPolicy()))
+        cacheT += ("Near Eviction Policy Max Size", safe(nearCfg.nearEvictMaxSize()))
 
-        cacheT += ("Default Lock Timeout", cfg.getDefaultLockTimeout)
-        cacheT += ("Metadata type count", cfg.getJdbcTypes.size())
-        cacheT += ("Cache Interceptor", safe(cfg.getInterceptor))
+        cacheT += ("Default Lock Timeout", defaultCfg.txLockTimeout())
+        cacheT += ("Metadata type count", cfg.typeMeta().size())
+        cacheT += ("Cache Interceptor", safe(cfg.interceptor()))
 
-        cacheT += ("Store Enabled", bool2Str(storeCfg.isEnabled))
-        cacheT += ("Store Class", safe(storeCfg.getStore))
-        cacheT += ("Store Factory Class", storeCfg.getStoreFactory)
-        cacheT += ("Store Keep Binary", storeCfg.isStoreKeepBinary)
-        cacheT += ("Store Read Through", bool2Str(storeCfg.isReadThrough))
-        cacheT += ("Store Write Through", bool2Str(storeCfg.isWriteThrough))
+        cacheT += ("Store Enabled", bool2Str(storeCfg.enabled()))
+        cacheT += ("Store Class", safe(storeCfg.store()))
+        cacheT += ("Store Factory Class", storeCfg.storeFactory())
+        cacheT += ("Store Keep Binary", storeCfg match {
+            case cfg: VisorCacheStoreConfiguration => cfg.storeKeepBinary()
+            case _ => false
+        })
+        cacheT += ("Store Read Through", bool2Str(storeCfg.readThrough()))
+        cacheT += ("Store Write Through", bool2Str(storeCfg.writeThrough()))
 
-        cacheT += ("Write-Behind Enabled", bool2Str(storeCfg.isEnabled))
-        cacheT += ("Write-Behind Flush Size", storeCfg.getFlushSize)
-        cacheT += ("Write-Behind Frequency", storeCfg.getFlushFrequency)
-        cacheT += ("Write-Behind Flush Threads Count", storeCfg.getFlushThreadCount)
-        cacheT += ("Write-Behind Batch Size", storeCfg.getBatchSize)
+        cacheT += ("Write-Behind Enabled", bool2Str(storeCfg.enabled()))
+        cacheT += ("Write-Behind Flush Size", storeCfg.flushSize())
+        cacheT += ("Write-Behind Frequency", storeCfg.flushFrequency())
+        cacheT += ("Write-Behind Flush Threads Count", storeCfg.flushThreadCount())
+        cacheT += ("Write-Behind Batch Size", storeCfg.batchSize())
 
-        cacheT += ("Concurrent Asynchronous Operations Number", cfg.getMaxConcurrentAsyncOperations)
+        cacheT += ("Concurrent Asynchronous Operations Number", cfg.maxConcurrentAsyncOperations())
+        cacheT += ("Memory Mode", cfg.memoryMode())
+        cacheT += ("Off-Heap Size", cfg.offsetHeapMaxMemory() match {
+            case 0 => "UNLIMITED"
+            case size if size < 0 => NA
+            case size => size
+        })
 
-        cacheT += ("Loader Factory Class Name", safe(cfg.getLoaderFactory))
-        cacheT += ("Writer Factory Class Name", safe(cfg.getWriterFactory))
-        cacheT += ("Expiry Policy Factory Class Name", safe(cfg.getExpiryPolicyFactory))
+        cacheT += ("Loader Factory Class Name", safe(cfg.loaderFactory()))
+        cacheT += ("Writer Factory Class Name", safe(cfg.writerFactory()))
+        cacheT += ("Expiry Policy Factory Class Name", safe(cfg.expiryPolicyFactory()))
 
-        cacheT +=("Query Execution Time Threshold", queryCfg.getLongQueryWarningTimeout)
-        cacheT +=("Query Schema Name", queryCfg.getSqlSchema)
-        cacheT +=("Query Escaped Names", bool2Str(queryCfg.isSqlEscapeAll))
+        cacheT +=("Query Execution Time Threshold", queryCfg.longQueryWarningTimeout())
+        cacheT +=("Query Schema Name", queryCfg match {
+            case cfg: VisorCacheQueryConfiguration => cfg.sqlSchema()
+            case _ => null
+        })
+        cacheT +=("Query Escaped Names", bool2Str(queryCfg.sqlEscapeAll()))
+        cacheT +=("Query Onheap Cache Size", queryCfg.sqlOnheapRowCacheSize())
 
-        val sqlFxs = queryCfg.getSqlFunctionClasses
+        val sqlFxs = queryCfg.sqlFunctionClasses()
 
         val hasSqlFxs = sqlFxs != null && sqlFxs.nonEmpty
 
         if (!hasSqlFxs)
             cacheT +=("Query SQL functions", NA)
 
-        val indexedTypes = queryCfg.getIndexedTypes
+        val indexedTypes = queryCfg.indexedTypes()
 
         val hasIndexedTypes = indexedTypes != null && indexedTypes.nonEmpty
 

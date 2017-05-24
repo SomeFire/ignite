@@ -29,9 +29,6 @@ namespace Apache.Ignite.Core.Tests.Cache
     public class CacheNearTest : IEventListener<CacheEvent>
     {
         /** */
-        private const string DefaultCacheName = "default";
-
-        /** */
         private IIgnite _grid;
 
         /** */
@@ -52,12 +49,10 @@ namespace Apache.Ignite.Core.Tests.Cache
                         NearConfiguration = new NearCacheConfiguration
                         {
                             EvictionPolicy = new FifoEvictionPolicy {MaxSize = 5}
-                        },
-                        Name = DefaultCacheName
+                        }
                     }
                 },
-                IncludedEventTypes = new[] { EventType.CacheEntryCreated },
-                IgniteInstanceName = "server"
+                IncludedEventTypes = new[] { EventType.CacheEntryCreated }
             };
 
             _grid = Ignition.Start(cfg);
@@ -78,15 +73,15 @@ namespace Apache.Ignite.Core.Tests.Cache
         [Test]
         public void TestExistingNearCache()
         {
-            var cache = _grid.GetCache<int, string>(DefaultCacheName);
+            var cache = _grid.GetCache<int, string>(null);
 
             cache[1] = "1";
 
-            var nearCache = _grid.GetOrCreateNearCache<int, string>(DefaultCacheName, new NearCacheConfiguration());
+            var nearCache = _grid.GetOrCreateNearCache<int, string>(null, new NearCacheConfiguration());
             Assert.AreEqual("1", nearCache[1]);
 
             // GetOrCreate when exists
-            nearCache = _grid.GetOrCreateNearCache<int, string>(DefaultCacheName, new NearCacheConfiguration());
+            nearCache = _grid.GetOrCreateNearCache<int, string>(null, new NearCacheConfiguration());
             Assert.AreEqual("1", nearCache[1]);
         }
 
@@ -98,22 +93,15 @@ namespace Apache.Ignite.Core.Tests.Cache
         {
             const string cacheName = "dyn_cache";
 
-            var cache = _grid.CreateCache<int, string>(new CacheConfiguration(cacheName));
+            var cache = _grid.CreateCache<int, string>(cacheName);
             cache[1] = "1";
 
-            using (var client = Ignition.Start(new IgniteConfiguration(TestUtils.GetTestConfiguration())
-            {
-                ClientMode = true,
-                IgniteInstanceName = "client"
-            }))
-            {
-                var nearCache = client.CreateNearCache<int, string>(cacheName, new NearCacheConfiguration());
-                Assert.AreEqual("1", nearCache[1]);
+            var nearCache = _grid.CreateNearCache<int, string>(cacheName, new NearCacheConfiguration());
+            Assert.AreEqual("1", nearCache[1]);
 
-                // Create when exists.
-                nearCache = client.CreateNearCache<int, string>(cacheName, new NearCacheConfiguration());
-                Assert.AreEqual("1", nearCache[1]);
-            }
+            // Create when exists
+            nearCache = _grid.CreateNearCache<int, string>(cacheName, new NearCacheConfiguration());
+            Assert.AreEqual("1", nearCache[1]);
         }
 
         /// <summary>

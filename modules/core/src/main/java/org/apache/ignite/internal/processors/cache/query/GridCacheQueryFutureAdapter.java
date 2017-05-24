@@ -85,6 +85,9 @@ public abstract class GridCacheQueryFutureAdapter<K, V, R> extends GridFutureAda
     private Iterator<R> iter;
 
     /** */
+    protected final Object mux = new Object();
+
+    /** */
     private IgniteUuid timeoutId = IgniteUuid.randomUuid();
 
     /** */
@@ -212,7 +215,7 @@ public abstract class GridCacheQueryFutureAdapter<K, V, R> extends GridFutureAda
         Collection<R> res = null;
 
         while (res == null) {
-            synchronized (this) {
+            synchronized (mux) {
                 res = queue.poll();
             }
 
@@ -225,10 +228,10 @@ public abstract class GridCacheQueryFutureAdapter<K, V, R> extends GridFutureAda
                     if (waitTime <= 0)
                         break;
 
-                    synchronized (this) {
+                    synchronized (mux) {
                         try {
                             if (queue.isEmpty() && !isDone())
-                                wait(waitTime);
+                                mux.wait(waitTime);
                         }
                         catch (InterruptedException e) {
                             Thread.currentThread().interrupt();
@@ -270,7 +273,7 @@ public abstract class GridCacheQueryFutureAdapter<K, V, R> extends GridFutureAda
         while (it == null || !it.hasNext()) {
             Collection<R> c;
 
-            synchronized (this) {
+            synchronized (mux) {
                 it = iter;
 
                 if (it != null && it.hasNext())
@@ -298,10 +301,10 @@ public abstract class GridCacheQueryFutureAdapter<K, V, R> extends GridFutureAda
                     break;
                 }
 
-                synchronized (this) {
+                synchronized (mux) {
                     try {
                         if (queue.isEmpty() && !isDone())
-                            wait(waitTime);
+                            mux.wait(waitTime);
                     }
                     catch (InterruptedException e) {
                         Thread.currentThread().interrupt();
@@ -329,7 +332,7 @@ public abstract class GridCacheQueryFutureAdapter<K, V, R> extends GridFutureAda
      */
     @SuppressWarnings({"unchecked"})
     protected void enqueue(Collection<?> col) {
-        assert Thread.holdsLock(this);
+        assert Thread.holdsLock(mux);
 
         queue.add((Collection<R>)col);
 
@@ -348,7 +351,7 @@ public abstract class GridCacheQueryFutureAdapter<K, V, R> extends GridFutureAda
 
         Collection<Object> dedupCol = new ArrayList<>(col.size());
 
-        synchronized (this) {
+        synchronized (mux) {
             for (Object o : col)
                 if (!(o instanceof Map.Entry) || keys.add(((Map.Entry<K, V>)o).getKey()))
                     dedupCol.add(o);
@@ -374,7 +377,7 @@ public abstract class GridCacheQueryFutureAdapter<K, V, R> extends GridFutureAda
 
         try {
             if (err != null)
-                synchronized (this) {
+                synchronized (mux) {
                     enqueue(Collections.emptyList());
 
                     onDone(nodeId != null ?
@@ -384,7 +387,7 @@ public abstract class GridCacheQueryFutureAdapter<K, V, R> extends GridFutureAda
 
                     onPage(nodeId, true);
 
-                    notifyAll();
+                    mux.notifyAll();
                 }
             else {
                 if (data == null)
@@ -394,7 +397,7 @@ public abstract class GridCacheQueryFutureAdapter<K, V, R> extends GridFutureAda
 
                 data = cctx.unwrapBinariesIfNeeded((Collection<Object>)data, qry.query().keepBinary());
 
-                synchronized (this) {
+                synchronized (mux) {
                     enqueue(data);
 
                     if (qry.query().keepAll())
@@ -406,7 +409,7 @@ public abstract class GridCacheQueryFutureAdapter<K, V, R> extends GridFutureAda
                         clear();
                     }
 
-                    notifyAll();
+                    mux.notifyAll();
                 }
             }
         }
@@ -423,14 +426,14 @@ public abstract class GridCacheQueryFutureAdapter<K, V, R> extends GridFutureAda
      * @param e Error.
      */
     private void onPageError(@Nullable UUID nodeId, Throwable e) {
-        synchronized (this) {
+        synchronized (mux) {
             enqueue(Collections.emptyList());
 
             onPage(nodeId, true);
 
             onDone(e);
 
-            notifyAll();
+            mux.notifyAll();
         }
     }
 

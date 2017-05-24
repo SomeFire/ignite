@@ -51,7 +51,7 @@ public class IgniteCacheContinuousQueryReconnectTest extends GridCommonAbstractT
     @Override protected IgniteConfiguration getConfiguration(String igniteInstanceName) throws Exception {
         IgniteConfiguration cfg = super.getConfiguration(igniteInstanceName);
 
-        CacheConfiguration ccfg = new CacheConfiguration(DEFAULT_CACHE_NAME);
+        CacheConfiguration ccfg = new CacheConfiguration();
 
         ccfg.setCacheMode(PARTITIONED);
         ccfg.setAtomicityMode(atomicMode());
@@ -134,8 +134,8 @@ public class IgniteCacheContinuousQueryReconnectTest extends GridCommonAbstractT
 
         isClient = false;
 
-        IgniteCache<Object, Object> cache1 = srv1.cache(DEFAULT_CACHE_NAME);
-        IgniteCache<Object, Object> clCache = client.cache(DEFAULT_CACHE_NAME);
+        IgniteCache<Object, Object> cache1 = srv1.cache(null);
+        IgniteCache<Object, Object> clCache = client.cache(null);
 
         putAndCheck(clCache, 0); // 0 remote listeners.
 
@@ -179,7 +179,7 @@ public class IgniteCacheContinuousQueryReconnectTest extends GridCommonAbstractT
 
         isClient = false;
 
-        clCache = client.cache(DEFAULT_CACHE_NAME);
+        clCache = client.cache(null);
 
         putAndCheck(clCache, 2); // 2 remote listeners.
 

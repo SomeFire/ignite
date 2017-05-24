@@ -19,8 +19,8 @@ import templateUrl from 'views/configuration/domains-import.tpl.pug';
 
 // Controller for Domain model screen.
 export default ['domainsController', [
-    '$rootScope', '$scope', '$http', '$state', '$filter', '$timeout', '$modal', 'IgniteLegacyUtils', 'IgniteMessages', 'IgniteFocus', 'IgniteConfirm', 'IgniteConfirmBatch', 'IgniteInput', 'IgniteLoading', 'IgniteModelNormalizer', 'IgniteUnsavedChangesGuard', 'AgentManager', 'IgniteLegacyTable', 'IgniteConfigurationResource', 'IgniteErrorPopover', 'IgniteFormUtils', 'JavaTypes', 'SqlTypes', 'IgniteActivitiesData',
-    function($root, $scope, $http, $state, $filter, $timeout, $modal, LegacyUtils, Messages, Focus, Confirm, ConfirmBatch, Input, Loading, ModelNormalizer, UnsavedChangesGuard, agentMgr, LegacyTable, Resource, ErrorPopover, FormUtils, JavaTypes, SqlTypes, ActivitiesData) {
+    '$rootScope', '$scope', '$http', '$state', '$filter', '$timeout', '$modal', 'IgniteLegacyUtils', 'IgniteMessages', 'IgniteFocus', 'IgniteConfirm', 'IgniteConfirmBatch', 'IgniteInput', 'IgniteLoading', 'IgniteModelNormalizer', 'IgniteUnsavedChangesGuard', 'IgniteAgentMonitor', 'IgniteLegacyTable', 'IgniteConfigurationResource', 'IgniteErrorPopover', 'IgniteFormUtils', 'JavaTypes', 'SqlTypes', 'IgniteActivitiesData',
+    function($root, $scope, $http, $state, $filter, $timeout, $modal, LegacyUtils, Messages, Focus, Confirm, ConfirmBatch, Input, Loading, ModelNormalizer, UnsavedChangesGuard, IgniteAgentMonitor, LegacyTable, Resource, ErrorPopover, FormUtils, JavaTypes, SqlTypes, ActivitiesData) {
         UnsavedChangesGuard.install($scope);
 
         const emptyDomain = {empty: true};
@@ -63,8 +63,7 @@ export default ['domainsController', [
         $scope.ui.generatePojo = true;
         $scope.ui.builtinKeys = true;
         $scope.ui.usePrimitives = true;
-        $scope.ui.generateTypeAliases = true;
-        $scope.ui.generateFieldAliases = true;
+        $scope.ui.generateAliases = true;
         $scope.ui.generatedCachesClusters = [];
 
         function _mapCaches(caches) {
@@ -417,7 +416,7 @@ export default ['domainsController', [
         const hideImportDomain = importDomainModal.hide;
 
         importDomainModal.hide = function() {
-            agentMgr.stopWatch();
+            IgniteAgentMonitor.stopWatch();
 
             hideImportDomain();
         };
@@ -462,7 +461,7 @@ export default ['domainsController', [
 
                 $scope.importDomain.loadingOptions = LOADING_JDBC_DRIVERS;
 
-                agentMgr.startAgentWatch('Back to Domain models', 'import domain model from database')
+                IgniteAgentMonitor.startWatch({text: 'Back to Domain models', goal: 'import domain model from database'})
                     .then(() => {
                         ActivitiesData.post({
                             group: 'configuration',
@@ -487,7 +486,7 @@ export default ['domainsController', [
                         $scope.jdbcDriverJars = [];
                         $scope.ui.selectedJdbcDriverJar = {};
 
-                        return agentMgr.drivers()
+                        return IgniteAgentMonitor.drivers()
                             .then((drivers) => {
                                 $scope.ui.packageName = $scope.ui.packageNameUserInput;
 
@@ -531,19 +530,19 @@ export default ['domainsController', [
          * Load list of database schemas.
          */
         function _loadSchemas() {
-            agentMgr.awaitAgent()
+            IgniteAgentMonitor.awaitAgent()
                 .then(function() {
                     $scope.importDomain.loadingOptions = LOADING_SCHEMAS;
                     Loading.start('importDomainFromDb');
 
                     if ($root.IgniteDemoMode)
-                        return agentMgr.schemas($scope.demoConnection);
+                        return IgniteAgentMonitor.schemas($scope.demoConnection);
 
                     const preset = $scope.selectedPreset;
 
                     _savePreset(preset);
 
-                    return agentMgr.schemas(preset);
+                    return IgniteAgentMonitor.schemas(preset);
                 })
                 .then(function(schemas) {
                     $scope.importDomain.schemas = _.map(schemas, function(schema) {
@@ -597,7 +596,7 @@ export default ['domainsController', [
         };
 
         function isValidJavaIdentifier(s) {
-            return JavaTypes.validIdentifier(s) && !JavaTypes.isKeyword(s) && JavaTypes.nonBuiltInClass(s) &&
+            return JavaTypes.validIdentifier(s) && !JavaTypes.isKeyword(s) &&
                 SqlTypes.validIdentifier(s) && !SqlTypes.isKeyword(s);
         }
 
@@ -675,7 +674,7 @@ export default ['domainsController', [
          * Load list of database tables.
          */
         function _loadTables() {
-            agentMgr.awaitAgent()
+            IgniteAgentMonitor.awaitAgent()
                 .then(function() {
                     $scope.importDomain.loadingOptions = LOADING_TABLES;
                     Loading.start('importDomainFromDb');
@@ -691,7 +690,7 @@ export default ['domainsController', [
                             preset.schemas.push(schema.name);
                     });
 
-                    return agentMgr.tables(preset);
+                    return IgniteAgentMonitor.tables(preset);
                 })
                 .then(function(tables) {
                     _importCachesOrTemplates = [DFLT_PARTITIONED_CACHE, DFLT_REPLICATED_CACHE].concat($scope.caches);
@@ -858,15 +857,7 @@ export default ['domainsController', [
                         containDup = true;
                     }
 
-                    let valType = tableName;
-                    let typeAlias;
-
-                    if (generatePojo) {
-                        if ($scope.ui.generateTypeAliases && tableName.toLowerCase() !== typeName.toLowerCase())
-                            typeAlias = tableName;
-
-                        valType = _toJavaPackage(packageName) + '.' + typeName;
-                    }
+                    const valType = generatePojo ? _toJavaPackage(packageName) + '.' + typeName : tableName;
 
                     let _containKey = false;
 
@@ -877,7 +868,7 @@ export default ['domainsController', [
 
                         const dbName = fld.databaseFieldName;
 
-                        if (generatePojo && $scope.ui.generateFieldAliases &&
+                        if ($scope.ui.generateAliases &&
                             SqlTypes.validIdentifier(dbName) && !SqlTypes.isKeyword(dbName) &&
                             !_.find(aliases, {field: fld.javaFieldName}) &&
                             fld.javaFieldName.toUpperCase() !== dbName.toUpperCase())
@@ -925,7 +916,6 @@ export default ['domainsController', [
                         newDomain.confirm = true;
                     }
 
-                    newDomain.tableName = typeAlias;
                     newDomain.keyType = valType + 'Key';
                     newDomain.valueType = valType;
                     newDomain.queryMetadata = 'Configuration';
@@ -1034,7 +1024,7 @@ export default ['domainsController', [
             function checkDuplicate() {
                 if (containDup) {
                     Confirm.confirm('Some tables have the same name.<br/>' +
-                        'Name of types for that tables will contain schema name too.')
+                            'Name of types for that tables will contain schema name too.')
                         .then(() => checkOverwrite());
                 }
                 else
@@ -1045,7 +1035,7 @@ export default ['domainsController', [
                 checkDuplicate();
             else {
                 Confirm.confirm('Some tables have no primary key.<br/>' +
-                    'You will need to configure key type and key fields for such tables after import complete.')
+                        'You will need to configure key type and key fields for such tables after import complete.')
                     .then(() => checkDuplicate());
             }
         }
@@ -1826,8 +1816,8 @@ export default ['domainsController', [
                 // Found duplicate.
                 if (idx >= 0 && idx !== curIdx) {
                     return !stopEdit && ErrorPopover.show(LegacyTable.tableFieldId(curIdx,
-                                'FieldName' + indexIdx + (curIdx >= 0 ? '-' : '')),
-                            'Field with such name already exists in index!', $scope.ui, 'query');
+                        'FieldName' + indexIdx + (curIdx >= 0 ? '-' : '')),
+                        'Field with such name already exists in index!', $scope.ui, 'query');
                 }
             }
 

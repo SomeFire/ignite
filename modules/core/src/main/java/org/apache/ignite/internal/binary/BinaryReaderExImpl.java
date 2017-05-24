@@ -1911,7 +1911,7 @@ public class BinaryReaderExImpl implements BinaryReader, BinaryRawReaderEx, Bina
                 break;
 
             case BINARY_OBJ:
-                obj = BinaryUtils.doReadBinaryObject(in, ctx, false);
+                obj = BinaryUtils.doReadBinaryObject(in, ctx);
 
                 ((BinaryObjectImpl)obj).context(ctx);
 

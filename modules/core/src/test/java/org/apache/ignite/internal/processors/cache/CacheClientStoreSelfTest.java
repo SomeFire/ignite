@@ -19,6 +19,7 @@ package org.apache.ignite.internal.processors.cache;
 
 import javax.cache.Cache;
 import javax.cache.configuration.Factory;
+import javax.cache.integration.CacheLoaderException;
 import javax.cache.integration.CacheWriterException;
 import javax.cache.processor.MutableEntry;
 import org.apache.ignite.Ignite;
@@ -32,7 +33,6 @@ import org.apache.ignite.cache.store.CacheStore;
 import org.apache.ignite.cache.store.CacheStoreAdapter;
 import org.apache.ignite.configuration.CacheConfiguration;
 import org.apache.ignite.configuration.IgniteConfiguration;
-import org.apache.ignite.configuration.MemoryConfiguration;
 import org.apache.ignite.configuration.NearCacheConfiguration;
 import org.apache.ignite.internal.util.typedef.F;
 import org.apache.ignite.lang.IgniteBiInClosure;
@@ -74,10 +74,7 @@ public class CacheClientStoreSelfTest extends GridCommonAbstractTest {
 
         cfg.setClientMode(client);
 
-        if (client)
-            cfg.setMemoryConfiguration(new MemoryConfiguration());
-
-        CacheConfiguration cc = new CacheConfiguration(DEFAULT_CACHE_NAME);
+        CacheConfiguration cc = new CacheConfiguration();
 
         cc.setName(CACHE_NAME);
         cc.setAtomicityMode(CacheAtomicityMode.TRANSACTIONAL);
@@ -123,7 +120,7 @@ public class CacheClientStoreSelfTest extends GridCommonAbstractTest {
 
         Ignite ignite = startGrid("client-1");
 
-        IgniteCache<Object, Object> cache = ignite.cache(CACHE_NAME);
+        IgniteCache cache = ignite.cache(CACHE_NAME);
 
         cache.get(0);
         cache.getAll(F.asSet(0, 1));
@@ -214,7 +211,7 @@ public class CacheClientStoreSelfTest extends GridCommonAbstractTest {
 
         Ignite ignite = startGrid("client-1");
 
-        IgniteCache<Object, Object> cache = ignite.cache(CACHE_NAME);
+        IgniteCache cache = ignite.cache(CACHE_NAME);
 
         cache.get(0);
         cache.getAll(F.asSet(0, 1));
@@ -236,7 +233,7 @@ public class CacheClientStoreSelfTest extends GridCommonAbstractTest {
     /**
      * Load cache created on client as LOCAL and see if it only loaded on client
      *
-     * @throws Exception If failed.
+     * @throws Exception
      */
     public void testLocalLoadClient() throws Exception {
         cacheMode = CacheMode.LOCAL;
@@ -246,7 +243,7 @@ public class CacheClientStoreSelfTest extends GridCommonAbstractTest {
 
         Ignite client = startGrid("client-1");
 
-        IgniteCache<Object, Object> cache = client.cache(CACHE_NAME);
+        IgniteCache cache = client.cache(CACHE_NAME);
 
         cache.loadCache(null);
 
@@ -261,7 +258,7 @@ public class CacheClientStoreSelfTest extends GridCommonAbstractTest {
     /**
      * Load cache from server that created on client as LOCAL and see if it only loaded on server
      *
-     * @throws Exception If failed.
+     * @throws Exception
      */
     public void testLocalLoadServer() throws Exception {
         cacheMode = CacheMode.LOCAL;
@@ -358,7 +355,6 @@ public class CacheClientStoreSelfTest extends GridCommonAbstractTest {
     /**
      */
     private static class EP implements CacheEntryProcessor {
-        /** {@inheritDoc} */
         @Override public Object process(MutableEntry entry, Object... arguments) {
             return null;
         }
@@ -368,27 +364,24 @@ public class CacheClientStoreSelfTest extends GridCommonAbstractTest {
      * Test store that loads 10 item
      */
     public static class TestStore extends CacheStoreAdapter<Object, Object> {
-        /** */
         @IgniteInstanceResource
         private Ignite ignite;
 
-        /** {@inheritDoc} */
-        @Override public Integer load(Object key) {
+        @Override
+        public Integer load(Object key) throws CacheLoaderException {
             return null;
         }
 
-        /** {@inheritDoc} */
-        @Override public void write(Cache.Entry<?, ?> entry) {
-            // No-op.
+        @Override
+        public void write(Cache.Entry<? extends Object, ? extends Object> entry) throws CacheWriterException {
         }
 
-        /** {@inheritDoc} */
-        @Override public void delete(Object key) throws CacheWriterException {
-            // No-op.
+        @Override
+        public void delete(Object key) throws CacheWriterException {
         }
 
-        /** {@inheritDoc} */
-        @Override public void loadCache(IgniteBiInClosure<Object, Object> clo, Object... args) {
+        @Override
+        public void loadCache(IgniteBiInClosure<Object, Object> clo, Object... args) {
             if (ignite.cluster().localNode().isClient())
                 loadedFromClient = true;
 

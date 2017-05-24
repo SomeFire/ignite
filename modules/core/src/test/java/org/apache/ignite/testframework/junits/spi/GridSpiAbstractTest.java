@@ -721,11 +721,6 @@ public abstract class GridSpiAbstractTest<T extends IgniteSpi> extends GridAbstr
         }
 
         /** {@inheritDoc} */
-        @Override public Map<String, Collection<SecurityPermission>> servicePermissions() {
-            return Collections.emptyMap();
-        }
-
-        /** {@inheritDoc} */
         @Nullable @Override public Collection<SecurityPermission> systemPermissions() {
             return null;
         }

@@ -50,31 +50,6 @@ namespace ignite
         TestObject objField;
         std::string strField;
     };
-
-    bool operator==(TestObject const& lhs, TestObject const& rhs)
-    {
-        return lhs.f1 == rhs.f1 && lhs.f2 == rhs.f2;
-    }
-
-    bool operator==(ComplexType const& lhs, ComplexType const& rhs)
-    {
-        return lhs.i32Field == rhs.i32Field && lhs.objField == rhs.objField && lhs.strField == rhs.strField;
-    }
-
-    std::ostream& operator<<(std::ostream& str, TestObject const& obj)
-    {
-        str << "TestObject::f1: " << obj.f1
-            << "TestObject::f2: " << obj.f2;
-        return str;
-    }
-
-    std::ostream& operator<<(std::ostream& str, ComplexType const& obj)
-    {
-        str << "ComplexType::i32Field: " << obj.i32Field
-            << "ComplexType::objField: " << obj.objField
-            << "ComplexType::strField: " << obj.strField;
-        return str;
-    }
 }
 
 namespace ignite
@@ -89,6 +64,7 @@ namespace ignite
             IGNITE_BINARY_GET_TYPE_ID_AS_HASH(TestObject)
             IGNITE_BINARY_GET_TYPE_NAME_AS_IS(TestObject)
             IGNITE_BINARY_GET_FIELD_ID_AS_HASH
+            IGNITE_BINARY_GET_HASH_CODE_ZERO(TestObject)
             IGNITE_BINARY_IS_NULL_FALSE(TestObject)
             IGNITE_BINARY_GET_NULL_DEFAULT_CTOR(TestObject)
 
@@ -113,6 +89,7 @@ namespace ignite
             IGNITE_BINARY_GET_TYPE_ID_AS_HASH(ComplexType)
             IGNITE_BINARY_GET_TYPE_NAME_AS_IS(ComplexType)
             IGNITE_BINARY_GET_FIELD_ID_AS_HASH
+            IGNITE_BINARY_GET_HASH_CODE_ZERO(ComplexType)
             IGNITE_BINARY_IS_NULL_FALSE(ComplexType)
             IGNITE_BINARY_GET_NULL_DEFAULT_CTOR(ComplexType)
 

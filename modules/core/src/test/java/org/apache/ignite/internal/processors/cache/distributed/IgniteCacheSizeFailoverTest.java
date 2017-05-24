@@ -51,7 +51,7 @@ public class IgniteCacheSizeFailoverTest extends GridCommonAbstractTest {
 
         ((TcpCommunicationSpi)cfg.getCommunicationSpi()).setSharedMemoryPort(-1);
 
-        CacheConfiguration ccfg = new CacheConfiguration(DEFAULT_CACHE_NAME);
+        CacheConfiguration ccfg = new CacheConfiguration();
 
         ccfg.setCacheMode(PARTITIONED);
         ccfg.setAtomicityMode(ATOMIC);
@@ -84,7 +84,7 @@ public class IgniteCacheSizeFailoverTest extends GridCommonAbstractTest {
             @Override public Object call() throws Exception {
                 int idx = cntr.getAndIncrement() % 2;
 
-                IgniteCache<Object, Object> cache = ignite(idx).cache(DEFAULT_CACHE_NAME);
+                IgniteCache<Object, Object> cache = ignite(idx).cache(null);
 
                 long cntr = 0;
 
@@ -105,7 +105,7 @@ public class IgniteCacheSizeFailoverTest extends GridCommonAbstractTest {
 
                 Ignite node = startGrid(3);
 
-                IgniteCache<Object, Object> cache = node.cache(DEFAULT_CACHE_NAME);
+                IgniteCache<Object, Object> cache = node.cache(null);
 
                 for (int j = 0; j < 100; j++)
                     assertTrue(cache.size() >= 0);

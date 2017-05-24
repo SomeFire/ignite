@@ -29,19 +29,20 @@ import org.apache.ignite.internal.util.typedef.internal.S;
 import org.apache.ignite.internal.util.typedef.internal.U;
 import org.apache.ignite.internal.visor.VisorJob;
 import org.apache.ignite.internal.visor.VisorMultiNodeTask;
+import org.apache.ignite.lang.IgniteBiTuple;
 import org.jetbrains.annotations.Nullable;
 
 /**
  * Task that collect cache metrics from all nodes.
  */
 @GridInternal
-public class VisorCacheMetricsCollectorTask extends VisorMultiNodeTask<VisorCacheMetricsCollectorTaskArg,
+public class VisorCacheMetricsCollectorTask extends VisorMultiNodeTask<IgniteBiTuple<Boolean, Collection<String>>,
     Iterable<VisorCacheAggregatedMetrics>, Collection<VisorCacheMetrics>> {
     /** */
     private static final long serialVersionUID = 0L;
 
     /** {@inheritDoc} */
-    @Override protected VisorCacheMetricsCollectorJob job(VisorCacheMetricsCollectorTaskArg arg) {
+    @Override protected VisorCacheMetricsCollectorJob job(IgniteBiTuple<Boolean, Collection<String>> arg) {
         return new VisorCacheMetricsCollectorJob(arg, debug);
     }
 
@@ -54,15 +55,15 @@ public class VisorCacheMetricsCollectorTask extends VisorMultiNodeTask<VisorCach
                 Collection<VisorCacheMetrics> cms = res.getData();
 
                 for (VisorCacheMetrics cm : cms) {
-                    VisorCacheAggregatedMetrics am = grpAggrMetrics.get(cm.getName());
+                    VisorCacheAggregatedMetrics am = grpAggrMetrics.get(cm.name());
 
                     if (am == null) {
-                        am = new VisorCacheAggregatedMetrics(cm);
+                        am = VisorCacheAggregatedMetrics.from(cm);
 
-                        grpAggrMetrics.put(cm.getName(), am);
+                        grpAggrMetrics.put(cm.name(), am);
                     }
 
-                    am.getMetrics().put(res.getNode().id(), cm);
+                    am.metrics().put(res.getNode().id(), cm);
                 }
             }
         }
@@ -75,7 +76,7 @@ public class VisorCacheMetricsCollectorTask extends VisorMultiNodeTask<VisorCach
      * Job that collect cache metrics from node.
      */
     private static class VisorCacheMetricsCollectorJob
-        extends VisorJob<VisorCacheMetricsCollectorTaskArg, Collection<VisorCacheMetrics>> {
+        extends VisorJob<IgniteBiTuple<Boolean, Collection<String>>, Collection<VisorCacheMetrics>> {
 
         /** */
         private static final long serialVersionUID = 0L;
@@ -86,17 +87,19 @@ public class VisorCacheMetricsCollectorTask extends VisorMultiNodeTask<VisorCach
          * @param arg Whether to collect metrics for all caches or for specified cache name only.
          * @param debug Debug flag.
          */
-        private VisorCacheMetricsCollectorJob(VisorCacheMetricsCollectorTaskArg arg, boolean debug) {
+        private VisorCacheMetricsCollectorJob(IgniteBiTuple<Boolean, Collection<String>> arg, boolean debug) {
             super(arg, debug);
         }
 
         /** {@inheritDoc} */
-        @Override protected Collection<VisorCacheMetrics> run(final VisorCacheMetricsCollectorTaskArg arg) {
+        @Override protected Collection<VisorCacheMetrics> run(final IgniteBiTuple<Boolean, Collection<String>> arg) {
             assert arg != null;
 
-            Boolean showSysCaches = arg.isShowSystemCaches();
+            Boolean showSysCaches = arg.get1();
 
-            Collection<String> cacheNames = arg.getCacheNames();
+            assert showSysCaches != null;
+
+            Collection<String> cacheNames = arg.get2();
 
             assert cacheNames != null;
 
@@ -112,9 +115,9 @@ public class VisorCacheMetricsCollectorTask extends VisorMultiNodeTask<VisorCach
                 if (ca.context().started()) {
                     String cacheName = ca.getName();
 
-                    VisorCacheMetrics cm = new VisorCacheMetrics(ignite, cacheName);
+                    VisorCacheMetrics cm = new VisorCacheMetrics().from(ignite, cacheName);
 
-                    if ((allCaches || cacheNames.contains(cacheName)) && (showSysCaches || !cm.isSystem()))
+                    if ((allCaches || cacheNames.contains(cacheName)) && (showSysCaches || !cm.system()))
                         res.add(cm);
                 }
             }

@@ -18,16 +18,22 @@
 package org.apache.ignite.internal.processors.cache;
 
 import java.util.Random;
+import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteCache;
+import org.apache.ignite.cache.CacheAtomicWriteOrderMode;
+import org.apache.ignite.cache.CachePeekMode;
 import org.apache.ignite.cache.affinity.Affinity;
 import org.apache.ignite.cluster.ClusterNode;
 import org.apache.ignite.configuration.CacheConfiguration;
 import org.apache.ignite.configuration.NearCacheConfiguration;
+import org.apache.ignite.internal.IgniteKernal;
+import org.apache.ignite.internal.util.typedef.F;
 
 import static org.apache.ignite.IgniteSystemProperties.IGNITE_ATOMIC_CACHE_DELETE_HISTORY_SIZE;
+import static org.apache.ignite.cache.CacheAtomicWriteOrderMode.CLOCK;
 import static org.apache.ignite.cache.CacheMode.PARTITIONED;
 import static org.apache.ignite.cache.CacheRebalanceMode.SYNC;
 import static org.apache.ignite.cache.CacheWriteSynchronizationMode.FULL_SYNC;
@@ -58,6 +64,7 @@ public abstract class GridCacheValueConsistencyAbstractSelfTest extends GridCach
 
         cCfg.setCacheMode(PARTITIONED);
         cCfg.setAtomicityMode(atomicityMode());
+        cCfg.setAtomicWriteOrderMode(writeOrderMode());
         cCfg.setNearConfiguration(nearConfiguration());
         cCfg.setRebalanceMode(SYNC);
         cCfg.setWriteSynchronizationMode(FULL_SYNC);
@@ -91,6 +98,13 @@ public abstract class GridCacheValueConsistencyAbstractSelfTest extends GridCach
     }
 
     /**
+     * @return Atomic write order mode.
+     */
+    protected CacheAtomicWriteOrderMode writeOrderMode() {
+        return CLOCK;
+    }
+
+    /**
      * @return Consistency test iteration count.
      */
     protected abstract int iterationCount();
@@ -115,19 +129,19 @@ public abstract class GridCacheValueConsistencyAbstractSelfTest extends GridCach
             for (int i = 0; i < keyCnt; i++) {
                 String key = "key" + i;
 
-                if (ignite(0).affinity(DEFAULT_CACHE_NAME).mapKeyToPrimaryAndBackups(key).contains(locNode)) {
+                if (ignite(0).affinity(null).mapKeyToPrimaryAndBackups(key).contains(locNode)) {
                     info("Node is reported as affinity node for key [key=" + key + ", nodeId=" + locNode.id() + ']');
 
-                    assertEquals((Integer)i, cache0.localPeek(key));
+                    assertEquals((Integer)i, cache0.localPeek(key, CachePeekMode.ONHEAP));
                 }
                 else {
                     info("Node is reported as NOT affinity node for key [key=" + key +
                         ", nodeId=" + locNode.id() + ']');
 
                     if (nearEnabled() && cache == cache0)
-                        assertEquals((Integer)i, cache0.localPeek(key));
+                        assertEquals((Integer)i, cache0.localPeek(key, CachePeekMode.ONHEAP));
                     else
-                        assertNull(cache0.localPeek(key));
+                        assertNull(cache0.localPeek(key, CachePeekMode.ONHEAP));
                 }
 
                 assertEquals((Integer)i, cache0.get(key));
@@ -145,7 +159,7 @@ public abstract class GridCacheValueConsistencyAbstractSelfTest extends GridCach
             for (int i = 0; i < keyCnt; i++) {
                 String key = "key" + i;
 
-                assertNull(cache0.localPeek(key));
+                assertNull(cache0.localPeek(key, CachePeekMode.ONHEAP));
 
                 assertNull(cache0.get(key));
             }
@@ -175,19 +189,19 @@ public abstract class GridCacheValueConsistencyAbstractSelfTest extends GridCach
             for (int i = 0; i < keyCnt; i++) {
                 String key = "key" + i;
 
-                if (ignite(0).affinity(DEFAULT_CACHE_NAME).mapKeyToPrimaryAndBackups(key).contains(grid(g).localNode())) {
+                if (ignite(0).affinity(null).mapKeyToPrimaryAndBackups(key).contains(grid(g).localNode())) {
                     info("Node is reported as affinity node for key [key=" + key + ", nodeId=" + locNode.id() + ']');
 
-                    assertEquals((Integer)i, cache0.localPeek(key));
+                    assertEquals((Integer)i, cache0.localPeek(key, CachePeekMode.ONHEAP));
                 }
                 else {
                     info("Node is reported as NOT affinity node for key [key=" + key +
                         ", nodeId=" + locNode.id() + ']');
 
                     if (nearEnabled() && cache == cache0)
-                        assertEquals((Integer)i, cache0.localPeek(key));
+                        assertEquals((Integer)i, cache0.localPeek(key, CachePeekMode.ONHEAP));
                     else
-                        assertNull(cache0.localPeek(key));
+                        assertNull(cache0.localPeek(key, CachePeekMode.ONHEAP));
                 }
 
                 assertEquals((Integer)i, cache0.get(key));
@@ -208,7 +222,7 @@ public abstract class GridCacheValueConsistencyAbstractSelfTest extends GridCach
             for (int i = 0; i < keyCnt; i++) {
                 String key = "key" + i;
 
-                assertNull(cache0.localPeek(key));
+                assertNull(cache0.localPeek(key, CachePeekMode.ONHEAP));
                 assertNull(cache0.get(key));
             }
         }
@@ -240,7 +254,7 @@ public abstract class GridCacheValueConsistencyAbstractSelfTest extends GridCach
 
                     Ignite ignite = grid(g);
 
-                    IgniteCache<Object, Object> cache = ignite.cache(DEFAULT_CACHE_NAME);
+                    IgniteCache<Object, Object> cache = ignite.cache(null);
 
                     log.info("Update thread: " + ignite.name());
 
@@ -305,7 +319,7 @@ public abstract class GridCacheValueConsistencyAbstractSelfTest extends GridCach
 
                     Ignite ignite = grid(g);
 
-                    IgniteCache<Object, Object> cache = ignite.cache(DEFAULT_CACHE_NAME);
+                    IgniteCache<Object, Object> cache = ignite.cache(null);
 
                     int k = rnd.nextInt(range);
 
@@ -334,7 +348,7 @@ public abstract class GridCacheValueConsistencyAbstractSelfTest extends GridCach
         int present = 0;
         int absent = 0;
 
-        Affinity<Integer> aff = ignite(0).affinity(DEFAULT_CACHE_NAME);
+        Affinity<Integer> aff = ignite(0).affinity(null);
 
         boolean invalidVal = false;
 
@@ -344,7 +358,7 @@ public abstract class GridCacheValueConsistencyAbstractSelfTest extends GridCach
             for (int g = 0; g < gridCount(); g++) {
                 Ignite ignite = grid(g);
 
-                Long val = (Long)ignite.cache(DEFAULT_CACHE_NAME).localPeek(i);
+                Long val = (Long)ignite.cache(null).localPeek(i, CachePeekMode.ONHEAP);
 
                 if (firstVal == null && val != null)
                     firstVal = val;
@@ -384,6 +398,8 @@ public abstract class GridCacheValueConsistencyAbstractSelfTest extends GridCach
 
         info("Checking keySet consistency");
 
+        for (int g = 0; g < gridCount(); g++)
+            checkKeySet(grid(g));
     }
 
     /**
@@ -397,7 +413,7 @@ public abstract class GridCacheValueConsistencyAbstractSelfTest extends GridCach
             boolean primary = aff.isPrimary(ignite.cluster().localNode(), key);
             boolean backup = aff.isBackup(ignite.cluster().localNode(), key);
 
-            Object val = ignite.cache(DEFAULT_CACHE_NAME).localPeek(key);
+            Object val = ignite.cache(null).localPeek(key, CachePeekMode.ONHEAP);
 
             log.error("Node value [key=" + key +
                 ", val=" + val +
@@ -405,5 +421,30 @@ public abstract class GridCacheValueConsistencyAbstractSelfTest extends GridCach
                 ", primary=" + primary +
                 ", backup=" + backup + ']');
         }
+    }
+
+    /**
+     * @param g Grid to check.
+     */
+    private void checkKeySet(Ignite g) {
+        GridCacheAdapter<Object, Object> cache = ((IgniteKernal)g).internalCache(null);
+
+        Set<Object> keys = cache.keySet();
+
+        int cacheSize = cache.size();
+        int keySetSize = keys.size();
+
+        int itSize = 0;
+
+        for (Object ignored : keys)
+            itSize++;
+
+        int valsSize = F.size(cache.values().iterator());
+
+        info("cacheSize=" + cacheSize + ", keysSize=" + keySetSize + ", valsSize=" + valsSize +
+            ", itSize=" + itSize + ']');
+
+        assertEquals("cacheSize vs itSize", cacheSize, itSize);
+        assertEquals("cacheSize vs keySeySize", cacheSize, keySetSize);
     }
 }

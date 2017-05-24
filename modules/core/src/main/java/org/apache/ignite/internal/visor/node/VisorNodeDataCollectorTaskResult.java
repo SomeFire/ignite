@@ -17,18 +17,14 @@
 
 package org.apache.ignite.internal.visor.node;
 
-import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import org.apache.ignite.internal.util.typedef.internal.S;
-import org.apache.ignite.internal.util.typedef.internal.U;
-import org.apache.ignite.internal.visor.VisorDataTransferObject;
+import org.apache.ignite.internal.LessNamingBean;
 import org.apache.ignite.internal.visor.cache.VisorCache;
 import org.apache.ignite.internal.visor.event.VisorGridEvent;
 import org.apache.ignite.internal.visor.igfs.VisorIgfs;
@@ -38,68 +34,52 @@ import org.apache.ignite.internal.visor.util.VisorExceptionWrapper;
 /**
  * Data collector task result.
  */
-public class VisorNodeDataCollectorTaskResult extends VisorDataTransferObject {
+public class VisorNodeDataCollectorTaskResult implements Serializable, LessNamingBean {
     /** */
     private static final long serialVersionUID = 0L;
 
-    /** Grid active flag. */
-    private boolean active;
-
     /** Unhandled exceptions from nodes. */
-    private Map<UUID, VisorExceptionWrapper> unhandledEx = new HashMap<>();
+    private final Map<UUID, VisorExceptionWrapper> unhandledEx = new HashMap<>();
 
     /** Nodes grid names. */
-    private Map<UUID, String> gridNames = new HashMap<>();
+    private final Map<UUID, String> igniteInstanceNames = new HashMap<>();
 
     /** Nodes topology versions. */
-    private Map<UUID, Long> topVersions = new HashMap<>();
+    private final Map<UUID, Long> topVersions = new HashMap<>();
 
     /** All task monitoring state collected from nodes. */
-    private Map<UUID, Boolean> taskMonitoringEnabled = new HashMap<>();
+    private final Map<UUID, Boolean> taskMonitoringEnabled = new HashMap<>();
 
     /** Nodes error counts. */
-    private Map<UUID, Long> errCnts = new HashMap<>();
+    private final Map<UUID, Long> errCnts = new HashMap<>();
 
     /** All events collected from nodes. */
-    private List<VisorGridEvent> evts = new ArrayList<>();
+    private final List<VisorGridEvent> evts = new ArrayList<>();
 
     /** Exceptions caught during collecting events from nodes. */
-    private Map<UUID, VisorExceptionWrapper> evtsEx = new HashMap<>();
+    private final Map<UUID, VisorExceptionWrapper> evtsEx = new HashMap<>();
 
     /** All caches collected from nodes. */
-    private Map<UUID, Collection<VisorCache>> caches = new HashMap<>();
+    private final Map<UUID, Collection<VisorCache>> caches = new HashMap<>();
 
     /** Exceptions caught during collecting caches from nodes. */
-    private Map<UUID, VisorExceptionWrapper> cachesEx = new HashMap<>();
+    private final Map<UUID, VisorExceptionWrapper> cachesEx = new HashMap<>();
 
     /** All IGFS collected from nodes. */
-    private Map<UUID, Collection<VisorIgfs>> igfss = new HashMap<>();
+    private final Map<UUID, Collection<VisorIgfs>> igfss = new HashMap<>();
 
     /** All IGFS endpoints collected from nodes. */
-    private Map<UUID, Collection<VisorIgfsEndpoint>> igfsEndpoints = new HashMap<>();
+    private final Map<UUID, Collection<VisorIgfsEndpoint>> igfsEndpoints = new HashMap<>();
 
     /** Exceptions caught during collecting IGFS from nodes. */
-    private Map<UUID, VisorExceptionWrapper> igfssEx = new HashMap<>();
-
-    /** Topology version of latest completed partition exchange from nodes. */
-    private Map<UUID, VisorAffinityTopologyVersion> readyTopVers = new HashMap<>();
-
-    /** Whether pending exchange future exists from nodes. */
-    private Map<UUID, Boolean> pendingExchanges = new HashMap<>();
-
-    /**
-     * Default constructor.
-     */
-    public VisorNodeDataCollectorTaskResult() {
-        // No-op.
-    }
+    private final Map<UUID, VisorExceptionWrapper> igfssEx = new HashMap<>();
 
     /**
      * @return {@code true} If no data was collected.
      */
     public boolean isEmpty() {
         return
-            gridNames.isEmpty() &&
+            igniteInstanceNames.isEmpty() &&
             topVersions.isEmpty() &&
             unhandledEx.isEmpty() &&
             taskMonitoringEnabled.isEmpty() &&
@@ -109,163 +89,90 @@ public class VisorNodeDataCollectorTaskResult extends VisorDataTransferObject {
             cachesEx.isEmpty() &&
             igfss.isEmpty() &&
             igfsEndpoints.isEmpty() &&
-            igfssEx.isEmpty() &&
-            readyTopVers.isEmpty() &&
-            pendingExchanges.isEmpty();
-    }
-
-    /**
-     * @return {@code True} if grid is active.
-     */
-    public boolean isActive() {
-        return active;
-    }
-
-    /**
-     * @param active active New value of grid active flag.
-     */
-    public void setActive(boolean active) {
-        this.active = active;
+            igfssEx.isEmpty();
     }
 
     /**
      * @return Unhandled exceptions from nodes.
      */
-    public Map<UUID, VisorExceptionWrapper> getUnhandledEx() {
+    public Map<UUID, VisorExceptionWrapper> unhandledEx() {
         return unhandledEx;
     }
 
     /**
-     * @return Nodes grid names.
+     * @return Nodes Ignite instance names.
      */
-    public Map<UUID, String> getGridNames() {
-        return gridNames;
+    public Map<UUID, String> igniteInstanceNames() {
+        return igniteInstanceNames;
     }
 
     /**
      * @return Nodes topology versions.
      */
-    public Map<UUID, Long> getTopologyVersions() {
+    public Map<UUID, Long> topologyVersions() {
         return topVersions;
     }
 
     /**
      * @return All task monitoring state collected from nodes.
      */
-    public Map<UUID, Boolean> isTaskMonitoringEnabled() {
+    public Map<UUID, Boolean> taskMonitoringEnabled() {
         return taskMonitoringEnabled;
     }
 
     /**
      * @return All events collected from nodes.
      */
-    public List<VisorGridEvent> getEvents() {
+    public List<VisorGridEvent> events() {
         return evts;
     }
 
     /**
      * @return Exceptions caught during collecting events from nodes.
      */
-    public Map<UUID, VisorExceptionWrapper> getEventsEx() {
+    public Map<UUID, VisorExceptionWrapper> eventsEx() {
         return evtsEx;
     }
 
     /**
      * @return All caches collected from nodes.
      */
-    public Map<UUID, Collection<VisorCache>> getCaches() {
+    public Map<UUID, Collection<VisorCache>> caches() {
         return caches;
     }
 
     /**
      * @return Exceptions caught during collecting caches from nodes.
      */
-    public Map<UUID, VisorExceptionWrapper> getCachesEx() {
+    public Map<UUID, VisorExceptionWrapper> cachesEx() {
         return cachesEx;
     }
 
     /**
      * @return All IGFS collected from nodes.
      */
-    public Map<UUID, Collection<VisorIgfs>> getIgfss() {
+    public Map<UUID, Collection<VisorIgfs>> igfss() {
         return igfss;
     }
 
     /**
      * @return All IGFS endpoints collected from nodes.
      */
-    public Map<UUID, Collection<VisorIgfsEndpoint>> getIgfsEndpoints() {
+    public Map<UUID, Collection<VisorIgfsEndpoint>> igfsEndpoints() {
         return igfsEndpoints;
     }
 
     /**
      * @return Exceptions caught during collecting IGFS from nodes.
      */
-    public Map<UUID, VisorExceptionWrapper> getIgfssEx() {
+    public Map<UUID, VisorExceptionWrapper> igfssEx() {
         return igfssEx;
     }
 
     /**
      * @return Nodes error counts.
      */
-    public Map<UUID, Long> getErrorCounts() {
+    public Map<UUID, Long> errorCounts() {
         return errCnts;
-    }
-
-    /**
-     * @return Topology version of latest completed partition exchange from nodes.
-     */
-    public Map<UUID, VisorAffinityTopologyVersion> getReadyAffinityVersions() {
-        return readyTopVers;
-    }
-
-    /**
-     * @return Whether pending exchange future exists from nodes.
-     */
-    public Map<UUID, Boolean> getPendingExchanges() {
-        return pendingExchanges;
-    }
-
-    /** {@inheritDoc} */
-    @Override protected void writeExternalData(ObjectOutput out) throws IOException {
-        out.writeBoolean(active);
-        U.writeMap(out, unhandledEx);
-        U.writeMap(out, gridNames);
-        U.writeMap(out, topVersions);
-        U.writeMap(out, taskMonitoringEnabled);
-        U.writeMap(out, errCnts);
-        U.writeCollection(out, evts);
-        U.writeMap(out, evtsEx);
-        U.writeMap(out, caches);
-        U.writeMap(out, cachesEx);
-        U.writeMap(out, igfss);
-        U.writeMap(out, igfsEndpoints);
-        U.writeMap(out, igfssEx);
-        U.writeMap(out, readyTopVers);
-        U.writeMap(out, pendingExchanges);
-    }
-
-    /** {@inheritDoc} */
-    @Override protected void readExternalData(byte protoVer, ObjectInput in) throws IOException, ClassNotFoundException {
-        active = in.readBoolean();
-        unhandledEx = U.readMap(in);
-        gridNames = U.readMap(in);
-        topVersions = U.readMap(in);
-        taskMonitoringEnabled = U.readMap(in);
-        errCnts = U.readMap(in);
-        evts = U.readList(in);
-        evtsEx = U.readMap(in);
-        caches = U.readMap(in);
-        cachesEx = U.readMap(in);
-        igfss = U.readMap(in);
-        igfsEndpoints = U.readMap(in);
-        igfssEx = U.readMap(in);
-        readyTopVers = U.readMap(in);
-        pendingExchanges = U.readMap(in);
-    }
-
-    /** {@inheritDoc} */
-    @Override public String toString() {
-        return S.toString(VisorNodeDataCollectorTaskResult.class, this);
     }
 }

@@ -32,6 +32,8 @@ import org.apache.ignite.plugin.extensions.communication.MessageReader;
 import org.apache.ignite.plugin.extensions.communication.MessageWriter;
 import org.jetbrains.annotations.NotNull;
 
+import static org.apache.ignite.internal.processors.cache.GridCacheUtils.SKIP_STORE_FLAG_MASK;
+
 /**
  *
  */
@@ -53,9 +55,6 @@ public class GridNearSingleGetRequest extends GridCacheMessage implements GridCa
 
     /** */
     private static final int NEED_ENTRY_INFO_FLAG_MASK = 0x10;
-
-    /** */
-    public static final int RECOVERY_FLAG_MASK = 0x20;
 
     /** Future ID. */
     private long futId;
@@ -117,8 +116,7 @@ public class GridNearSingleGetRequest extends GridCacheMessage implements GridCa
         boolean skipVals,
         boolean addReader,
         boolean needVer,
-        boolean addDepInfo,
-        boolean recovery
+        boolean addDepInfo
     ) {
         assert key != null;
 
@@ -133,19 +131,16 @@ public class GridNearSingleGetRequest extends GridCacheMessage implements GridCa
         this.addDepInfo = addDepInfo;
 
         if (readThrough)
-            flags |= READ_THROUGH_FLAG_MASK;
+            flags = (byte)(flags | READ_THROUGH_FLAG_MASK);
 
         if (skipVals)
-            flags |= SKIP_VALS_FLAG_MASK;
+            flags = (byte)(flags | SKIP_VALS_FLAG_MASK);
 
         if (addReader)
-            flags |= ADD_READER_FLAG_MASK;
+            flags = (byte)(flags | ADD_READER_FLAG_MASK);
 
         if (needVer)
-            flags |= NEED_VER_FLAG_MASK;
-
-        if (recovery)
-            flags |= RECOVERY_FLAG_MASK;
+            flags = (byte)(flags | NEED_VER_FLAG_MASK);
     }
 
     /**
@@ -210,7 +205,7 @@ public class GridNearSingleGetRequest extends GridCacheMessage implements GridCa
      * @return Read through flag.
      */
     public boolean readThrough() {
-        return (flags & READ_THROUGH_FLAG_MASK) != 0;
+        return (flags & SKIP_STORE_FLAG_MASK) != 0;
     }
 
     /**
@@ -239,13 +234,6 @@ public class GridNearSingleGetRequest extends GridCacheMessage implements GridCa
      */
     public boolean needEntryInfo() {
         return (flags & NEED_ENTRY_INFO_FLAG_MASK) != 0;
-    }
-
-    /**
-     * @return {@code True} if recovery flag is set.
-     */
-    public boolean recovery() {
-        return (flags & RECOVERY_FLAG_MASK) != 0;
     }
 
     /** {@inheritDoc} */

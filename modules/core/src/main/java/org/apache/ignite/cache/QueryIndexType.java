@@ -17,8 +17,6 @@
 
 package org.apache.ignite.cache;
 
-import org.jetbrains.annotations.Nullable;
-
 /**
  * Index type.
  */
@@ -36,18 +34,5 @@ public enum QueryIndexType {
     /**
      * Geo-spatial index.
      */
-    GEOSPATIAL;
-
-    /** Enum values. */
-    private static final QueryIndexType[] VALS = values();
-
-    /**
-     * Efficiently gets enumerated value from its ordinal.
-     *
-     * @param ord Ordinal value.
-     * @return Enumerated value.
-     */
-    @Nullable public static QueryIndexType fromOrdinal(int ord) {
-        return ord >= 0 && ord < VALS.length ? VALS[ord] : null;
-    }
+    GEOSPATIAL
 }

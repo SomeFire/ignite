@@ -327,13 +327,7 @@ namespace Apache.Ignite.Core.Impl.Compute
                 var data = BinaryUtils.ReadInvocationResult(reader, out err);
 
                 // 2. Process the result.
-                var exception = (Exception) err;
-                exception = exception == null
-                    ? null
-                    : new IgniteException("Compute job has failed on remote node, " +
-                                          "examine InnerException for details.", exception);
-
-                return (int) JobResult0(new ComputeJobResultImpl(data, exception, job.Job, nodeId.Value, cancelled));
+                return (int) JobResult0(new ComputeJobResultImpl(data, (Exception) err, job.Job, nodeId.Value, cancelled));
             }
             catch (Exception e)
             {

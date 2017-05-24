@@ -47,7 +47,7 @@ public class IgniteClientReconnectCacheQueriesFailoverTest extends IgniteClientR
     @Override protected IgniteConfiguration getConfiguration(String igniteInstanceName) throws Exception {
         IgniteConfiguration cfg = super.getConfiguration(igniteInstanceName);
 
-        CacheConfiguration<Object, Object> ccfg = new CacheConfiguration<>(DEFAULT_CACHE_NAME);
+        CacheConfiguration<Object, Object> ccfg = new CacheConfiguration<>();
 
         ccfg.setCacheMode(PARTITIONED);
         ccfg.setBackups(1);
@@ -62,7 +62,7 @@ public class IgniteClientReconnectCacheQueriesFailoverTest extends IgniteClientR
     @Override protected void beforeTestsStarted() throws Exception {
         super.beforeTestsStarted();
 
-        final IgniteCache<Integer, Person> cache = grid(serverCount()).cache(DEFAULT_CACHE_NAME);
+        final IgniteCache<Integer, Person> cache = grid(serverCount()).cache(null);
 
         assertNotNull(cache);
 
@@ -76,7 +76,7 @@ public class IgniteClientReconnectCacheQueriesFailoverTest extends IgniteClientR
     public void testReconnectCacheQueries() throws Exception {
         final Ignite client = grid(serverCount());
 
-        final IgniteCache<Integer, Person> cache = client.cache(DEFAULT_CACHE_NAME);
+        final IgniteCache<Integer, Person> cache = client.cache(null);
 
         assertNotNull(cache);
 
@@ -123,11 +123,11 @@ public class IgniteClientReconnectCacheQueriesFailoverTest extends IgniteClientR
     public void testReconnectScanQuery() throws Exception {
         final Ignite client = grid(serverCount());
 
-        final IgniteCache<Integer, Person> cache = client.cache(DEFAULT_CACHE_NAME);
+        final IgniteCache<Integer, Person> cache = client.cache(null);
 
         assertNotNull(cache);
 
-        final Affinity<Integer> aff = client.affinity(DEFAULT_CACHE_NAME);
+        final Affinity<Integer> aff = client.affinity(null);
 
         final Map<Integer, Integer> partMap = new HashMap<>();
 

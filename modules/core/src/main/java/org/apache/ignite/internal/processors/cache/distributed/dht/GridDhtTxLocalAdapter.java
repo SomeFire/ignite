@@ -494,7 +494,7 @@ public abstract class GridDhtTxLocalAdapter extends IgniteTxLocalAdapter {
             else {
                 existing = e;
 
-                addActiveCache(dhtCache.context(), false);
+                addActiveCache(dhtCache.context());
 
                 GridDhtCacheEntry cached = dhtCache.entryExx(existing.key(), topologyVersion());
 
@@ -584,21 +584,25 @@ public abstract class GridDhtTxLocalAdapter extends IgniteTxLocalAdapter {
                 if (txEntry == null) {
                     GridDhtCacheEntry cached;
 
-                    while (true) {
-                        try {
-                            cached = dhtCache.entryExx(key, topVer);
+                    if (dhtCache.context().isSwapOrOffheapEnabled()) {
+                        while (true) {
+                            try {
+                                cached = dhtCache.entryExx(key, topVer);
 
-                            cached.unswap(read);
+                                cached.unswap(read);
 
-                            break;
-                        }
-                        catch (GridCacheEntryRemovedException ignore) {
-                            if (log.isDebugEnabled())
-                                log.debug("Get removed entry: " + key);
+                                break;
+                            }
+                            catch (GridCacheEntryRemovedException ignored) {
+                                if (log.isDebugEnabled())
+                                    log.debug("Get removed entry: " + key);
+                            }
                         }
                     }
+                    else
+                        cached = dhtCache.entryExx(key, topVer);
 
-                    addActiveCache(dhtCache.context(), false);
+                    addActiveCache(dhtCache.context());
 
                     txEntry = addEntry(NOOP,
                         null,

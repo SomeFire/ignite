@@ -77,6 +77,7 @@ public class QueryBinaryProperty implements GridQueryProperty {
      */
     public QueryBinaryProperty(GridKernalContext ctx, String propName, QueryBinaryProperty parent,
         Class<?> type, @Nullable Boolean key, String alias) {
+        super();
 
         this.ctx = ctx;
 
@@ -203,9 +204,6 @@ public class QueryBinaryProperty implements GridQueryProperty {
      * @return Binary field.
      */
     private BinaryField binaryField(BinaryObject obj) {
-        if (ctx.query().skipFieldLookup())
-            return null;
-
         BinaryField field0 = field;
 
         if (field0 == null && !fieldTaken) {

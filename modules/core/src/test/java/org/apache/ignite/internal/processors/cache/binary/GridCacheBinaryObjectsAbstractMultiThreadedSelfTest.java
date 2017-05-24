@@ -67,7 +67,7 @@ public abstract class GridCacheBinaryObjectsAbstractMultiThreadedSelfTest extend
 
         ((TcpDiscoverySpi)cfg.getDiscoverySpi()).setIpFinder(IP_FINDER);
 
-        CacheConfiguration cacheCfg = new CacheConfiguration(DEFAULT_CACHE_NAME);
+        CacheConfiguration cacheCfg = new CacheConfiguration();
 
         cacheCfg.setCacheMode(cacheMode());
         cacheCfg.setAtomicityMode(atomicityMode());

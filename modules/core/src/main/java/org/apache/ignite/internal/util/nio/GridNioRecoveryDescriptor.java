@@ -31,7 +31,6 @@ import org.jetbrains.annotations.Nullable;
 /**
  * Recovery information for single node.
  */
-@Deprecated // To be splitted into separate classes for in/out data when do not need maintain backward compatibility.
 public class GridNioRecoveryDescriptor {
     /** Number of acknowledged messages. */
     private long acked;

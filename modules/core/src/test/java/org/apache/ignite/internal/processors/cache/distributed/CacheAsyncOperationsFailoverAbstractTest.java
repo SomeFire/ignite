@@ -111,7 +111,7 @@ public abstract class CacheAsyncOperationsFailoverAbstractTest extends GridCache
      * @throws Exception If failed.
      */
     public void testAsyncFailover() throws Exception {
-        IgniteCache<TestKey, TestValue> cache = ignite(0).cache(DEFAULT_CACHE_NAME);
+        IgniteCache<TestKey, TestValue> cache = ignite(0).cache(null);
 
         int ops = cache.getConfiguration(CacheConfiguration.class).getMaxConcurrentAsyncOperations();
 
@@ -225,7 +225,7 @@ public abstract class CacheAsyncOperationsFailoverAbstractTest extends GridCache
         });
 
         try {
-            final IgniteCache<TestKey, TestValue> cache = ignite(0).cache(DEFAULT_CACHE_NAME);
+            final IgniteCache<TestKey, TestValue> cache = ignite(0).cache(null);
 
             GridTestUtils.runMultiThreaded(new Callable<Object>() {
                 @Override public Object call() throws Exception {

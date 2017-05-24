@@ -19,6 +19,7 @@ package org.apache.ignite.internal.visor;
 
 import java.util.List;
 import org.apache.ignite.compute.ComputeJobResult;
+import org.apache.ignite.internal.util.typedef.F;
 import org.jetbrains.annotations.Nullable;
 
 /**
@@ -29,7 +30,7 @@ public abstract class VisorOneNodeTask<A, R> extends VisorMultiNodeTask<A, R, R>
     @Nullable @Override protected R reduce0(List<ComputeJobResult> results) {
         assert results.size() == 1;
 
-        ComputeJobResult res = results.get(0);
+        ComputeJobResult res = F.first(results);
 
         if (res.getException() == null)
             return res.getData();

@@ -47,6 +47,7 @@ class Nodes {
                 nodes: () => nodes || [],
                 options: () => options
             },
+            placement: 'center',
             controller: 'nodesDialogController',
             controllerAs: '$ctrl'
         });

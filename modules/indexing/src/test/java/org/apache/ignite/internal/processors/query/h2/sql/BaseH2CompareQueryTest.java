@@ -28,7 +28,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Callable;
 import javax.cache.CacheException;
-import org.apache.ignite.IgniteCache;
 import org.apache.ignite.IgniteException;
 import org.apache.ignite.cache.CacheMode;
 import org.apache.ignite.cache.affinity.AffinityKey;
@@ -36,7 +35,7 @@ import org.apache.ignite.cache.query.SqlFieldsQuery;
 import org.apache.ignite.cache.query.SqlQuery;
 import org.apache.ignite.cache.query.annotations.QuerySqlField;
 import org.apache.ignite.cache.query.annotations.QuerySqlFunction;
-import org.apache.ignite.configuration.IgniteConfiguration;
+import org.apache.ignite.configuration.CacheConfiguration;
 import org.apache.ignite.testframework.GridTestUtils;
 import org.apache.ignite.testsuites.IgniteIgnore;
 
@@ -60,54 +59,21 @@ public class BaseH2CompareQueryTest extends AbstractH2CompareQueryTest {
     /** Purchase count. */
     public static final int PURCH_CNT = PROD_CNT * 5;
 
-    /** Cache org. */
-    private static IgniteCache<Integer, Organization> cacheOrg;
-
-    /** Cache pers. */
-    private static IgniteCache<AffinityKey, Person> cachePers;
-
-    /** Cache purch. */
-    private static IgniteCache<AffinityKey, Purchase> cachePurch;
-
-    /** Cache prod. */
-    private static IgniteCache<Integer, Product> cacheProd;
-
-    /** Cache address. */
-    private static IgniteCache<Integer, Address> cacheAddr;
-
     /** {@inheritDoc} */
-    @Override protected IgniteConfiguration getConfiguration(String gridName) throws Exception {
-        IgniteConfiguration cfg = super.getConfiguration(gridName);
-
-        cfg.setCacheConfiguration(
-            cacheConfiguration("org", CacheMode.PARTITIONED, Integer.class, Organization.class),
-            cacheConfiguration("pers", CacheMode.PARTITIONED, AffinityKey.class, Person.class),
-            cacheConfiguration("purch", CacheMode.PARTITIONED, AffinityKey.class, Purchase.class),
-            cacheConfiguration("prod", CacheMode.REPLICATED, Integer.class, Product.class),
-            cacheConfiguration("addr", CacheMode.REPLICATED, Integer.class, Address.class));
-
-        return cfg;
-    }
-
-    /** {@inheritDoc} */
-    @Override protected void afterTestsStopped() throws Exception {
-        super.afterTestsStopped();
-
-        cacheOrg = null;
-        cachePers = null;
-        cachePurch = null;
-        cacheProd = null;
-        cacheAddr = null;
-    }
-
-    /** {@inheritDoc} */
-    @SuppressWarnings("unchecked")
-    @Override protected void createCaches() {
-        cacheOrg = jcache(ignite, cacheConfiguration("org", CacheMode.PARTITIONED, Integer.class, Organization.class), "org", Integer.class, Organization.class);
-        cachePers = ignite.cache("pers");
-        cachePurch = ignite.cache("purch");
-        cacheProd = ignite.cache("prod");
-        cacheAddr = ignite.cache("addr");
+    @Override protected void setIndexedTypes(CacheConfiguration<?, ?> cc, CacheMode mode) {
+        if (mode == CacheMode.PARTITIONED)
+            cc.setIndexedTypes(
+                Integer.class, Organization.class,
+                AffinityKey.class, Person.class,
+                AffinityKey.class, Purchase.class
+            );
+        else if (mode == CacheMode.REPLICATED)
+            cc.setIndexedTypes(
+                Integer.class, Product.class,
+                Integer.class, Address.class
+            );
+        else
+            throw new IllegalStateException("mode: " + mode);
     }
 
     /** {@inheritDoc} */
@@ -125,7 +91,7 @@ public class BaseH2CompareQueryTest extends AbstractH2CompareQueryTest {
 
             organizations.add(org);
 
-            cacheOrg.put(org.id, org);
+            pCache.put(org.id, org);
 
             insertInDb(org);
         }
@@ -140,7 +106,7 @@ public class BaseH2CompareQueryTest extends AbstractH2CompareQueryTest {
 
             addreses.add(addr);
 
-            cacheAddr.put(addr.id, addr);
+            rCache.put(addr.id, addr);
 
             insertInDb(addr);
         }
@@ -160,7 +126,7 @@ public class BaseH2CompareQueryTest extends AbstractH2CompareQueryTest {
 
             persons.add(person);
 
-            cachePers.put(person.key(), person);
+            pCache.put(person.key(), person);
 
             insertInDb(person);
         }
@@ -175,7 +141,7 @@ public class BaseH2CompareQueryTest extends AbstractH2CompareQueryTest {
 
             products.add(product);
 
-            cacheProd.put(product.id, product);
+            rCache.put(product.id, product);
 
             insertInDb(product);
         }
@@ -188,7 +154,7 @@ public class BaseH2CompareQueryTest extends AbstractH2CompareQueryTest {
 
             Purchase purchase = new Purchase(id, products.get(i % products.size()), person.orgId, person);
 
-            cachePurch.put(purchase.key(), purchase);
+            pCache.put(purchase.key(), purchase);
 
             insertInDb(purchase);
         }
@@ -196,25 +162,25 @@ public class BaseH2CompareQueryTest extends AbstractH2CompareQueryTest {
 
     /** {@inheritDoc} */
     @Override protected void checkAllDataEquals() throws Exception {
-        compareQueryRes0(cacheOrg, "select _key, _val, id, name from \"org\".Organization");
+        compareQueryRes0("select _key, _val, id, name from \"part\".Organization");
 
-        compareQueryRes0(cachePers, "select _key, _val, id, firstName, lastName, orgId, salary from \"pers\".Person");
+        compareQueryRes0("select _key, _val, id, firstName, lastName, orgId, salary from \"part\".Person");
 
-        compareQueryRes0(cachePurch, "select _key, _val, id, personId, productId, organizationId from \"purch\".Purchase");
+        compareQueryRes0("select _key, _val, id, personId, productId, organizationId from \"part\".Purchase");
 
-        compareQueryRes0(cacheProd, "select _key, _val, id, name, price from \"prod\".Product");
+        compareQueryRes0(rCache, "select _key, _val, id, name, price from \"repl\".Product");
     }
 
     /**
      *
      */
     public void testSelectStar() {
-        assertEquals(1, cachePers.query(new SqlQuery<AffinityKey<?>,Person>(
+        assertEquals(1, pCache.query(new SqlQuery<AffinityKey<?>,Person>(
             Person.class, "\t\r\n  select  \n*\t from Person limit 1")).getAll().size());
 
         GridTestUtils.assertThrows(log, new Callable<Object>() {
             @Override public Object call() throws Exception {
-                cachePers.query(new SqlQuery(Person.class, "SELECT firstName from PERSON"));
+                pCache.query(new SqlQuery(Person.class, "SELECT firstName from PERSON"));
 
                 return null;
             }
@@ -229,7 +195,7 @@ public class BaseH2CompareQueryTest extends AbstractH2CompareQueryTest {
 
         GridTestUtils.assertThrows(log, new Callable<Object>() {
             @Override public Object call() throws Exception {
-                cachePers.query(sql.setArgs(3));
+                pCache.query(sql.setArgs(3));
 
                 return null;
             }
@@ -257,55 +223,46 @@ public class BaseH2CompareQueryTest extends AbstractH2CompareQueryTest {
 
         final String addStreet = "Addr" + ORG_CNT + 1;
 
-        List<List<?>> res = compareQueryRes0(cachePers,
-            "select avg(old) from \"pers\".Person left join \"addr\".Address " +
+        List<List<?>> res = compareQueryRes0("select avg(old) from \"part\".Person left join \"repl\".Address " +
             " on Person.addrId = Address.id where lower(Address.street) = lower(?)", addStreet);
 
         assertNotSame(0, res);
 
-        compareQueryRes0(cachePers,
-            "select avg(old) from \"pers\".Person join \"addr\".Address on Person.addrId = Address.id " +
+        compareQueryRes0("select avg(old) from \"part\".Person join \"repl\".Address on Person.addrId = Address.id " +
             "where lower(Address.street) = lower(?)", addStreet);
 
-        compareQueryRes0(cachePers,
-            "select avg(old) from \"pers\".Person left join \"addr\".Address " +
-                "where Person.addrId = Address.id " +
-                "and lower(Address.street) = lower(?)", addStreet);
-
-        compareQueryRes0(cachePers,
-            "select avg(old) from \"pers\".Person, \"addr\".Address where Person.addrId = Address.id " +
+        compareQueryRes0("select avg(old) from \"part\".Person left join \"repl\".Address where Person.addrId = Address.id " +
             "and lower(Address.street) = lower(?)", addStreet);
 
-        compareQueryRes0(cachePers, "select firstName, date from \"pers\".Person");
-        compareQueryRes0(cachePers, "select distinct firstName, date from \"pers\".Person");
+        compareQueryRes0("select avg(old) from \"part\".Person, \"repl\".Address where Person.addrId = Address.id " +
+            "and lower(Address.street) = lower(?)", addStreet);
+
+        compareQueryRes0("select firstName, date from \"part\".Person");
+        compareQueryRes0("select distinct firstName, date from \"part\".Person");
 
         final String star = " _key, _val, id, firstName, lastName, orgId, salary, addrId, old, date ";
 
-        compareQueryRes0(cachePers, "select " + star + " from \"pers\".Person p");
-        compareQueryRes0(cachePers, "select " + star + " from \"pers\".Person");
-        compareQueryRes0(cachePers, "select distinct " + star + " from \"pers\".Person");
-        compareQueryRes0(cachePers, "select p.firstName, date from \"pers\".Person p");
+        compareQueryRes0("select " + star + " from \"part\".Person p");
+        compareQueryRes0("select " + star + " from \"part\".Person");
+        compareQueryRes0("select distinct " + star + " from \"part\".Person");
+        compareQueryRes0("select p.firstName, date from \"part\".Person p");
 
-        compareQueryRes0(cachePers, "select p._key, p._val, p.id, p.firstName, p.lastName, " +
-            "p.orgId, p.salary, p.addrId, p.old, " +
+        compareQueryRes0("select p._key, p._val, p.id, p.firstName, p.lastName, p.orgId, p.salary, p.addrId, p.old, " +
             " p.date, a._key, a._val, a.id, a.street" +
-            " from \"pers\".Person p, \"addr\".Address a");
+            " from \"part\".Person p, \"repl\".Address a");
 //        compareQueryRes0("select p.* from \"part\".Person p, \"repl\".Address a");
 //        compareQueryRes0("select person.* from \"part\".Person, \"repl\".Address a");
 //        compareQueryRes0("select p.*, street from \"part\".Person p, \"repl\".Address a");
-        compareQueryRes0(cachePers, "select p.firstName, a.street from \"pers\".Person p, \"addr\".Address a");
-        compareQueryRes0(cachePers, "select distinct p.firstName, a.street from \"pers\".Person p, " +
-            "\"addr\".Address a");
-        compareQueryRes0(cachePers, "select distinct firstName, street from \"pers\".Person, " +
-            "\"addr\".Address group by firstName, street ");
-        compareQueryRes0(cachePers, "select distinct firstName, street from \"pers\".Person, " +
-            "\"addr\".Address");
+        compareQueryRes0("select p.firstName, a.street from \"part\".Person p, \"repl\".Address a");
+        compareQueryRes0("select distinct p.firstName, a.street from \"part\".Person p, \"repl\".Address a");
+        compareQueryRes0("select distinct firstName, street from \"part\".Person, \"repl\".Address group by firstName, street ");
+        compareQueryRes0("select distinct firstName, street from \"part\".Person, \"repl\".Address");
         // TODO uncomment and investigate (Rows count has to be equal.: Expected :2500, Actual :900)
 //        compareQueryRes0("select p1.firstName, a2.street from \"part\".Person p1, \"repl\".Address a1, \"part\".Person p2, \"repl\".Address a2");
 
         //TODO look at it (org.h2.jdbc.JdbcSQLException: Feature not supported: "VARCHAR +" // at H2)
 //        compareQueryRes0("select p.firstName n, a.street s from \"part\".Person p, \"repl\".Address a");
-        compareQueryRes0(cachePers, "select p.firstName, 1 as i, 'aaa' s from \"pers\".Person p");
+        compareQueryRes0("select p.firstName, 1 as i, 'aaa' s from \"part\".Person p");
 
 //        compareQueryRes0("select p.firstName + 'a', 1 * 3 as i, 'aaa' s, -p.old, -p.old as old from \"part\".Person p");
 //        compareQueryRes0("select p.firstName || 'a' + p.firstName, (p.old * 3) % p.old - p.old / p.old, p.firstName = 'aaa', " +
@@ -313,85 +270,59 @@ public class BaseH2CompareQueryTest extends AbstractH2CompareQueryTest {
 //            " p.old is null, p.old is not null " +
 //            " from \"part\".Person p");
 
-        compareQueryRes0(cachePers, "select p.firstName from \"pers\".Person p where firstName <> 'ivan'");
-        compareQueryRes0(cachePers, "select p.firstName from \"pers\".Person p where firstName like 'i%'");
-        compareQueryRes0(cachePers, "select p.firstName from \"pers\".Person p where firstName regexp 'i%'");
-        compareQueryRes0(cachePers, "select p.firstName from \"pers\".Person p, \"addr\".Address a " +
-            "where p.firstName <> 'ivan' and a.id > 10 or not (a.id = 100)");
+        compareQueryRes0("select p.firstName from \"part\".Person p where firstName <> 'ivan'");
+        compareQueryRes0("select p.firstName from \"part\".Person p where firstName like 'i%'");
+        compareQueryRes0("select p.firstName from \"part\".Person p where firstName regexp 'i%'");
+        compareQueryRes0("select p.firstName from \"part\".Person p, \"repl\".Address a where p.firstName <> 'ivan' and a.id > 10 or not (a.id = 100)");
 
-        compareQueryRes0(cachePers, "select case p.firstName " +
-            "when 'a' then 1 when 'a' then 2 end as a from \"pers\".Person p");
-        compareQueryRes0(cachePers, "select case p.firstName " +
-            "when 'a' then 1 when 'a' then 2 else -1 end as a from \"pers\".Person p");
+        compareQueryRes0("select case p.firstName when 'a' then 1 when 'a' then 2 end as a from \"part\".Person p");
+        compareQueryRes0("select case p.firstName when 'a' then 1 when 'a' then 2 else -1 end as a from \"part\".Person p");
 
-        compareQueryRes0(cachePers, "select abs(p.old) from \"pers\".Person p");
-        compareQueryRes0(cachePers, "select cast(p.old as numeric(10, 2)) from \"pers\".Person p");
-        compareQueryRes0(cachePers, "select cast(p.old as numeric(10, 2)) z from \"pers\".Person p");
-        compareQueryRes0(cachePers, "select cast(p.old as numeric(10, 2)) as z from \"pers\".Person p");
+        compareQueryRes0("select abs(p.old)  from \"part\".Person p");
+        compareQueryRes0("select cast(p.old as numeric(10, 2)) from \"part\".Person p");
+        compareQueryRes0("select cast(p.old as numeric(10, 2)) z from \"part\".Person p");
+        compareQueryRes0("select cast(p.old as numeric(10, 2)) as z from \"part\".Person p");
 
-        // TODO analyse
+        // TODO alanyse
 //        compareQueryRes0("select " + star + " from \"part\".Person p where p.firstName in ('a', 'b', '_' + RAND())"); // test ConditionIn
-        compareQueryRes0(cachePers, "select " + star + " from \"pers\".Person p where p.firstName in ('a', 'b', 'c')"); // test ConditionInConstantSet
-        compareQueryRes0(cachePers, "select " + star + " from \"pers\".Person p " +
-            "where p.firstName in (select a.street from \"addr\".Address a)"); // test ConditionInConstantSet
+        compareQueryRes0("select " + star + " from \"part\".Person p where p.firstName in ('a', 'b', 'c')"); // test ConditionInConstantSet
+        compareQueryRes0("select " + star + " from \"part\".Person p where p.firstName in (select a.street from \"repl\".Address a)"); // test ConditionInConstantSet
 
-        compareQueryRes0(cachePers, "select (select a.street from \"addr\".Address a " +
-            "where a.id = p.addrId) from \"pers\".Person p"); // test ConditionInConstantSet
+        compareQueryRes0("select (select a.street from \"repl\".Address a where a.id = p.addrId) from \"part\".Person p"); // test ConditionInConstantSet
 
-        compareQueryRes0(cachePers, "select p.firstName, ? from \"pers\".Person p " +
-            "where firstName regexp ? and p.old < ?", 10, "Iv*n", 40);
+        compareQueryRes0("select p.firstName, ? from \"part\".Person p where firstName regexp ? and p.old < ?", 10, "Iv*n", 40);
 
-        compareQueryRes0(cachePers, "select count(*) as a from \"pers\".Person");
-        compareQueryRes0(cachePers, "select count(*) as a, count(p.*), count(p.firstName) " +
-            "from \"pers\".Person p");
-        compareQueryRes0(cachePers, "select count(distinct p.firstName) " +
-            "from \"pers\".Person p");
+        compareQueryRes0("select count(*) as a from \"part\".Person");
+        compareQueryRes0("select count(*) as a, count(p.*), count(p.firstName) from \"part\".Person p");
+        compareQueryRes0("select count(distinct p.firstName) from \"part\".Person p");
 
-        compareQueryRes0(cachePers, "select p.firstName, avg(p.old), max(p.old) " +
-            "from \"pers\".Person p group by p.firstName");
-        compareQueryRes0(cachePers, "select p.firstName n, avg(p.old) a, max(p.old) m " +
-            "from \"pers\".Person p group by p.firstName");
-        compareQueryRes0(cachePers, "select p.firstName n, avg(p.old) a, max(p.old) m " +
-            "from \"pers\".Person p group by n");
+        compareQueryRes0("select p.firstName, avg(p.old), max(p.old) from \"part\".Person p group by p.firstName");
+        compareQueryRes0("select p.firstName n, avg(p.old) a, max(p.old) m from \"part\".Person p group by p.firstName");
+        compareQueryRes0("select p.firstName n, avg(p.old) a, max(p.old) m from \"part\".Person p group by n");
 
-        compareQueryRes0(cachePers, "select p.firstName n, avg(p.old) a, max(p.old) m " +
-            "from \"pers\".Person p group by p.addrId, p.firstName");
-        compareQueryRes0(cachePers, "select p.firstName n, avg(p.old) a, max(p.old) m " +
-            "from \"pers\".Person p group by p.firstName, p.addrId");
-        compareQueryRes0(cachePers, "select p.firstName n, max(p.old) + min(p.old) / count(distinct p.old) " +
-            "from \"pers\".Person p group by p.firstName");
-        compareQueryRes0(cachePers, "select p.firstName n, max(p.old) maxOld, min(p.old) minOld " +
-            "from \"pers\".Person p group by p.firstName having maxOld > 10 and min(p.old) < 1");
+        compareQueryRes0("select p.firstName n, avg(p.old) a, max(p.old) m from \"part\".Person p group by p.addrId, p.firstName");
+        compareQueryRes0("select p.firstName n, avg(p.old) a, max(p.old) m from \"part\".Person p group by p.firstName, p.addrId");
+        compareQueryRes0("select p.firstName n, max(p.old) + min(p.old) / count(distinct p.old) from \"part\".Person p group by p.firstName");
+        compareQueryRes0("select p.firstName n, max(p.old) maxOld, min(p.old) minOld from \"part\".Person p group by p.firstName having maxOld > 10 and min(p.old) < 1");
 
-        compareQueryRes0(cachePers, "select p.firstName n, avg(p.old) a, max(p.old) m " +
-            "from \"pers\".Person p group by p.firstName order by n");
-        compareQueryRes0(cachePers, "select p.firstName n, avg(p.old) a, max(p.old) m " +
-            "from \"pers\".Person p group by p.firstName order by p.firstName");
-        compareQueryRes0(cachePers, "select p.firstName n, avg(p.old) a, max(p.old) m " +
-            "from \"pers\".Person p group by p.firstName order by p.firstName, m");
-        compareQueryRes0(cachePers, "select p.firstName n, avg(p.old) a, max(p.old) m " +
-            "from \"pers\".Person p group by p.firstName order by p.firstName, max(p.old) desc");
-        compareQueryRes0(cachePers, "select p.firstName n, avg(p.old) a, max(p.old) m " +
-            "from \"pers\".Person p group by p.firstName order by p.firstName nulls first");
-        compareQueryRes0(cachePers, "select p.firstName n, avg(p.old) a, max(p.old) m " +
-            "from \"pers\".Person p group by p.firstName order by p.firstName nulls last");
-        compareQueryRes0(cachePers, "select p.firstName n from \"pers\".Person p order by p.old + 10");
-        compareQueryRes0(cachePers, "select p.firstName n from \"pers\".Person p " +
-            "order by p.old + 10, p.firstName");
-        compareQueryRes0(cachePers, "select p.firstName n from \"pers\".Person p " +
-            "order by p.old + 10, p.firstName desc");
+        compareQueryRes0("select p.firstName n, avg(p.old) a, max(p.old) m from \"part\".Person p group by p.firstName order by n");
+        compareQueryRes0("select p.firstName n, avg(p.old) a, max(p.old) m from \"part\".Person p group by p.firstName order by p.firstName");
+        compareQueryRes0("select p.firstName n, avg(p.old) a, max(p.old) m from \"part\".Person p group by p.firstName order by p.firstName, m");
+        compareQueryRes0("select p.firstName n, avg(p.old) a, max(p.old) m from \"part\".Person p group by p.firstName order by p.firstName, max(p.old) desc");
+        compareQueryRes0("select p.firstName n, avg(p.old) a, max(p.old) m from \"part\".Person p group by p.firstName order by p.firstName nulls first");
+        compareQueryRes0("select p.firstName n, avg(p.old) a, max(p.old) m from \"part\".Person p group by p.firstName order by p.firstName nulls last");
+        compareQueryRes0("select p.firstName n from \"part\".Person p order by p.old + 10");
+        compareQueryRes0("select p.firstName n from \"part\".Person p order by p.old + 10, p.firstName");
+        compareQueryRes0("select p.firstName n from \"part\".Person p order by p.old + 10, p.firstName desc");
 
-        compareQueryRes0(cachePers, "select p.firstName n from \"pers\".Person p, " +
-            "(select a.street from \"addr\".Address a where a.street is not null)");
-        compareQueryRes0(cachePers, "select street from \"pers\".Person p, " +
-            "(select a.street from \"addr\".Address a where a.street is not null) ");
-        compareQueryRes0(cachePers, "select addr.street from \"pers\".Person p, " +
-            "(select a.street from \"addr\".Address a where a.street is not null) addr");
+        compareQueryRes0("select p.firstName n from \"part\".Person p, (select a.street from \"repl\".Address a where a.street is not null) ");
+        compareQueryRes0("select street from \"part\".Person p, (select a.street from \"repl\".Address a where a.street is not null) ");
+        compareQueryRes0("select addr.street from \"part\".Person p, (select a.street from \"repl\".Address a where a.street is not null) addr");
 
-        compareQueryRes0(cachePers, "select p.firstName n from \"pers\".Person p order by p.old + 10");
+        compareQueryRes0("select p.firstName n from \"part\".Person p order by p.old + 10");
 
-        compareQueryRes0(cachePers, "select 'foo' as bar union select 'foo' as bar");
-        compareQueryRes0(cachePers, "select 'foo' as bar union all select 'foo' as bar");
+        compareQueryRes0("select 'foo' as bar union select 'foo' as bar");
+        compareQueryRes0("select 'foo' as bar union all select 'foo' as bar");
 
 //        compareQueryRes0("select count(*) as a from Person union select count(*) as a from Address");
 //        compareQueryRes0("select old, count(*) as a from Person group by old union select 1, count(*) as a from Address");
@@ -410,14 +341,15 @@ public class BaseH2CompareQueryTest extends AbstractH2CompareQueryTest {
      * @throws Exception If failed.
      */
     public void testParamSubstitution() throws Exception {
-        compareQueryRes0(cachePers, "select ? from \"pers\".Person", "Some arg");
+        compareQueryRes0("select ? from \"part\".Person", "Some arg");
     }
 
     /**
      * @throws SQLException If failed.
      */
     public void testAggregateOrderBy() throws SQLException {
-        compareOrderedQueryRes0(cachePers, "select firstName name, count(*) cnt from \"pers\".Person " +
+        compareOrderedQueryRes0(
+            "select firstName name, count(*) cnt from \"part\".Person " +
             "group by name order by cnt, name desc");
     }
 
@@ -425,7 +357,7 @@ public class BaseH2CompareQueryTest extends AbstractH2CompareQueryTest {
      * @throws Exception If failed.
      */
     public void testNullParamSubstitution() throws Exception {
-        List<List<?>> rs1 = compareQueryRes0(cachePers, "select ? from \"pers\".Person", null);
+        List<List<?>> rs1 = compareQueryRes0("select ? from \"part\".Person", null);
 
         // Ensure we find something.
         assertFalse(rs1.isEmpty());
@@ -435,46 +367,45 @@ public class BaseH2CompareQueryTest extends AbstractH2CompareQueryTest {
      *
      */
     public void testUnion() throws SQLException {
-        String base = "select _val v from \"pers\".Person";
+        String base = "select _val v from \"part\".Person";
 
-        compareQueryRes0(cachePers, base + " union all " + base);
-        compareQueryRes0(cachePers, base + " union " + base);
+        compareQueryRes0(base + " union all " + base);
+        compareQueryRes0(base + " union " + base);
 
-        base = "select firstName||lastName name, salary from \"pers\".Person";
+        base = "select firstName||lastName name, salary from \"part\".Person";
 
-        assertEquals(PERS_CNT * 2, compareOrderedQueryRes0(cachePers, base + " union all " + base + " order by salary desc").size());
-        assertEquals(PERS_CNT, compareOrderedQueryRes0(cachePers, base + " union " + base + " order by salary desc").size());
+        assertEquals(PERS_CNT * 2, compareOrderedQueryRes0(base + " union all " + base + " order by salary desc").size());
+        assertEquals(PERS_CNT, compareOrderedQueryRes0(base + " union " + base + " order by salary desc").size());
     }
 
     /**
      * @throws Exception If failed.
      */
     public void testEmptyResult() throws Exception {
-        compareQueryRes0(cachePers, "select id from \"pers\".Person where 0 = 1");
+        compareQueryRes0("select id from \"part\".Person where 0 = 1");
     }
 
     /**
      * @throws Exception If failed.
      */
     public void testSqlQueryWithAggregation() throws Exception {
-        compareQueryRes0(cachePers, "select avg(salary) from \"pers\".Person, \"org\".Organization " +
-            "where Person.orgId = Organization.id and " +
-            "lower(Organization.name) = lower(?)", "Org1");
+        compareQueryRes0("select avg(salary) from \"part\".Person, \"part\".Organization where Person.orgId = Organization.id and "
+            + "lower(Organization.name) = lower(?)", "Org1");
     }
 
     /**
      * @throws Exception If failed.
      */
     public void testSqlFieldsQuery() throws Exception {
-        compareQueryRes0(cachePers, "select concat(firstName, ' ', lastName) from \"pers\".Person");
+        compareQueryRes0("select concat(firstName, ' ', lastName) from \"part\".Person");
     }
 
     /**
      * @throws Exception If failed.
      */
     public void testSqlFieldsQueryWithJoin() throws Exception {
-        compareQueryRes0(cachePers, "select concat(firstName, ' ', lastName), "
-            + "Organization.name from \"pers\".Person, \"org\".Organization where "
+        compareQueryRes0("select concat(firstName, ' ', lastName), "
+            + "Organization.name from \"part\".Person, \"part\".Organization where "
             + "Person.orgId = Organization.id");
     }
 
@@ -482,9 +413,10 @@ public class BaseH2CompareQueryTest extends AbstractH2CompareQueryTest {
      * @throws Exception If failed.
      */
     public void testOrdered() throws Exception {
-        compareOrderedQueryRes0(cachePers, "select firstName, lastName" +
-                " from \"pers\".Person" +
-                " order by lastName, firstName");
+        compareOrderedQueryRes0("select firstName, lastName" +
+                " from \"part\".Person" +
+                " order by lastName, firstName"
+        );
     }
 
     /**
@@ -492,13 +424,13 @@ public class BaseH2CompareQueryTest extends AbstractH2CompareQueryTest {
      */
     public void testSimpleJoin() throws Exception {
         // Have expected results.
-        compareQueryRes0(cachePers, String.format("select id, firstName, lastName" +
-            "  from \"%s\".Person" +
-            "  where Person.id = ?", cachePers.getName()), 3);
+        compareQueryRes0("select id, firstName, lastName" +
+            "  from \"part\".Person" +
+            "  where Person.id = ?", 3);
 
         // Ignite cache return 0 results...
-        compareQueryRes0(cachePers, "select pe.firstName" +
-            "  from \"pers\".Person pe join \"purch\".Purchase pu on pe.id = pu.personId " +
+        compareQueryRes0("select pe.firstName" +
+            "  from \"part\".Person pe join \"part\".Purchase pu on pe.id = pu.personId " +
             "  where pe.id = ?", 3);
     }
 
@@ -506,24 +438,24 @@ public class BaseH2CompareQueryTest extends AbstractH2CompareQueryTest {
      * @throws Exception If failed.
      */
     public void testSimpleReplicatedSelect() throws Exception {
-        compareQueryRes0(cacheProd, "select id, name from \"prod\".Product");
+        compareQueryRes0(rCache, "select id, name from \"repl\".Product");
     }
 
     /**
      * @throws Exception If failed.
      */
     public void testCrossCache() throws Exception {
-        compareQueryRes0(cachePers, "select firstName, lastName" +
-            "  from \"pers\".Person, \"purch\".Purchase" +
+        compareQueryRes0("select firstName, lastName" +
+            "  from \"part\".Person, \"part\".Purchase" +
             "  where Person.id = Purchase.personId");
 
-        compareQueryRes0(cachePers, "select concat(firstName, ' ', lastName), Product.name " +
-            "  from \"pers\".Person, \"purch\".Purchase, \"prod\".Product " +
+        compareQueryRes0("select concat(firstName, ' ', lastName), Product.name " +
+            "  from \"part\".Person, \"part\".Purchase, \"repl\".Product " +
             "  where Person.id = Purchase.personId and Purchase.productId = Product.id" +
             "  group by Product.id");
 
-        compareQueryRes0(cachePers, "select concat(firstName, ' ', lastName), count (Product.id) " +
-            "  from \"pers\".Person, \"purch\".Purchase, \"prod\".Product " +
+        compareQueryRes0("select concat(firstName, ' ', lastName), count (Product.id) " +
+            "  from \"part\".Person, \"part\".Purchase, \"repl\".Product " +
             "  where Person.id = Purchase.personId and Purchase.productId = Product.id" +
             "  group by Product.id");
     }
@@ -532,19 +464,13 @@ public class BaseH2CompareQueryTest extends AbstractH2CompareQueryTest {
     @Override protected Statement initializeH2Schema() throws SQLException {
         Statement st = super.initializeH2Schema();
 
-        st.execute("CREATE SCHEMA \"org\"");
-        st.execute("CREATE SCHEMA \"pers\"");
-        st.execute("CREATE SCHEMA \"prod\"");
-        st.execute("CREATE SCHEMA \"purch\"");
-        st.execute("CREATE SCHEMA \"addr\"");
-
-        st.execute("create table \"org\".ORGANIZATION" +
+        st.execute("create table \"part\".ORGANIZATION" +
             "  (_key int not null," +
             "  _val other not null," +
             "  id int unique," +
             "  name varchar(255))");
 
-        st.execute("create table \"pers\".PERSON" +
+        st.execute("create table \"part\".PERSON" +
             "  (_key other not null ," +
             "   _val other not null ," +
             "  id int unique, " +
@@ -556,14 +482,14 @@ public class BaseH2CompareQueryTest extends AbstractH2CompareQueryTest {
             "  old int," +
             "  date Date )");
 
-        st.execute("create table \"prod\".PRODUCT" +
+        st.execute("create table \"repl\".PRODUCT" +
             "  (_key int not null ," +
             "   _val other not null ," +
             "  id int unique, " +
             "  name varchar(255), " +
             "  price int)");
 
-        st.execute("create table \"purch\".PURCHASE" +
+        st.execute("create table \"part\".PURCHASE" +
             "  (_key other not null ," +
             "   _val other not null ," +
             "  id int unique, " +
@@ -571,7 +497,7 @@ public class BaseH2CompareQueryTest extends AbstractH2CompareQueryTest {
             "  organizationId int, " +
             "  productId int)");
 
-        st.execute("create table \"addr\".ADDRESS" +
+        st.execute("create table \"repl\".ADDRESS" +
             "  (_key int not null ," +
             "   _val other not null ," +
             "  id int unique, " +
@@ -590,7 +516,7 @@ public class BaseH2CompareQueryTest extends AbstractH2CompareQueryTest {
      */
     private void insertInDb(Organization org) throws SQLException {
         try(PreparedStatement st = conn.prepareStatement(
-            "insert into \"org\".ORGANIZATION (_key, _val, id, name) values(?, ?, ?, ?)")) {
+            "insert into \"part\".ORGANIZATION (_key, _val, id, name) values(?, ?, ?, ?)")) {
             st.setObject(1, org.id);
             st.setObject(2, org);
             st.setObject(3, org.id);
@@ -607,7 +533,7 @@ public class BaseH2CompareQueryTest extends AbstractH2CompareQueryTest {
      * @throws SQLException If exception.
      */
     private void insertInDb(Person p) throws SQLException {
-        try(PreparedStatement st = conn.prepareStatement("insert into \"pers\".PERSON " +
+        try(PreparedStatement st = conn.prepareStatement("insert into \"part\".PERSON " +
             "(_key, _val, id, firstName, lastName, orgId, salary, addrId, old, date) values(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")) {
             st.setObject(1, p.key());
             st.setObject(2, p);
@@ -632,7 +558,7 @@ public class BaseH2CompareQueryTest extends AbstractH2CompareQueryTest {
      */
     private void insertInDb(Product p) throws SQLException {
         try(PreparedStatement st = conn.prepareStatement(
-            "insert into \"prod\".PRODUCT (_key, _val, id, name, price) values(?, ?, ?, ?, ?)")) {
+            "insert into \"repl\".PRODUCT (_key, _val, id, name, price) values(?, ?, ?, ?, ?)")) {
             st.setObject(1, p.id);
             st.setObject(2, p);
             st.setObject(3, p.id);
@@ -651,7 +577,7 @@ public class BaseH2CompareQueryTest extends AbstractH2CompareQueryTest {
      */
     private void insertInDb(Purchase p) throws SQLException {
         try(PreparedStatement st = conn.prepareStatement(
-            "insert into \"purch\".PURCHASE (_key, _val, id, personId, productId, organizationId) values(?, ?, ?, ?, ?, ?)")) {
+            "insert into \"part\".PURCHASE (_key, _val, id, personId, productId, organizationId) values(?, ?, ?, ?, ?, ?)")) {
             st.setObject(1, p.key());
             st.setObject(2, p);
             st.setObject(3, p.id);
@@ -671,7 +597,7 @@ public class BaseH2CompareQueryTest extends AbstractH2CompareQueryTest {
      */
     private void insertInDb(Address a) throws SQLException {
         try(PreparedStatement st = conn.prepareStatement(
-            "insert into \"addr\".ADDRESS (_key, _val, id, street) values(?, ?, ?, ?)")) {
+            "insert into \"repl\".ADDRESS (_key, _val, id, street) values(?, ?, ?, ?)")) {
             st.setObject(1, a.id);
             st.setObject(2, a);
             st.setObject(3, a.id);

@@ -524,7 +524,9 @@ public class ExternalNonSpringAopSelfTest extends GridCommonAbstractTest {
         IgniteConfiguration cfg = super.getConfiguration();
         cfg.setDeploymentSpi(new LocalDeploymentSpi());
 
-        cfg.setMetricsUpdateFrequency(500);
+        ((TcpDiscoverySpi)cfg.getDiscoverySpi()).setHeartbeatFrequency(500);
+
+        cfg.setDeploymentMode(depMode);
 
         cfg.setDeploymentMode(depMode);
 

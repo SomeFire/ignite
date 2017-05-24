@@ -40,19 +40,19 @@ import static org.apache.ignite.internal.visor.util.VisorTaskUtils.logMapped;
  * Task for cleanup not needed SCAN or SQL queries result futures from node local.
  */
 @GridInternal
-public class VisorQueryCleanupTask extends VisorMultiNodeTask<VisorQueryCleanupTaskArg, Void, Void> {
+public class VisorQueryCleanupTask extends VisorMultiNodeTask<Map<UUID, Collection<String>>, Void, Void> {
     /** */
     private static final long serialVersionUID = 0L;
 
     /** {@inheritDoc} */
-    @Override protected VisorJob<VisorQueryCleanupTaskArg, Void> job(VisorQueryCleanupTaskArg arg) {
+    @Override protected VisorJob<Map<UUID, Collection<String>>, Void> job(Map<UUID, Collection<String>> arg) {
         return null;
     }
 
     /** {@inheritDoc} */
     @Override protected Map<? extends ComputeJob, ClusterNode> map0(List<ClusterNode> subgrid,
-        @Nullable VisorTaskArgument<VisorQueryCleanupTaskArg> arg) {
-        Set<UUID> nodeIds = taskArg.getQueryIds().keySet();
+        @Nullable VisorTaskArgument<Map<UUID, Collection<String>>> arg) {
+        Set<UUID> nodeIds = taskArg.keySet();
 
         if (nodeIds.isEmpty())
             throw new VisorClusterGroupEmptyException("Nothing to clear. List with node IDs is empty!");
@@ -62,13 +62,13 @@ public class VisorQueryCleanupTask extends VisorMultiNodeTask<VisorQueryCleanupT
         try {
             for (ClusterNode node : subgrid)
                 if (nodeIds.contains(node.id()))
-                    map.put(new VisorQueryCleanupJob(taskArg.getQueryIds().get(node.id()), debug), node);
+                    map.put(new VisorQueryCleanupJob(taskArg.get(node.id()), debug), node);
 
             if (map.isEmpty()) {
-                StringBuilder notFoundNodes = new StringBuilder();
+                String notFoundNodes = "";
 
                 for (UUID nid : nodeIds)
-                    notFoundNodes.append((notFoundNodes.length() == 0) ? "" : ",").append(U.id8(nid));
+                    notFoundNodes = notFoundNodes + (notFoundNodes.isEmpty() ? "" : ",")  + U.id8(nid);
 
                 throw new VisorClusterGroupEmptyException("Failed to clear query results. Nodes are not available: [" +
                     notFoundNodes + "]");

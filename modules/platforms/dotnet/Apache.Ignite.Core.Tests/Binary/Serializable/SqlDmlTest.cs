@@ -54,9 +54,6 @@ namespace Apache.Ignite.Core.Tests.Binary.Serializable
             var cfg = new IgniteConfiguration(TestUtils.GetTestConfiguration())
             {
                 BinaryConfiguration = new BinaryConfiguration(typeof(SimpleSerializable))
-                {
-                    NameMapper = BinaryBasicNameMapper.SimpleNameInstance
-                }
             };
 
             _ignite = Ignition.Start(cfg);

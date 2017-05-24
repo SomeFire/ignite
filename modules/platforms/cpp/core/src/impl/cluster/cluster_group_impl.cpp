@@ -26,12 +26,9 @@ namespace ignite
     {
         namespace cluster
         {
-            struct Command
+            enum Command
             {
-                enum Type
-                {
-                    FOR_SERVERS = 23
-                };
+                FOR_SERVERS = 23
             };
 
             ClusterGroupImpl::ClusterGroupImpl(SP_IgniteEnvironment env, jobject javaRef) :
@@ -49,7 +46,7 @@ namespace ignite
             {
                 JniErrorInfo jniErr;
 
-                jobject res = InOpObject(Command::FOR_SERVERS, err);
+                jobject res = InOpObject(FOR_SERVERS, err);
 
                 if (jniErr.code != java::IGNITE_JNI_ERR_SUCCESS)
                     return SP_ClusterGroupImpl();

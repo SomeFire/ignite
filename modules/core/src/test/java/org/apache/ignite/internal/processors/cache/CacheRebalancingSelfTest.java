@@ -35,7 +35,7 @@ public class CacheRebalancingSelfTest extends GridCommonAbstractTest {
     @Override protected IgniteConfiguration getConfiguration(String igniteInstanceName) throws Exception {
         IgniteConfiguration cfg = super.getConfiguration(igniteInstanceName);
 
-        cfg.setCacheConfiguration(new CacheConfiguration(DEFAULT_CACHE_NAME));
+        cfg.setCacheConfiguration(new CacheConfiguration());
 
         return cfg;
     }
@@ -51,11 +51,10 @@ public class CacheRebalancingSelfTest extends GridCommonAbstractTest {
      * @throws Exception If failed.
      */
     public void testRebalanceFuture() throws Exception {
-        IgniteEx ig0 = startGrid(0);
-
+        IgniteEx ignite0 = startGrid(0);
         startGrid(1);
 
-        IgniteCache<Object, Object> cache = ig0.cache(DEFAULT_CACHE_NAME);
+        IgniteCache<Object, Object> cache = ignite0.cache(null);
 
         IgniteFuture fut1 = cache.rebalance();
 

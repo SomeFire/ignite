@@ -90,11 +90,12 @@ public class GridCachePartitionedEvictionSelfTest extends GridCacheAbstractSelfT
         FifoEvictionPolicy plc = new FifoEvictionPolicy();
         plc.setMaxSize(EVICT_CACHE_SIZE);
         cc.setEvictionPolicy(plc);
-        cc.setOnheapCacheEnabled(true);
 
         FifoEvictionPolicy nearPlc = new FifoEvictionPolicy();
         nearPlc.setMaxSize(EVICT_CACHE_SIZE);
         cc.getNearConfiguration().setNearEvictionPolicy(nearPlc);
+
+        cc.setSwapEnabled(false);
 
         // We set 1 backup explicitly.
         cc.setBackups(1);
@@ -109,7 +110,7 @@ public class GridCachePartitionedEvictionSelfTest extends GridCacheAbstractSelfT
      * @return Cache.
      */
     private IgniteCache<String, Integer> cache(ClusterNode node) {
-        return G.ignite(node.id()).cache(DEFAULT_CACHE_NAME);
+        return G.ignite(node.id()).cache(null);
     }
 
     /**

@@ -90,7 +90,7 @@ public class IgniteTopologyValidatorGridSplitCacheTest extends GridCommonAbstrac
                 CacheConfiguration[] ccfgs = new CacheConfiguration[CACHES_CNT];
 
                 for (int cnt = 0; cnt < CACHES_CNT; cnt++) {
-                    CacheConfiguration ccfg = new CacheConfiguration(DEFAULT_CACHE_NAME);
+                    CacheConfiguration ccfg = new CacheConfiguration();
 
                     ccfg.setName(testCacheName(cnt));
                     ccfg.setCacheMode(PARTITIONED);
@@ -130,8 +130,7 @@ public class IgniteTopologyValidatorGridSplitCacheTest extends GridCommonAbstrac
 
     /**
      * Tests topology split scenario.
-     *
-     * @throws Exception If failed.
+     * @throws Exception
      */
     public void testTopologyValidator() throws Exception {
         assertTrue(initLatch.await(10, TimeUnit.SECONDS));
@@ -243,15 +242,12 @@ public class IgniteTopologyValidatorGridSplitCacheTest extends GridCommonAbstrac
         /** */
         private static final long serialVersionUID = 0L;
 
-        /** */
         @CacheNameResource
         private String cacheName;
 
-        /** */
         @IgniteInstanceResource
         private Ignite ignite;
 
-        /** */
         @LoggerResource
         private IgniteLogger log;
 
@@ -267,7 +263,7 @@ public class IgniteTopologyValidatorGridSplitCacheTest extends GridCommonAbstrac
             }).isEmpty())
                 return false;
 
-            IgniteKernal kernal = (IgniteKernal)ignite;
+            IgniteKernal kernal = (IgniteKernal)ignite.cache(cacheName).unwrap(Ignite.class);
 
             GridDhtCacheAdapter<Object, Object> dht = kernal.context().cache().internalCache(cacheName).context().dht();
 

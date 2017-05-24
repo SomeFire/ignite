@@ -41,13 +41,8 @@ struct CacheStoreTestSuiteFixture
     /*
      * Constructor.
      */
-    CacheStoreTestSuiteFixture() :
-#ifdef IGNITE_TESTS_32
-        node1(ignite_test::StartNode("cache-store-32.xml", "node1"))
-#else
+    CacheStoreTestSuiteFixture() : 
         node1(ignite_test::StartNode("cache-store.xml", "node1"))
-#endif
-
     {
         // No-op.
     }
@@ -97,7 +92,7 @@ BOOST_AUTO_TEST_CASE(LoadCacheSingleNodeNoPredicate)
 
     BOOST_CHECK(!cache.IsEmpty());
 
-    BOOST_CHECK_EQUAL(cache.Size(cache::CachePeekMode::PRIMARY), entriesNum);
+    BOOST_CHECK_EQUAL(cache.Size(cache::IGNITE_PEEK_MODE_PRIMARY), entriesNum);
 
     std::string val42 = cache.Get(42);
 
@@ -107,11 +102,7 @@ BOOST_AUTO_TEST_CASE(LoadCacheSingleNodeNoPredicate)
 BOOST_AUTO_TEST_CASE(LoadCacheSeveralNodesNoPredicate)
 {
     BOOST_CHECKPOINT("Starting additional node");
-#ifdef IGNITE_TESTS_32
-    Ignite node2 = ignite_test::StartNode("cache-store-32.xml", "node2");
-#else
     Ignite node2 = ignite_test::StartNode("cache-store.xml", "node2");
-#endif
 
     const int64_t entriesNum = 100;
 
@@ -127,7 +118,7 @@ BOOST_AUTO_TEST_CASE(LoadCacheSeveralNodesNoPredicate)
 
     BOOST_CHECK(!cache.IsEmpty());
 
-    BOOST_CHECK_EQUAL(cache.Size(cache::CachePeekMode::PRIMARY), entriesNum);
+    BOOST_CHECK_EQUAL(cache.Size(cache::IGNITE_PEEK_MODE_PRIMARY), entriesNum);
 
     std::string val42 = cache.Get(42);
 
@@ -150,7 +141,7 @@ BOOST_AUTO_TEST_CASE(LocalLoadCacheSingleNodeNoPredicate)
 
     BOOST_CHECK(!cache.IsEmpty());
 
-    BOOST_CHECK_EQUAL(cache.Size(cache::CachePeekMode::PRIMARY), entriesNum);
+    BOOST_CHECK_EQUAL(cache.Size(cache::IGNITE_PEEK_MODE_PRIMARY), entriesNum);
 
     std::string val42 = cache.Get(42);
 

@@ -51,15 +51,15 @@ angular.module('ignite-console.states.configuration', ['ui.router'])
             .state('base.configuration', {
                 url: '/configuration',
                 templateUrl: sidebarTpl,
-                abstract: true,
-                params: {
-                    linkId: null
-                }
+                abstract: true
             })
             .state('base.configuration.clusters', {
                 url: '/clusters',
                 templateUrl: clustersTpl,
                 onEnter: AclRoute.checkAccess('configuration'),
+                params: {
+                    linkId: null
+                },
                 metaTags: {
                     title: 'Configure Clusters'
                 }
@@ -68,6 +68,9 @@ angular.module('ignite-console.states.configuration', ['ui.router'])
                 url: '/caches',
                 templateUrl: cachesTpl,
                 onEnter: AclRoute.checkAccess('configuration'),
+                params: {
+                    linkId: null
+                },
                 metaTags: {
                     title: 'Configure Caches'
                 }
@@ -76,6 +79,9 @@ angular.module('ignite-console.states.configuration', ['ui.router'])
                 url: '/domains',
                 templateUrl: domainsTpl,
                 onEnter: AclRoute.checkAccess('configuration'),
+                params: {
+                    linkId: null
+                },
                 metaTags: {
                     title: 'Configure Domain Model'
                 }
@@ -84,6 +90,9 @@ angular.module('ignite-console.states.configuration', ['ui.router'])
                 url: '/igfs',
                 templateUrl: igfsTpl,
                 onEnter: AclRoute.checkAccess('configuration'),
+                params: {
+                    linkId: null
+                },
                 metaTags: {
                     title: 'Configure IGFS'
                 }

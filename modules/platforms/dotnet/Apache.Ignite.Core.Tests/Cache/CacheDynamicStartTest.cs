@@ -18,14 +18,16 @@
 namespace Apache.Ignite.Core.Tests.Cache
 {
     using System;
+    using System.Collections.Generic;
     using Apache.Ignite.Core.Binary;
+    using Apache.Ignite.Core.Cache;
+    using Apache.Ignite.Core.Impl;
     using Apache.Ignite.Core.Tests.Query;
     using NUnit.Framework;
 
     /// <summary>
-    /// Tests for dynamic cache start.
+    /// Tests for dynamic a cache start.
     /// </summary>
-    [Category(TestUtils.CategoryIntensive)]
     public class CacheDynamicStartTest
     {
         /** Grid name: data. */
@@ -66,7 +68,9 @@ namespace Apache.Ignite.Core.Tests.Cache
         [TearDown]
         public void StopGrids()
         {
-            Ignition.StopAll(true);
+            Ignition.Stop(GridData, true);
+            Ignition.Stop(GridDataNoCfg, true);
+            Ignition.Stop(GridClient, true);
         }
 
         /// <summary>
@@ -77,12 +81,24 @@ namespace Apache.Ignite.Core.Tests.Cache
         /// <returns>Configuration.</returns>
         private static IgniteConfiguration CreateConfiguration(string name, string springCfg)
         {
-            return new IgniteConfiguration(TestUtils.GetTestConfiguration())
-            {
-                IgniteInstanceName = name,
-                BinaryConfiguration = new BinaryConfiguration(typeof(DynamicTestKey), typeof(DynamicTestValue)),
-                SpringConfigUrl = springCfg
-            };
+            var cfg = new IgniteConfiguration();
+
+            BinaryConfiguration portCfg = new BinaryConfiguration();
+
+            ICollection<BinaryTypeConfiguration> portTypeCfgs = new List<BinaryTypeConfiguration>();
+
+            portTypeCfgs.Add(new BinaryTypeConfiguration(typeof(DynamicTestKey)));
+            portTypeCfgs.Add(new BinaryTypeConfiguration(typeof(DynamicTestValue)));
+
+            portCfg.TypeConfigurations = portTypeCfgs;
+
+            cfg.IgniteInstanceName = name;
+            cfg.BinaryConfiguration = portCfg;
+            cfg.JvmClasspath = TestUtils.CreateTestClasspath();
+            cfg.JvmOptions = TestUtils.TestJavaOptions();
+            cfg.SpringConfigUrl = springCfg;
+
+            return cfg;
         }
 
         /// <summary>
@@ -129,14 +145,16 @@ namespace Apache.Ignite.Core.Tests.Cache
         /// Check routine.
         /// </summary>
         /// <param name="cacheName">Cache name.</param>
-        private static void Check(string cacheName)
+        private void Check(string cacheName)
         {
-            var cacheData = Ignition.GetIgnite(GridData).GetCache<DynamicTestKey, DynamicTestValue>(cacheName);
+            ICache<DynamicTestKey, DynamicTestValue> cacheData =
+                Ignition.GetIgnite(GridData).GetCache<DynamicTestKey, DynamicTestValue>(cacheName);
 
-            var cacheDataNoCfg = 
+            ICache<DynamicTestKey, DynamicTestValue> cacheDataNoCfg =
                 Ignition.GetIgnite(GridDataNoCfg).GetCache<DynamicTestKey, DynamicTestValue>(cacheName);
 
-            var cacheClient = Ignition.GetIgnite(GridClient).GetCache<DynamicTestKey, DynamicTestValue>(cacheName);
+            ICache<DynamicTestKey, DynamicTestValue> cacheClient =
+                Ignition.GetIgnite(GridClient).GetCache<DynamicTestKey, DynamicTestValue>(cacheName);
 
             DynamicTestKey key1 = new DynamicTestKey(1);
             DynamicTestKey key2 = new DynamicTestKey(2);
@@ -168,73 +186,97 @@ namespace Apache.Ignite.Core.Tests.Cache
 
             Assert.AreEqual(0, sizeClient);
         }
+    }
 
+    /// <summary>
+    /// Key for dynamic cache start tests.
+    /// </summary>
+    class DynamicTestKey
+    {
         /// <summary>
-        /// Key for dynamic cache start tests.
+        /// Default constructor.
         /// </summary>
-        private class DynamicTestKey
+        public DynamicTestKey()
         {
-            /// <summary>
-            /// Constructor.
-            /// </summary>
-            /// <param name="id">ID.</param>
-            public DynamicTestKey(int id)
-            {
-                Id = id;
-            }
-
-            /// <summary>
-            /// ID.
-            /// </summary>
-            public int Id { get; set; }
-
-            /** <inheritdoc /> */
-            public override bool Equals(object obj)
-            {
-                DynamicTestKey other = obj as DynamicTestKey;
-
-                return other != null && Id == other.Id;
-            }
-
-            /** <inheritdoc /> */
-            public override int GetHashCode()
-            {
-                return Id;
-            }
+            // No-op.
         }
 
         /// <summary>
-        /// Value for dynamic cache start tests.
+        /// Constructor.
         /// </summary>
-        private class DynamicTestValue
+        /// <param name="id">ID.</param>
+        public DynamicTestKey(int id)
         {
-            /// <summary>
-            /// Constructor.
-            /// </summary>
-            /// <param name="id">ID.</param>
-            public DynamicTestValue(int id)
-            {
-                Id = id;
-            }
+            Id = id;
+        }
 
-            /// <summary>
-            /// ID.
-            /// </summary>
-            public int Id { get; set; }
+        /// <summary>
+        /// ID.
+        /// </summary>
+        public int Id
+        {
+            get;
+            set;
+        }
 
-            /** <inheritdoc /> */
-            public override bool Equals(object obj)
-            {
-                DynamicTestValue other = obj as DynamicTestValue;
+        /** <inheritdoc /> */
+        public override bool Equals(object obj)
+        {
+            DynamicTestKey other = obj as DynamicTestKey;
 
-                return other != null && Id == other.Id;
-            }
+            return other != null && Id == other.Id;
+        }
 
-            /** <inheritdoc /> */
-            public override int GetHashCode()
-            {
-                return Id;
-            }
+        /** <inheritdoc /> */
+        public override int GetHashCode()
+        {
+            return Id;
+        }
+    }
+
+    /// <summary>
+    /// Value for dynamic cache start tests.
+    /// </summary>
+    class DynamicTestValue
+    {
+        /// <summary>
+        /// Default constructor.
+        /// </summary>
+        public DynamicTestValue()
+        {
+            // No-op.
+        }
+
+        /// <summary>
+        /// Constructor.
+        /// </summary>
+        /// <param name="id">ID.</param>
+        public DynamicTestValue(int id)
+        {
+            Id = id;
+        }
+
+        /// <summary>
+        /// ID.
+        /// </summary>
+        public int Id
+        {
+            get;
+            set;
+        }
+
+        /** <inheritdoc /> */
+        public override bool Equals(object obj)
+        {
+            DynamicTestValue other = obj as DynamicTestValue;
+
+            return other != null && Id == other.Id;
+        }
+
+        /** <inheritdoc /> */
+        public override int GetHashCode()
+        {
+            return Id;
         }
     }
 }

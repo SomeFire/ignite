@@ -42,8 +42,6 @@ import org.apache.ignite.internal.IgniteInternalFuture;
 import org.apache.ignite.internal.IgnitionEx;
 import org.apache.ignite.internal.processors.igfs.IgfsEx;
 import org.apache.ignite.internal.processors.igfs.IgfsHandshakeResponse;
-import org.apache.ignite.internal.processors.igfs.IgfsImpl;
-import org.apache.ignite.internal.processors.igfs.IgfsModeResolver;
 import org.apache.ignite.internal.processors.igfs.IgfsStatus;
 import org.apache.ignite.internal.processors.igfs.IgfsUtils;
 import org.apache.ignite.internal.processors.resource.GridSpringResourceContext;
@@ -212,9 +210,10 @@ public class HadoopIgfsInProc implements HadoopIgfsEx {
             @Override public IgfsHandshakeResponse apply() {
                 igfs.clientLogDirectory(logDir);
 
-                return new IgfsHandshakeResponse(igfs.name(), igfs.groupBlockSize(), igfs.globalSampling());
-            }
-        });
+                return new IgfsHandshakeResponse(igfs.name(), igfs.proxyPaths(), igfs.groupBlockSize(),
+                    igfs.globalSampling());
+                }
+         });
     }
 
     /**
@@ -297,7 +296,7 @@ public class HadoopIgfsInProc implements HadoopIgfsEx {
         try {
             IgfsUserContext.doAs(user, new IgniteOutClosure<Void>() {
                 @Override public Void apply() {
-                    igfs.setTimes(path, modificationTime, accessTime);
+                    igfs.setTimes(path, accessTime, modificationTime);
 
                     return null;
                 }
@@ -660,19 +659,5 @@ public class HadoopIgfsInProc implements HadoopIgfsEx {
     /** {@inheritDoc} */
     @Override public String user() {
         return user;
-    }
-
-    /** {@inheritDoc} */
-    @Override public IgfsModeResolver modeResolver() throws IgniteCheckedException {
-        try {
-            return IgfsUserContext.doAs(user, new IgniteOutClosure<IgfsModeResolver>() {
-                @Override public IgfsModeResolver apply() {
-                    return ((IgfsImpl)igfs).modeResolver();
-                }
-            });
-        }
-        catch (IllegalStateException ignored) {
-            throw new HadoopIgfsCommunicationException("Failed to get mode resolver because Grid is stopping");
-        }
     }
 }

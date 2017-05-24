@@ -63,14 +63,10 @@ public interface IgniteTxState {
 
     /**
      * @param cctx Context.
-     * @param read {@code True} if validating for a read operation, {@code false} for write.
      * @param topFut Topology future.
      * @return Error if validation failed.
      */
-    public IgniteCheckedException validateTopology(
-        GridCacheSharedContext cctx,
-        boolean read,
-        GridDhtTopologyFuture topFut);
+    public IgniteCheckedException validateTopology(GridCacheSharedContext cctx, GridDhtTopologyFuture topFut);
 
     /**
      * @param cctx Context.
@@ -85,12 +81,11 @@ public interface IgniteTxState {
     public boolean hasNearCache(GridCacheSharedContext cctx);
 
     /**
-     * @param cacheCtx Context.
+     * @param cacheCtx Ccntext.
      * @param tx Transaction.
      * @throws IgniteCheckedException If cache check failed.
      */
-    public void addActiveCache(GridCacheContext cacheCtx, boolean recovery, IgniteTxLocalAdapter tx)
-        throws IgniteCheckedException;
+    public void addActiveCache(GridCacheContext cacheCtx, IgniteTxLocalAdapter tx) throws IgniteCheckedException;
 
     /**
      * @param cctx Context.

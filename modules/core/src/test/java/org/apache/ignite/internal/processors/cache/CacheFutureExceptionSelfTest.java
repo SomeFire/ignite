@@ -101,7 +101,7 @@ public class CacheFutureExceptionSelfTest extends GridCommonAbstractTest {
 
         final String cacheName = nearCache ? ("NEAR-CACHE-" + cpyOnRead) : ("CACHE-" + cpyOnRead);
 
-        CacheConfiguration<Object, Object> ccfg = new CacheConfiguration<>(DEFAULT_CACHE_NAME);
+        CacheConfiguration<Object, Object> ccfg = new CacheConfiguration<>();
 
         ccfg.setCopyOnRead(cpyOnRead);
 

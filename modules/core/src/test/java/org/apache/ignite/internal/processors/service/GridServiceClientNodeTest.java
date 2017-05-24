@@ -42,11 +42,10 @@ public class GridServiceClientNodeTest extends GridCommonAbstractTest {
         IgniteConfiguration cfg = super.getConfiguration(igniteInstanceName);
 
         ((TcpDiscoverySpi)cfg.getDiscoverySpi()).setIpFinder(ipFinder);
-
-        cfg.setClientFailureDetectionTimeout(30000);
+        ((TcpDiscoverySpi)cfg.getDiscoverySpi()).setMaxMissedClientHeartbeats(30);
+        ((TcpDiscoverySpi)cfg.getDiscoverySpi()).setHeartbeatFrequency(1000);
 
         cfg.setClientMode(client);
-        cfg.setMetricsUpdateFrequency(1000);
 
         return cfg;
     }

@@ -237,6 +237,9 @@ public class CacheStoreBalancingWrapper<K, V> implements CacheStore<K, V> {
      *
      */
     private class LoadFuture extends GridFutureAdapter<Map<K, V>> {
+        /** */
+        private static final long serialVersionUID = 0L;
+
         /** Collection of keys for pending cleanup. */
         private volatile Collection<K> keys;
 

@@ -195,9 +195,6 @@ namespace ignite
 
         /** Security error. */
         static const int IGNITE_ERR_SECURITY = 2023;
-
-        /** Future state error. */
-        static const int IGNITE_ERR_FUTURE_STATE = 2024;
         
         /** Unknown error. */
         static const int IGNITE_ERR_UNKNOWN = -1;

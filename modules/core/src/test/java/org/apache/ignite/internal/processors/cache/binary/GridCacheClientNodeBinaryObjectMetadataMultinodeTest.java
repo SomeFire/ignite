@@ -65,7 +65,7 @@ public class GridCacheClientNodeBinaryObjectMetadataMultinodeTest extends GridCo
 
         cfg.setMarshaller(new BinaryMarshaller());
 
-        CacheConfiguration ccfg = new CacheConfiguration(DEFAULT_CACHE_NAME);
+        CacheConfiguration ccfg = new CacheConfiguration();
 
         ccfg.setWriteSynchronizationMode(FULL_SYNC);
 
@@ -101,7 +101,7 @@ public class GridCacheClientNodeBinaryObjectMetadataMultinodeTest extends GridCo
                 @Override public Object call() throws Exception {
                     IgniteBinary binaries = ignite(0).binary();
 
-                    IgniteCache<Object, Object> cache = ignite(0).cache(DEFAULT_CACHE_NAME).withKeepBinary();
+                    IgniteCache<Object, Object> cache = ignite(0).cache(null).withKeepBinary();
 
                     ThreadLocalRandom rnd = ThreadLocalRandom.current();
 
@@ -165,8 +165,6 @@ public class GridCacheClientNodeBinaryObjectMetadataMultinodeTest extends GridCo
             Set<String> names = new HashSet<>();
 
             for (BinaryType meta : metaCol) {
-                info("Binary type: " + meta);
-
                 assertTrue(names.add(meta.typeName()));
 
                 assertNull(meta.affinityKeyFieldName());
@@ -186,7 +184,7 @@ public class GridCacheClientNodeBinaryObjectMetadataMultinodeTest extends GridCo
 
         IgniteBinary binaries = ignite(0).binary();
 
-        IgniteCache<Object, Object> cache = ignite(0).cache(DEFAULT_CACHE_NAME).withKeepBinary();
+        IgniteCache<Object, Object> cache = ignite(0).cache(null).withKeepBinary();
 
         for (int i = 0; i < 1000; i++) {
             BinaryObjectBuilder builder = binaries.builder("type-" + i);
@@ -282,7 +280,7 @@ public class GridCacheClientNodeBinaryObjectMetadataMultinodeTest extends GridCo
 
         IgniteBinary binaries = ignite(1).binary();
 
-        IgniteCache<Object, Object> cache = ignite(1).cache(DEFAULT_CACHE_NAME).withKeepBinary();
+        IgniteCache<Object, Object> cache = ignite(1).cache(null).withKeepBinary();
 
         for (int i = 0; i < 100; i++) {
             BinaryObjectBuilder builder = binaries.builder("type-" + i);

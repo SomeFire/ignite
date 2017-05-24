@@ -83,7 +83,7 @@ public class GridP2PDisabledSelfTest extends GridCommonAbstractTest {
             cfg.setDeploymentSpi(depSpi);
         }
 
-        cfg.setMetricsUpdateFrequency(500);
+        ((TcpDiscoverySpi)cfg.getDiscoverySpi()).setHeartbeatFrequency(500);
 
         return cfg;
     }

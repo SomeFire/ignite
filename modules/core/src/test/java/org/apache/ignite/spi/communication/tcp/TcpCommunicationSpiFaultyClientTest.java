@@ -70,6 +70,7 @@ public class TcpCommunicationSpiFaultyClientTest extends GridCommonAbstractTest 
     @Override protected IgniteConfiguration getConfiguration(String gridName) throws Exception {
         IgniteConfiguration cfg = super.getConfiguration(gridName);
 
+        cfg.setClockSyncFrequency(300000);
         cfg.setFailureDetectionTimeout(1000);
         cfg.setClientMode(clientMode);
 
@@ -142,7 +143,8 @@ public class TcpCommunicationSpiFaultyClientTest extends GridCommonAbstractTest 
             final CountDownLatch latch = new CountDownLatch(1);
 
             grid(0).events().localListen(new IgnitePredicate<Event>() {
-                @Override public boolean apply(Event event) {
+                @Override
+                public boolean apply(Event event) {
                     latch.countDown();
 
                     return true;

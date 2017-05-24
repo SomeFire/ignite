@@ -31,6 +31,7 @@ import javax.cache.integration.CompletionListenerFuture;
 import org.apache.ignite.IgniteCache;
 import org.apache.ignite.IgniteDataStreamer;
 import org.apache.ignite.cache.CacheAtomicityMode;
+import org.apache.ignite.cache.CacheMemoryMode;
 import org.apache.ignite.cache.CacheMode;
 import org.apache.ignite.cache.eviction.lru.LruEvictionPolicy;
 import org.apache.ignite.cache.query.SqlQuery;
@@ -50,6 +51,7 @@ import static org.apache.ignite.cache.CachePeekMode.NEAR;
 import static org.apache.ignite.cache.CachePeekMode.OFFHEAP;
 import static org.apache.ignite.cache.CachePeekMode.ONHEAP;
 import static org.apache.ignite.cache.CachePeekMode.PRIMARY;
+import static org.apache.ignite.cache.CachePeekMode.SWAP;
 import static org.apache.ignite.cache.CacheRebalanceMode.SYNC;
 import static org.apache.ignite.cache.CacheWriteSynchronizationMode.FULL_SYNC;
 
@@ -73,16 +75,17 @@ public abstract class CacheTtlAbstractSelfTest extends GridCommonAbstractTest {
     @Override protected IgniteConfiguration getConfiguration(String igniteInstanceName) throws Exception {
         IgniteConfiguration cfg = super.getConfiguration(igniteInstanceName);
 
-        CacheConfiguration ccfg = new CacheConfiguration(DEFAULT_CACHE_NAME);
+        CacheConfiguration ccfg = new CacheConfiguration();
 
         ccfg.setCacheMode(cacheMode());
         ccfg.setAtomicityMode(atomicityMode());
+        ccfg.setMemoryMode(memoryMode());
+        ccfg.setOffHeapMaxMemory(0);
 
         LruEvictionPolicy plc = new LruEvictionPolicy();
         plc.setMaxSize(MAX_CACHE_SIZE);
 
         ccfg.setEvictionPolicy(plc);
-        ccfg.setOnheapCacheEnabled(true);
         ccfg.setIndexedTypes(Integer.class, Integer.class);
         ccfg.setBackups(2);
         ccfg.setWriteSynchronizationMode(FULL_SYNC);
@@ -121,6 +124,11 @@ public abstract class CacheTtlAbstractSelfTest extends GridCommonAbstractTest {
      * @return Atomicity mode.
      */
     protected abstract CacheAtomicityMode atomicityMode();
+
+    /**
+     * @return Memory mode.
+     */
+    protected abstract CacheMemoryMode memoryMode();
 
     /**
      * @return Cache mode.
@@ -195,7 +203,7 @@ public abstract class CacheTtlAbstractSelfTest extends GridCommonAbstractTest {
      * @throws Exception If failed.
      */
     public void testDefaultTimeToLiveStreamerAdd() throws Exception {
-        try (IgniteDataStreamer<Integer, Integer> streamer = ignite(0).dataStreamer(DEFAULT_CACHE_NAME)) {
+        try (IgniteDataStreamer<Integer, Integer> streamer = ignite(0).dataStreamer(null)) {
             for (int i = 0; i < SIZE; i++)
                 streamer.addData(i, i);
         }
@@ -206,7 +214,7 @@ public abstract class CacheTtlAbstractSelfTest extends GridCommonAbstractTest {
 
         checkSizeAfterLive();
 
-        try (IgniteDataStreamer<Integer, Integer> streamer = ignite(0).dataStreamer(DEFAULT_CACHE_NAME)) {
+        try (IgniteDataStreamer<Integer, Integer> streamer = ignite(0).dataStreamer(null)) {
             streamer.allowOverwrite(true);
 
             for (int i = 0; i < SIZE; i++)
@@ -322,9 +330,22 @@ public abstract class CacheTtlAbstractSelfTest extends GridCommonAbstractTest {
         for (int i = 0; i < gridCnt; ++i) {
             IgniteCache<Integer, Integer> cache = jcache(i);
 
-            log.info("Size [node=" + i + ", " + cache.localSize(PRIMARY, BACKUP, NEAR) + ']');
+            log.info("Size [node=" + i +
+                ", heap=" + cache.localSize(PRIMARY, BACKUP, NEAR, ONHEAP) +
+                ", offheap=" + cache.localSize(PRIMARY, BACKUP, NEAR, OFFHEAP) +
+                ", swap=" + cache.localSize(PRIMARY, BACKUP, NEAR, SWAP) + ']');
 
-            assertEquals("Unexpected size, node: " + i, size, cache.localSize(PRIMARY, BACKUP, NEAR));
+            if (memoryMode() == CacheMemoryMode.OFFHEAP_TIERED) {
+                assertEquals("Unexpected size, node: " + i, 0, cache.localSize(PRIMARY, BACKUP, NEAR, ONHEAP));
+                assertEquals("Unexpected size, node: " + i, size, cache.localSize(PRIMARY, BACKUP, NEAR, OFFHEAP));
+            }
+            else {
+                assertEquals("Unexpected size, node: " + i, size > MAX_CACHE_SIZE ? MAX_CACHE_SIZE : size,
+                    cache.localSize(PRIMARY, BACKUP, NEAR, ONHEAP));
+
+                assertEquals("Unexpected size, node: " + i,
+                    size > MAX_CACHE_SIZE ? size - MAX_CACHE_SIZE : 0, cache.localSize(PRIMARY, BACKUP, NEAR, OFFHEAP));
+            }
 
             for (int key = 0; key < size; key++)
                 assertNotNull(cache.localPeek(key));
@@ -350,10 +371,12 @@ public abstract class CacheTtlAbstractSelfTest extends GridCommonAbstractTest {
 
             log.info("Size [node=" + i +
                 ", heap=" + cache.localSize(ONHEAP) +
-                ", offheap=" + cache.localSize(OFFHEAP) + ']');
+                ", offheap=" + cache.localSize(OFFHEAP) +
+                ", swap=" + cache.localSize(SWAP) + ']');
 
             assertEquals(0, cache.localSize());
             assertEquals(0, cache.localSize(OFFHEAP));
+            assertEquals(0, cache.localSize(SWAP));
             assertEquals(0, cache.query(new SqlQuery<>(Integer.class, "_val >= 0")).getAll().size());
 
             for (int key = 0; key < SIZE; key++)

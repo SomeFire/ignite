@@ -22,7 +22,7 @@ import org.apache.ignite.internal.util.typedef.internal.S;
 /**
  * ODBC query get params meta request.
  */
-public class OdbcQueryGetParamsMetaRequest extends SqlListenerRequest {
+public class OdbcQueryGetParamsMetaRequest extends OdbcRequest {
     /** Cache. */
     private final String cacheName;
 
@@ -33,7 +33,7 @@ public class OdbcQueryGetParamsMetaRequest extends SqlListenerRequest {
      * @param query SQL Query.
      */
     public OdbcQueryGetParamsMetaRequest(String cacheName, String query) {
-        super(META_PARAMS);
+        super(GET_PARAMS_META);
 
         this.cacheName = cacheName;
         this.query = query;

@@ -70,7 +70,6 @@ public class MetadataRequestMessage implements Message {
                     return false;
 
                 writer.incrementState();
-
         }
 
         return true;
@@ -91,7 +90,6 @@ public class MetadataRequestMessage implements Message {
                     return false;
 
                 reader.incrementState();
-
         }
 
         return reader.afterMessageRead(MetadataRequestMessage.class);

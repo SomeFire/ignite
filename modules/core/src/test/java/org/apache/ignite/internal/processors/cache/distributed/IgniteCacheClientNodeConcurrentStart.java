@@ -63,7 +63,7 @@ public class IgniteCacheClientNodeConcurrentStart extends GridCommonAbstractTest
 
         cfg.setClientMode(client);
 
-        CacheConfiguration ccfg = new CacheConfiguration(DEFAULT_CACHE_NAME);
+        CacheConfiguration ccfg = new CacheConfiguration();
 
         ccfg.setBackups(0);
         ccfg.setRebalanceMode(SYNC);

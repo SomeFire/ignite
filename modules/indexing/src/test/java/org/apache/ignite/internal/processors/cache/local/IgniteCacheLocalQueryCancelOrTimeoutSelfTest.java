@@ -46,7 +46,7 @@ public class IgniteCacheLocalQueryCancelOrTimeoutSelfTest extends GridCommonAbst
     @Override protected IgniteConfiguration getConfiguration(String igniteInstanceName) throws Exception {
         IgniteConfiguration cfg = super.getConfiguration(igniteInstanceName);
 
-        CacheConfiguration<Integer, String> ccfg = new CacheConfiguration<>(DEFAULT_CACHE_NAME);
+        CacheConfiguration<Integer, String> ccfg = new CacheConfiguration<>();
         ccfg.setIndexedTypes(Integer.class, String.class);
         ccfg.setCacheMode(LOCAL);
 
@@ -67,7 +67,7 @@ public class IgniteCacheLocalQueryCancelOrTimeoutSelfTest extends GridCommonAbst
         super.afterTest();
 
         for (Ignite g : G.allGrids())
-            g.cache(DEFAULT_CACHE_NAME).removeAll();
+            g.cache(null).removeAll();
     }
 
     /** {@inheritDoc} */
@@ -123,7 +123,7 @@ public class IgniteCacheLocalQueryCancelOrTimeoutSelfTest extends GridCommonAbst
     private void testQuery(boolean timeout, int timeoutUnits, TimeUnit timeUnit) {
         Ignite ignite = grid(0);
 
-        IgniteCache<Integer, String> cache = ignite.cache(DEFAULT_CACHE_NAME);
+        IgniteCache<Integer, String> cache = ignite.cache(null);
 
         loadCache(cache);
 

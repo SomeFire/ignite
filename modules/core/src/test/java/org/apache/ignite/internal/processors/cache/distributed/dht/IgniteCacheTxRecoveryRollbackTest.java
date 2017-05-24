@@ -32,13 +32,13 @@ import org.apache.ignite.IgniteCheckedException;
 import org.apache.ignite.IgniteLogger;
 import org.apache.ignite.cache.store.CacheStore;
 import org.apache.ignite.cache.store.CacheStoreAdapter;
-import org.apache.ignite.cluster.ClusterNode;
 import org.apache.ignite.configuration.CacheConfiguration;
 import org.apache.ignite.configuration.IgniteConfiguration;
 import org.apache.ignite.configuration.NearCacheConfiguration;
 import org.apache.ignite.internal.IgniteInternalFuture;
 import org.apache.ignite.internal.IgniteKernal;
 import org.apache.ignite.internal.TestRecordingCommunicationSpi;
+import org.apache.ignite.internal.managers.communication.GridIoMessage;
 import org.apache.ignite.internal.processors.cache.distributed.near.GridNearTxFinishRequest;
 import org.apache.ignite.internal.processors.cache.distributed.near.GridNearTxPrepareResponse;
 import org.apache.ignite.internal.processors.cache.transactions.IgniteInternalTx;
@@ -46,8 +46,7 @@ import org.apache.ignite.internal.util.lang.GridAbsPredicate;
 import org.apache.ignite.internal.util.typedef.F;
 import org.apache.ignite.internal.util.typedef.G;
 import org.apache.ignite.internal.util.typedef.internal.U;
-import org.apache.ignite.lang.IgniteBiPredicate;
-import org.apache.ignite.plugin.extensions.communication.Message;
+import org.apache.ignite.lang.IgnitePredicate;
 import org.apache.ignite.resources.LoggerResource;
 import org.apache.ignite.spi.discovery.tcp.TcpDiscoverySpi;
 import org.apache.ignite.spi.discovery.tcp.ipfinder.TcpDiscoveryIpFinder;
@@ -154,13 +153,13 @@ public class IgniteCacheTxRecoveryRollbackTest extends GridCommonAbstractTest {
         Ignite client1 = startGrid(4);
         final Ignite client2 = startGrid(5);
 
-        final Integer key = primaryKey(srv0.cache(DEFAULT_CACHE_NAME));
+        final Integer key = primaryKey(srv0.cache(null));
 
         final IgniteCache<Integer, Integer> cache1 =
-            client1.createNearCache(DEFAULT_CACHE_NAME, new NearCacheConfiguration<Integer, Integer>());
+            client1.createNearCache(null, new NearCacheConfiguration<Integer, Integer>());
 
         final IgniteCache<Integer, Integer> cache2 =
-            client2.createNearCache(DEFAULT_CACHE_NAME, new NearCacheConfiguration<Integer, Integer>());
+            client2.createNearCache(null, new NearCacheConfiguration<Integer, Integer>());
 
         cache1.put(key, 1);
 
@@ -190,7 +189,7 @@ public class IgniteCacheTxRecoveryRollbackTest extends GridCommonAbstractTest {
 
         assertFalse(fut.isDone());
 
-        testSpi(client2).waitForBlocked(GridNearTxFinishRequest.class, srv0.name());
+        testSpi(client2).waitForMessage(GridNearTxFinishRequest.class, srv0.name());
 
         stopGrid(client2.name());
 
@@ -251,13 +250,13 @@ public class IgniteCacheTxRecoveryRollbackTest extends GridCommonAbstractTest {
         Ignite client1 = startGrid(4);
         final Ignite client2 = startGrid(5);
 
-        final Integer key = primaryKey(srv0.cache(DEFAULT_CACHE_NAME));
+        final Integer key = primaryKey(srv0.cache(null));
 
         final IgniteCache<Integer, Integer> cache1 =
-            client1.createNearCache(DEFAULT_CACHE_NAME, new NearCacheConfiguration<Integer, Integer>());
+            client1.createNearCache(null, new NearCacheConfiguration<Integer, Integer>());
 
         final IgniteCache<Integer, Integer> cache2 =
-            client2.createNearCache(DEFAULT_CACHE_NAME, new NearCacheConfiguration<Integer, Integer>());
+            client2.createNearCache(null, new NearCacheConfiguration<Integer, Integer>());
 
         cache1.put(key, 1);
 
@@ -265,9 +264,9 @@ public class IgniteCacheTxRecoveryRollbackTest extends GridCommonAbstractTest {
 
         testSpi(client2).blockMessages(GridNearTxFinishRequest.class, srv0.name());
 
-        testSpi(srv0).blockMessages(new IgniteBiPredicate<ClusterNode, Message>() {
-            @Override public boolean apply(ClusterNode node, Message msg) {
-                return msg instanceof GridDhtTxFinishRequest;
+        testSpi(srv0).blockMessages(new IgnitePredicate<GridIoMessage>() {
+            @Override public boolean apply(GridIoMessage msg) {
+                return msg.message() instanceof GridDhtTxFinishRequest;
             }
         });
 
@@ -293,7 +292,7 @@ public class IgniteCacheTxRecoveryRollbackTest extends GridCommonAbstractTest {
 
         assertFalse(fut.isDone());
 
-        testSpi(client2).waitForBlocked(GridNearTxFinishRequest.class, srv0.name());
+        testSpi(client2).waitForMessage(GridNearTxFinishRequest.class, srv0.name());
 
         stopGrid(client2.name());
         stopGrid(srv0.name());
@@ -305,7 +304,7 @@ public class IgniteCacheTxRecoveryRollbackTest extends GridCommonAbstractTest {
             // No-op.
         }
 
-        final IgniteCache<Integer, Integer> srvCache = grid(1).cache(DEFAULT_CACHE_NAME);
+        final IgniteCache<Integer, Integer> srvCache = grid(1).cache(null);
 
         GridTestUtils.waitForCondition(new GridAbsPredicate() {
             @Override public boolean apply() {
@@ -382,7 +381,7 @@ public class IgniteCacheTxRecoveryRollbackTest extends GridCommonAbstractTest {
 
         testSpi(srv0).blockMessages(GridNearTxPrepareResponse.class, client.name());
 
-        final IgniteCache<Integer, Integer> clientCache = client.cache(DEFAULT_CACHE_NAME);
+        final IgniteCache<Integer, Integer> clientCache = client.cache(null);
 
         IgniteInternalFuture<?> fut = GridTestUtils.runAsync(new Callable<Void>() {
             @Override public Void call() throws Exception {
@@ -398,7 +397,7 @@ public class IgniteCacheTxRecoveryRollbackTest extends GridCommonAbstractTest {
 
         assertFalse(fut.isDone());
 
-        testSpi(srv0).waitForBlocked(GridNearTxPrepareResponse.class, client.name());
+        testSpi(srv0).waitForMessage(GridNearTxPrepareResponse.class, client.name());
 
         stopGrid(client.name());
 
@@ -432,7 +431,7 @@ public class IgniteCacheTxRecoveryRollbackTest extends GridCommonAbstractTest {
      * @return Cache configuration.
      */
     private CacheConfiguration<Integer, Integer> cacheConfiguration(int backups, boolean store, boolean writeThrough) {
-        CacheConfiguration<Integer, Integer> ccfg = new CacheConfiguration<>(DEFAULT_CACHE_NAME);
+        CacheConfiguration<Integer, Integer> ccfg = new CacheConfiguration<>();
 
         ccfg.setAtomicityMode(TRANSACTIONAL);
         ccfg.setWriteSynchronizationMode(FULL_SYNC);
@@ -459,7 +458,7 @@ public class IgniteCacheTxRecoveryRollbackTest extends GridCommonAbstractTest {
         assertFalse(nodes.isEmpty());
 
         for (Ignite node : nodes) {
-            IgniteCache<Integer, Integer> cache = node.cache(DEFAULT_CACHE_NAME);
+            IgniteCache<Integer, Integer> cache = node.cache(null);
 
             for (Map.Entry<Integer, Integer> e : expData.entrySet()) {
                 assertEquals("Invalid value [key=" + e.getKey() + ", node=" + node.name() + ']',

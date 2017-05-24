@@ -77,8 +77,9 @@ public class GridCachePartitionedMultiThreadedPutGetSelfTest extends GridCommonA
         plc.setMaxMemorySize(1000);
 
         cc.setEvictionPolicy(plc);
-        cc.setOnheapCacheEnabled(true);
+        cc.setSwapEnabled(false);
         cc.setAtomicityMode(TRANSACTIONAL);
+        cc.setEvictSynchronized(false);
 
         NearCacheConfiguration nearCfg = new NearCacheConfiguration();
 
@@ -112,12 +113,12 @@ public class GridCachePartitionedMultiThreadedPutGetSelfTest extends GridCommonA
         super.afterTest();
 
         if (GRID_CNT > 0)
-            grid(0).cache(DEFAULT_CACHE_NAME).removeAll();
+            grid(0).cache(null).removeAll();
 
         for (int i = 0; i < GRID_CNT; i++) {
-            grid(i).cache(DEFAULT_CACHE_NAME).clear();
+            grid(i).cache(null).clear();
 
-            assert grid(i).cache(DEFAULT_CACHE_NAME).localSize() == 0;
+            assert grid(i).cache(null).localSize() == 0;
         }
     }
 
@@ -188,7 +189,7 @@ public class GridCachePartitionedMultiThreadedPutGetSelfTest extends GridCommonA
         multithreaded(new CAX() {
             @SuppressWarnings({"BusyWait"})
             @Override public void applyx() {
-                IgniteCache<Integer, Integer> c = grid(0).cache(DEFAULT_CACHE_NAME);
+                IgniteCache<Integer, Integer> c = grid(0).cache(null);
 
                 for (int i = 0; i < TX_CNT; i++) {
                     int kv = cntr.incrementAndGet();

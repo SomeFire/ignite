@@ -25,6 +25,7 @@ import java.util.List;
 import javax.cache.Cache;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteCache;
+import org.apache.ignite.cache.CachePeekMode;
 import org.apache.ignite.cache.CacheWriteSynchronizationMode;
 import org.apache.ignite.cache.affinity.rendezvous.RendezvousAffinityFunction;
 import org.apache.ignite.cluster.ClusterNode;
@@ -120,7 +121,7 @@ public class GridCacheDhtPreloadDisabledSelfTest extends GridCommonAbstractTest 
      * @return Topology.
      */
     private GridDhtPartitionTopology topology(int i) {
-        return near(grid(i).cache(DEFAULT_CACHE_NAME)).dht().topology();
+        return near(grid(i).cache(null)).dht().topology();
     }
 
     /** @throws Exception If failed. */
@@ -177,7 +178,7 @@ public class GridCacheDhtPreloadDisabledSelfTest extends GridCommonAbstractTest 
         try {
             Ignite ignite1 = startGrid(0);
 
-            IgniteCache<Integer, String> cache1 = ignite1.cache(DEFAULT_CACHE_NAME);
+            IgniteCache<Integer, String> cache1 = ignite1.cache(null);
 
             int keyCnt = 10;
 
@@ -185,9 +186,9 @@ public class GridCacheDhtPreloadDisabledSelfTest extends GridCommonAbstractTest 
 
             for (int i = 0; i < keyCnt; i++) {
                 assertNull(near(cache1).peekEx(i));
-                assertNotNull((dht(cache1).localPeek(i, null, null)));
+                assertNotNull((dht(cache1).peekEx(i)));
 
-                assertEquals(Integer.toString(i), cache1.localPeek(i));
+                assertEquals(Integer.toString(i), cache1.localPeek(i, CachePeekMode.ONHEAP));
             }
 
             int nodeCnt = 3;
@@ -198,16 +199,16 @@ public class GridCacheDhtPreloadDisabledSelfTest extends GridCommonAbstractTest 
 
             // Check all nodes.
             for (Ignite g : ignites) {
-                IgniteCache<Integer, String> c = g.cache(DEFAULT_CACHE_NAME);
+                IgniteCache<Integer, String> c = g.cache(null);
 
                 for (int i = 0; i < keyCnt; i++)
-                    assertNull(c.localPeek(i));
+                    assertNull(c.localPeek(i, CachePeekMode.ONHEAP));
             }
 
             Collection<Integer> keys = new LinkedList<>();
 
             for (int i = 0; i < keyCnt; i++)
-                if (ignite1.affinity(DEFAULT_CACHE_NAME).mapKeyToNode(i).equals(ignite1.cluster().localNode()))
+                if (ignite1.affinity(null).mapKeyToNode(i).equals(ignite1.cluster().localNode()))
                     keys.add(i);
 
             info(">>> Finished checking nodes [keyCnt=" + keyCnt + ", nodeCnt=" + nodeCnt + ", grids=" +
@@ -222,15 +223,15 @@ public class GridCacheDhtPreloadDisabledSelfTest extends GridCommonAbstractTest 
 
                 // Check all nodes.
                 for (Ignite gg : ignites) {
-                    IgniteCache<Integer, String> c = gg.cache(DEFAULT_CACHE_NAME);
+                    IgniteCache<Integer, String> c = gg.cache(null);
 
                     for (int i = 0; i < keyCnt; i++)
-                        assertNull(c.localPeek(i));
+                        assertNull(c.localPeek(i, CachePeekMode.ONHEAP));
                 }
             }
 
             for (Integer i : keys)
-                assertEquals(i.toString(), cache1.localPeek(i));
+                assertEquals(i.toString(), cache1.localPeek(i, CachePeekMode.ONHEAP));
         }
         catch (Error | Exception e) {
             error("Test failed.", e);

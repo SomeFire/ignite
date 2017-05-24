@@ -73,7 +73,9 @@ public class IgniteCachePartitionedQuerySelfTest extends IgniteCacheAbstractQuer
         Person p3 = new Person("Mike", 1800);
         Person p4 = new Person("Bob", 1900);
 
-        IgniteCache<UUID, Person> cache0 = jcache(UUID.class, Person.class);
+        Ignite ignite0 = grid(0);
+
+        IgniteCache<UUID, Person> cache0 = ignite0.cache(null);
 
         cache0.put(p1.id(), p1);
         cache0.put(p2.id(), p2);
@@ -112,7 +114,7 @@ public class IgniteCachePartitionedQuerySelfTest extends IgniteCacheAbstractQuer
         Person p3 = new Person("Mike", 1800);
         Person p4 = new Person("Bob", 1900);
 
-        IgniteCache<UUID, Person> cache0 = jcache(UUID.class, Person.class);
+        IgniteCache<UUID, Person> cache0 = grid(0).cache(null);
 
         cache0.put(p1.id(), p1);
         cache0.put(p2.id(), p2);
@@ -159,7 +161,7 @@ public class IgniteCachePartitionedQuerySelfTest extends IgniteCacheAbstractQuer
 
         final AtomicInteger pages = new AtomicInteger(0);
 
-        IgniteCache<Integer, Integer> cache = jcache(Integer.class, Integer.class);
+        IgniteCache<Integer, Integer> cache = ignite().cache(null);
 
         for (int i = 0; i < 50; i++)
             cache.put(i, i);
@@ -194,7 +196,7 @@ public class IgniteCachePartitionedQuerySelfTest extends IgniteCacheAbstractQuer
 
             List<Cache.Entry<Integer, Integer>> all = cache.query(qry).getAll();
 
-            assertTrue(pages.get() > ignite().cluster().forDataNodes(DEFAULT_CACHE_NAME).nodes().size());
+            assertTrue(pages.get() > ignite().cluster().forDataNodes(null).nodes().size());
 
             assertEquals(50, all.size());
         }

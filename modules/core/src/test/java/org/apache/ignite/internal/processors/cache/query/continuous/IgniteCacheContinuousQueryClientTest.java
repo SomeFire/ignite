@@ -22,7 +22,6 @@ import javax.cache.event.CacheEntryEvent;
 import javax.cache.event.CacheEntryUpdatedListener;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteCache;
-import org.apache.ignite.IgniteClientDisconnectedException;
 import org.apache.ignite.IgniteLogger;
 import org.apache.ignite.cache.query.ContinuousQuery;
 import org.apache.ignite.cache.query.QueryCursor;
@@ -58,7 +57,7 @@ public class IgniteCacheContinuousQueryClientTest extends GridCommonAbstractTest
 
         ((TcpDiscoverySpi)cfg.getDiscoverySpi()).setIpFinder(ipFinder);
 
-        CacheConfiguration ccfg = new CacheConfiguration(DEFAULT_CACHE_NAME);
+        CacheConfiguration ccfg = new CacheConfiguration();
 
         ccfg.setCacheMode(PARTITIONED);
         ccfg.setAtomicityMode(ATOMIC);
@@ -98,7 +97,7 @@ public class IgniteCacheContinuousQueryClientTest extends GridCommonAbstractTest
 
         qry.setLocalListener(lsnr);
 
-        QueryCursor<?> cur = clientNode.cache(DEFAULT_CACHE_NAME).query(qry);
+        QueryCursor<?> cur = clientNode.cache(null).query(qry);
 
         for (int i = 0; i < 10; i++) {
             log.info("Start iteration: " + i);
@@ -107,7 +106,7 @@ public class IgniteCacheContinuousQueryClientTest extends GridCommonAbstractTest
 
             Ignite joined1 = startGrid(4);
 
-            IgniteCache<Object, Object> joinedCache1 = joined1.cache(DEFAULT_CACHE_NAME);
+            IgniteCache<Object, Object> joinedCache1 = joined1.cache(null);
 
             joinedCache1.put(primaryKey(joinedCache1), 1);
 
@@ -117,7 +116,7 @@ public class IgniteCacheContinuousQueryClientTest extends GridCommonAbstractTest
 
             Ignite joined2 = startGrid(5);
 
-            IgniteCache<Object, Object> joinedCache2 = joined2.cache(DEFAULT_CACHE_NAME);
+            IgniteCache<Object, Object> joinedCache2 = joined2.cache(null);
 
             joinedCache2.put(primaryKey(joinedCache2), 2);
 
@@ -154,13 +153,13 @@ public class IgniteCacheContinuousQueryClientTest extends GridCommonAbstractTest
 
             qry.setLocalListener(lsnr);
 
-            QueryCursor<?> cur = clientNode.cache(DEFAULT_CACHE_NAME).query(qry);
+            QueryCursor<?> cur = clientNode.cache(null).query(qry);
 
             lsnr.latch = new CountDownLatch(1);
 
             Ignite joined1 = startGrid(4);
 
-            IgniteCache<Object, Object> joinedCache1 = joined1.cache(DEFAULT_CACHE_NAME);
+            IgniteCache<Object, Object> joinedCache1 = joined1.cache(null);
 
             joinedCache1.put(primaryKey(joinedCache1), 1);
 
@@ -172,7 +171,7 @@ public class IgniteCacheContinuousQueryClientTest extends GridCommonAbstractTest
 
             Ignite joined2 = startGrid(5);
 
-            IgniteCache<Object, Object> joinedCache2 = joined2.cache(DEFAULT_CACHE_NAME);
+            IgniteCache<Object, Object> joinedCache2 = joined2.cache(null);
 
             joinedCache2.put(primaryKey(joinedCache2), 2);
 
@@ -209,7 +208,7 @@ public class IgniteCacheContinuousQueryClientTest extends GridCommonAbstractTest
                 @Override public IgniteCache<Integer, Integer> apply() {
                     ++cnt;
 
-                    return grid(CLIENT_ID).cache(DEFAULT_CACHE_NAME);
+                    return grid(CLIENT_ID).cache(null);
                 }
             };
 
@@ -219,7 +218,7 @@ public class IgniteCacheContinuousQueryClientTest extends GridCommonAbstractTest
 
         qry.setLocalListener(lsnr);
 
-        QueryCursor<?> cur = clnNode.cache(DEFAULT_CACHE_NAME).query(qry);
+        QueryCursor<?> cur = clnNode.cache(null).query(qry);
 
         boolean first = true;
 
@@ -247,27 +246,7 @@ public class IgniteCacheContinuousQueryClientTest extends GridCommonAbstractTest
                 stopGrid(srv);
         }
 
-        tryClose(cur);
-    }
-
-    /**
-     * @param cur Cur.
-     */
-    private void tryClose(QueryCursor<?> cur) {
-        try {
-            cur.close();
-        }
-        catch (Throwable e) {
-            if (e instanceof IgniteClientDisconnectedException) {
-                IgniteClientDisconnectedException ex = (IgniteClientDisconnectedException)e;
-
-                ex.reconnectFuture().get();
-
-                cur.close();
-            }
-            else
-                throw e;
-        }
+        cur.close();
     }
 
     /**

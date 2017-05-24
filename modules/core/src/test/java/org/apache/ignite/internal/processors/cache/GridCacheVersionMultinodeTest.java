@@ -19,6 +19,7 @@ package org.apache.ignite.internal.processors.cache;
 
 import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteCache;
+import org.apache.ignite.cache.CacheAtomicWriteOrderMode;
 import org.apache.ignite.cache.CacheAtomicityMode;
 import org.apache.ignite.cache.CacheMode;
 import org.apache.ignite.configuration.CacheConfiguration;
@@ -31,6 +32,8 @@ import org.apache.ignite.transactions.Transaction;
 import org.apache.ignite.transactions.TransactionConcurrency;
 import org.jetbrains.annotations.Nullable;
 
+import static org.apache.ignite.cache.CacheAtomicWriteOrderMode.CLOCK;
+import static org.apache.ignite.cache.CacheAtomicWriteOrderMode.PRIMARY;
 import static org.apache.ignite.cache.CacheAtomicityMode.ATOMIC;
 import static org.apache.ignite.cache.CacheAtomicityMode.TRANSACTIONAL;
 import static org.apache.ignite.cache.CacheMode.PARTITIONED;
@@ -44,6 +47,9 @@ import static org.apache.ignite.transactions.TransactionIsolation.REPEATABLE_REA
 public class GridCacheVersionMultinodeTest extends GridCacheAbstractSelfTest {
     /** */
     private CacheAtomicityMode atomicityMode;
+
+    /** */
+    private CacheAtomicWriteOrderMode atomicWriteOrder;
 
     /** */
     private boolean near;
@@ -60,6 +66,12 @@ public class GridCacheVersionMultinodeTest extends GridCacheAbstractSelfTest {
         assert atomicityMode != null;
 
         ccfg.setAtomicityMode(atomicityMode);
+
+        if (atomicityMode == null) {
+            assert atomicWriteOrder != null;
+
+            ccfg.setAtomicWriteOrderMode(atomicWriteOrder);
+        }
 
         ccfg.setNearConfiguration(near ? new NearCacheConfiguration() : null);
 
@@ -109,8 +121,34 @@ public class GridCacheVersionMultinodeTest extends GridCacheAbstractSelfTest {
     /**
      * @throws Exception If failed.
      */
+    public void testVersionAtomicClock() throws Exception {
+        atomicityMode = ATOMIC;
+
+        atomicWriteOrder = CLOCK;
+
+        checkVersion();
+    }
+
+    /**
+     * @throws Exception If failed.
+     */
+    public void testVersionAtomicClockNearEnabled() throws Exception {
+        atomicityMode = ATOMIC;
+
+        atomicWriteOrder = CLOCK;
+
+        near = true;
+
+        checkVersion();
+    }
+
+    /**
+     * @throws Exception If failed.
+     */
     public void testVersionAtomicPrimary() throws Exception {
         atomicityMode = ATOMIC;
+
+        atomicWriteOrder = PRIMARY;
 
         checkVersion();
     }
@@ -120,6 +158,8 @@ public class GridCacheVersionMultinodeTest extends GridCacheAbstractSelfTest {
      */
     public void testVersionAtomicPrimaryNearEnabled() throws Exception {
         atomicityMode = ATOMIC;
+
+        atomicWriteOrder = PRIMARY;
 
         near = true;
 
@@ -192,7 +232,7 @@ public class GridCacheVersionMultinodeTest extends GridCacheAbstractSelfTest {
         for (int i = 0; i < gridCount(); i++) {
             IgniteKernal grid = (IgniteKernal)grid(i);
 
-            GridCacheAdapter<Object, Object> cache = grid.context().cache().internalCache(DEFAULT_CACHE_NAME);
+            GridCacheAdapter<Object, Object> cache = grid.context().cache().internalCache();
 
             GridCacheEntryEx e;
 
@@ -200,11 +240,9 @@ public class GridCacheVersionMultinodeTest extends GridCacheAbstractSelfTest {
                 if (cache instanceof GridNearCacheAdapter)
                     cache = ((GridNearCacheAdapter<Object, Object>)cache).dht();
 
-                e = cache.entryEx(key);
+                e = cache.peekEx(key);
 
-                e.unswap();
-
-                assertNotNull(e.rawGet());
+                assertNotNull(e);
             }
             else
                 e = cache.peekEx(key);

@@ -57,7 +57,7 @@ public class IgniteCacheDistributedJoinTest extends GridCommonAbstractTest {
 
         spi.setIpFinder(IP_FINDER);
 
-        CacheConfiguration<Integer, A> ccfga = new CacheConfiguration<>(DEFAULT_CACHE_NAME);
+        CacheConfiguration<Integer, A> ccfga = new CacheConfiguration<>();
 
         ccfga.setName("a");
         ccfga.setSqlSchema("A");
@@ -66,7 +66,7 @@ public class IgniteCacheDistributedJoinTest extends GridCommonAbstractTest {
         ccfga.setCacheMode(CacheMode.PARTITIONED);
         ccfga.setIndexedTypes(Integer.class, A.class);
 
-        CacheConfiguration<Integer, B> ccfgb = new CacheConfiguration<>(DEFAULT_CACHE_NAME);
+        CacheConfiguration<Integer, B> ccfgb = new CacheConfiguration<>();
 
         ccfgb.setName("b");
         ccfgb.setSqlSchema("B");
@@ -75,7 +75,7 @@ public class IgniteCacheDistributedJoinTest extends GridCommonAbstractTest {
         ccfgb.setCacheMode(CacheMode.PARTITIONED);
         ccfgb.setIndexedTypes(Integer.class, B.class);
 
-        CacheConfiguration<Integer, C> ccfgc = new CacheConfiguration<>(DEFAULT_CACHE_NAME);
+        CacheConfiguration<Integer, C> ccfgc = new CacheConfiguration<>();
 
         ccfgc.setName("c");
         ccfgc.setSqlSchema("C");
@@ -234,15 +234,12 @@ public class IgniteCacheDistributedJoinTest extends GridCommonAbstractTest {
      */
     public static class X {
         /** */
-        @QuerySqlField(index = true)
         public long a;
 
         /** */
-        @QuerySqlField(index = true)
         public long b;
 
         /** */
-        @QuerySqlField(index = true)
         public long c;
 
         /**
@@ -257,16 +254,19 @@ public class IgniteCacheDistributedJoinTest extends GridCommonAbstractTest {
         }
 
         /** */
+        @QuerySqlField(index = true)
         public long getA() {
             return a;
         }
 
         /** */
+        @QuerySqlField(index = true)
         public long getB() {
             return b;
         }
 
         /** */
+        @QuerySqlField(index = true)
         public long getC() {
             return c;
         }

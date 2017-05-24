@@ -20,12 +20,10 @@ import angular from 'angular';
 
 const nonNil = _.negate(_.isNil);
 const nonEmpty = _.negate(_.isEmpty);
-const id8 = (uuid) => uuid.substring(0, 8).toUpperCase();
 
 _.mixin({
     nonNil,
-    nonEmpty,
-    id8
+    nonEmpty
 });
 
 import alertTemplateUrl from 'views/templates/alert.tpl.pug';
@@ -44,7 +42,6 @@ igniteConsoleCfg.config(['$animateProvider', ($animateProvider) => {
 igniteConsoleCfg.config(['$modalProvider', ($modalProvider) => {
     angular.extend($modalProvider.defaults, {
         animation: 'am-fade-and-scale',
-        placement: 'center',
         html: true
     });
 }]);

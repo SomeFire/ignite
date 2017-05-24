@@ -71,6 +71,7 @@ public class GridCachePartitionedAtomicLongLoadTest extends GridCommonAbstractTe
         CacheConfiguration cc = defaultCacheConfiguration();
 
         cc.setCacheMode(CacheMode.PARTITIONED);
+        cc.setStartSize(200);
         cc.setRebalanceMode(CacheRebalanceMode.SYNC);
         cc.setWriteSynchronizationMode(FULL_SYNC);
 
@@ -78,9 +79,9 @@ public class GridCachePartitionedAtomicLongLoadTest extends GridCommonAbstractTe
         plc.setMaxSize(1000);
 
         cc.setEvictionPolicy(plc);
-        cc.setOnheapCacheEnabled(true);
         cc.setBackups(1);
         cc.setAffinity(new RendezvousAffinityFunction(true));
+        cc.setEvictSynchronized(true);
 
         c.setCacheConfiguration(cc);
 
@@ -115,7 +116,7 @@ public class GridCachePartitionedAtomicLongLoadTest extends GridCommonAbstractTe
         @Override public Boolean call() throws Exception {
             Ignite ignite = grid();
 
-            IgniteCache cache = ignite.cache(DEFAULT_CACHE_NAME);
+            IgniteCache cache = ignite.cache(null);
 
             assert cache != null;
 

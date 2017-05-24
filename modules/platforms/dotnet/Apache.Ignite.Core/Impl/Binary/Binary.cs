@@ -158,7 +158,7 @@ namespace Apache.Ignite.Core.Impl.Binary
 
             _marsh.PutBinaryType(desc);
 
-            return new BinaryEnum(desc.TypeId, value, Marshaller);
+            return new BinaryEnum(GetTypeId(typeName), value, Marshaller);
         }
 
         /** <inheritDoc /> */
@@ -166,14 +166,8 @@ namespace Apache.Ignite.Core.Impl.Binary
         {
             IgniteArgumentCheck.NotNull(type, "type");
             IgniteArgumentCheck.Ensure(type.IsEnum, "type", "Type should be an Enum.");
-            
-            var desc = Marshaller.GetDescriptor(type);
 
-            IgniteArgumentCheck.Ensure(desc.IsEnum, "typeName", "Type should be an Enum.");
-
-            _marsh.PutBinaryType(desc);
-
-            return new BinaryEnum(desc.TypeId, value, Marshaller);
+            return BuildEnum(type.Name, value);
         }
 
         /// <summary>

@@ -17,33 +17,28 @@
 
 package org.apache.ignite.internal.visor.node;
 
-import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
+import java.io.Serializable;
 import org.apache.ignite.configuration.TransactionConfiguration;
+import org.apache.ignite.internal.LessNamingBean;
 import org.apache.ignite.internal.util.typedef.internal.S;
-import org.apache.ignite.internal.util.typedef.internal.U;
-import org.apache.ignite.internal.visor.VisorDataTransferObject;
 import org.apache.ignite.transactions.TransactionConcurrency;
 import org.apache.ignite.transactions.TransactionIsolation;
-
-import static org.apache.ignite.internal.visor.util.VisorTaskUtils.compactClass;
 
 /**
  * Data transfer object for transaction configuration.
  */
-public class VisorTransactionConfiguration extends VisorDataTransferObject {
+public class VisorTransactionConfiguration implements Serializable, LessNamingBean {
     /** */
     private static final long serialVersionUID = 0L;
 
     /** Default cache concurrency. */
-    private TransactionConcurrency dfltConcurrency;
+    private TransactionConcurrency dfltTxConcurrency;
 
     /** Default transaction isolation. */
-    private TransactionIsolation dfltIsolation;
+    private TransactionIsolation dfltTxIsolation;
 
     /** Default transaction timeout. */
-    private long dfltTimeout;
+    private long dfltTxTimeout;
 
     /** Pessimistic tx log linger. */
     private int pessimisticTxLogLinger;
@@ -51,62 +46,53 @@ public class VisorTransactionConfiguration extends VisorDataTransferObject {
     /** Pessimistic tx log size. */
     private int pessimisticTxLogSize;
 
-    /** Transaction manager factory. */
-    private String txMgrFactory;
-
-    /**
-     * Default constructor.
-     */
-    public VisorTransactionConfiguration() {
-        // No-op.
-    }
-
-    /**
-     * Whether to use JTA {@code javax.transaction.Synchronization}
-     * instead of {@code javax.transaction.xa.XAResource}.
-     */
-    private boolean useJtaSync;
+    /** Default transaction serializable flag. */
+    private boolean txSerEnabled;
 
     /**
      * Create data transfer object for transaction configuration.
      *
-     * @param cfg Transaction configuration.
+     * @param src Transaction configuration.
+     * @return Data transfer object.
      */
-    public VisorTransactionConfiguration(TransactionConfiguration cfg) {
-        dfltConcurrency = cfg.getDefaultTxConcurrency();
-        dfltIsolation = cfg.getDefaultTxIsolation();
-        dfltTimeout = cfg.getDefaultTxTimeout();
-        pessimisticTxLogLinger = cfg.getPessimisticTxLogLinger();
-        pessimisticTxLogSize = cfg.getPessimisticTxLogSize();
-        txMgrFactory = compactClass(cfg.getTxManagerFactory());
-        useJtaSync = cfg.isUseJtaSynchronization();
+    public static VisorTransactionConfiguration from(TransactionConfiguration src) {
+        VisorTransactionConfiguration cfg = new VisorTransactionConfiguration();
+
+        cfg.dfltTxConcurrency = src.getDefaultTxConcurrency();
+        cfg.dfltTxIsolation = src.getDefaultTxIsolation();
+        cfg.dfltTxTimeout = src.getDefaultTxTimeout();
+        cfg.pessimisticTxLogLinger = src.getPessimisticTxLogLinger();
+        cfg.pessimisticTxLogSize = src.getPessimisticTxLogSize();
+        cfg.txSerEnabled = src.isTxSerializableEnabled();
+
+        return cfg;
     }
 
     /**
      * @return Default cache transaction concurrency.
      */
-    public TransactionConcurrency getDefaultTxConcurrency() {
-        return dfltConcurrency;
+    public TransactionConcurrency defaultTxConcurrency() {
+        return dfltTxConcurrency;
     }
 
     /**
      * @return Default cache transaction isolation.
      */
-    public TransactionIsolation getDefaultTxIsolation() {
-        return dfltIsolation;
+    public TransactionIsolation defaultTxIsolation() {
+        return dfltTxIsolation;
     }
 
     /**
      * @return Default transaction timeout.
      */
-    public long getDefaultTxTimeout() {
-        return dfltTimeout;
+    public long defaultTxTimeout() {
+        return dfltTxTimeout;
     }
 
     /**
      * @return Pessimistic log cleanup delay in milliseconds.
      */
-    public int getPessimisticTxLogLinger() {
+    public int pessimisticTxLogLinger() {
         return pessimisticTxLogLinger;
     }
 
@@ -118,38 +104,10 @@ public class VisorTransactionConfiguration extends VisorDataTransferObject {
     }
 
     /**
-     * @return Transaction manager factory.
+     * @return {@code True} if serializable transactions are enabled, {@code false} otherwise.
      */
-    public String getTxManagerFactory() {
-        return txMgrFactory;
-    }
-
-    /**
-     * @return Whether to use JTA {@code javax.transaction.Synchronization}
-     *     instead of {@code javax.transaction.xa.XAResource}.
-     */
-    public boolean isUseJtaSync() {
-        return useJtaSync;
-    }
-
-    /** {@inheritDoc} */
-    @Override protected void writeExternalData(ObjectOutput out) throws IOException {
-        U.writeEnum(out, dfltConcurrency);
-        U.writeEnum(out, dfltIsolation);
-        out.writeLong(dfltTimeout);
-        out.writeInt(pessimisticTxLogLinger);
-        out.writeInt(pessimisticTxLogSize);
-        U.writeString(out, txMgrFactory);
-    }
-
-    /** {@inheritDoc} */
-    @Override protected void readExternalData(byte protoVer, ObjectInput in) throws IOException, ClassNotFoundException {
-        dfltConcurrency = TransactionConcurrency.fromOrdinal(in.readByte());
-        dfltIsolation = TransactionIsolation.fromOrdinal(in.readByte());
-        dfltTimeout = in.readLong();
-        pessimisticTxLogLinger = in.readInt();
-        pessimisticTxLogSize = in.readInt();
-        txMgrFactory = U.readString(in);
+    public boolean txSerializableEnabled() {
+        return txSerEnabled;
     }
 
     /** {@inheritDoc} */

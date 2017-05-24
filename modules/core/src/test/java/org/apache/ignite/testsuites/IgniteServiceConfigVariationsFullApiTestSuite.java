@@ -37,7 +37,7 @@ public class IgniteServiceConfigVariationsFullApiTestSuite extends TestSuite {
         Parameters.objectParameters("setMarshaller",
             Parameters.factory(JdkMarshaller.class),
             Parameters.factory(BinaryMarshaller.class),
-            ConfigVariations.binaryMarshallerFactory()
+            ConfigVariations.optimizedMarshallerFactory()
         ),
 
         Parameters.booleanParameters("setPeerClassLoadingEnabled")

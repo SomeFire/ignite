@@ -65,7 +65,7 @@ public class CacheEvictableEntryImpl<K, V> implements EvictableEntry<K, V> {
         try {
             assert ctx != null;
 
-            CacheEvictionManager mgr = ctx.evicts();
+            GridCacheEvictionManager mgr = ctx.evicts();
 
             if (mgr == null) {
                 assert ctx.kernalContext().isStopping();
@@ -87,7 +87,7 @@ public class CacheEvictableEntryImpl<K, V> implements EvictableEntry<K, V> {
      */
     @Nullable public V peek() {
         try {
-            CacheObject val = cached.peek(null);
+            CacheObject val = cached.peek(true, false, false, null);
 
             return val != null ? val.<V>value(cached.context().cacheObjectContext(), false) : null;
         }
@@ -100,7 +100,7 @@ public class CacheEvictableEntryImpl<K, V> implements EvictableEntry<K, V> {
     }
 
     /** {@inheritDoc} */
-    @Override public int size() {
+    public int size() {
         try {
             GridCacheContext<Object, Object> cctx = cached.context();
 
@@ -110,10 +110,14 @@ public class CacheEvictableEntryImpl<K, V> implements EvictableEntry<K, V> {
 
             byte[] valBytes = null;
 
-            CacheObject cacheObj = cached.valueBytes();
+            if (cctx.offheapTiered())
+                valBytes = cctx.offheap().get(cctx.swap().spaceName(), cached.partition(), key, keyBytes);
+            else {
+                CacheObject cacheObj = cached.valueBytes();
 
-            if (cacheObj != null)
-                valBytes = cacheObj.valueBytes(cctx.cacheObjectContext());
+                if (cacheObj != null)
+                    valBytes = cacheObj.valueBytes(cctx.cacheObjectContext());
+            }
 
             return valBytes == null ? keyBytes.length : keyBytes.length + valBytes.length;
         }
@@ -151,7 +155,7 @@ public class CacheEvictableEntryImpl<K, V> implements EvictableEntry<K, V> {
                     return null;
 
                 try {
-                    CacheObject val = e.peek(null);
+                    CacheObject val = e.peek(true, false, false, null);
 
                     return val != null ? val.<V>value(cached.context().cacheObjectContext(), false) : null;
                 }

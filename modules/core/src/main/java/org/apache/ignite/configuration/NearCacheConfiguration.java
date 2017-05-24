@@ -65,6 +65,7 @@ public class NearCacheConfiguration<K, V> implements Serializable {
      *
      * @return Near eviction policy.
      * @see CacheConfiguration#getEvictionPolicy()
+     * @see CacheConfiguration#isEvictSynchronized()
      */
     public EvictionPolicy<K, V> getNearEvictionPolicy() {
         return nearEvictPlc;

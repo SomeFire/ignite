@@ -64,9 +64,6 @@ public class JmhCacheAbstractBenchmark extends JmhAbstractBenchmark {
     /** IP finder shared across nodes. */
     private static final TcpDiscoveryVmIpFinder IP_FINDER = new TcpDiscoveryVmIpFinder(true);
 
-    /** Default cache name. */
-    private static final String DEFAULT_CACHE_NAME = "default";
-
     /** Target node. */
     protected Ignite node;
 
@@ -119,7 +116,7 @@ public class JmhCacheAbstractBenchmark extends JmhAbstractBenchmark {
             node = Ignition.start(clientCfg);
         }
 
-        cache = node.cache(DEFAULT_CACHE_NAME);
+        cache = node.cache(null);
     }
 
     /**
@@ -162,7 +159,7 @@ public class JmhCacheAbstractBenchmark extends JmhAbstractBenchmark {
     protected CacheConfiguration cacheConfiguration() {
         CacheConfiguration cacheCfg = new CacheConfiguration();
 
-        cacheCfg.setName(DEFAULT_CACHE_NAME);
+        cacheCfg.setName(null);
         cacheCfg.setCacheMode(CacheMode.PARTITIONED);
         cacheCfg.setRebalanceMode(CacheRebalanceMode.SYNC);
 

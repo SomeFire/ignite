@@ -24,6 +24,7 @@ namespace Apache.Ignite.Core.Impl.Cache.Affinity
     using System.Linq;
     using Apache.Ignite.Core.Binary;
     using Apache.Ignite.Core.Cache.Affinity;
+    using Apache.Ignite.Core.Cache.Affinity.Fair;
     using Apache.Ignite.Core.Cache.Affinity.Rendezvous;
     using Apache.Ignite.Core.Cluster;
     using Apache.Ignite.Core.Common;
@@ -38,6 +39,9 @@ namespace Apache.Ignite.Core.Impl.Cache.Affinity
     {
         /** */
         private const byte TypeCodeNull = 0;
+
+        /** */
+        private const byte TypeCodeFair = 1;
 
         /** */
         private const byte TypeCodeRendezvous = 2;
@@ -64,11 +68,11 @@ namespace Apache.Ignite.Core.Impl.Cache.Affinity
             // 4) Override flags
             // 5) User object
 
-            var p = fun as RendezvousAffinityFunction;
+            var p = fun as AffinityFunctionBase;
 
             if (p != null)
             {
-                writer.WriteByte(TypeCodeRendezvous);
+                writer.WriteByte(p is FairAffinityFunction ? TypeCodeFair : TypeCodeRendezvous);
                 writer.WriteInt(p.Partitions);
                 writer.WriteBoolean(p.ExcludeNeighbors);
 
@@ -109,6 +113,13 @@ namespace Apache.Ignite.Core.Impl.Cache.Affinity
             {
                 Debug.Assert(overrideFlags != UserOverrides.None);
 
+                var fair = userFunc as FairAffinityFunction;
+                if (fair != null)
+                {
+                    fair.Partitions = partitions;
+                    fair.ExcludeNeighbors = exclNeighbors;
+                }
+
                 var rendezvous = userFunc as RendezvousAffinityFunction;
                 if (rendezvous != null)
                 {
@@ -124,6 +135,9 @@ namespace Apache.Ignite.Core.Impl.Cache.Affinity
 
             switch (typeCode)
             {
+                case TypeCodeFair:
+                    fun = new FairAffinityFunction();
+                    break;
                 case TypeCodeRendezvous:
                     fun = new RendezvousAffinityFunction();
                     break;

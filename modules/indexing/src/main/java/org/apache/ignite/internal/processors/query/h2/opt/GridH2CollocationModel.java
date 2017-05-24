@@ -39,6 +39,8 @@ import org.h2.table.Table;
 import org.h2.table.TableFilter;
 import org.h2.table.TableView;
 
+import static org.apache.ignite.internal.processors.query.h2.opt.GridH2AbstractKeyValueRow.KEY_COL;
+
 /**
  * Collocation model for a query.
  */
@@ -387,11 +389,11 @@ public final class GridH2CollocationModel {
 
         if (validate) {
             if (tbl.rowDescriptor().context().customAffinityMapper())
-                throw customAffinityError(tbl.cacheName());
+                throw customAffinityError(tbl.spaceName());
 
             if (F.isEmpty(tf.getIndexConditions())) {
                 throw new CacheException("Failed to prepare distributed join query: " +
-                    "join condition does not use index [joinedCache=" + tbl.cacheName() +
+                    "join condition does not use index [joinedCache=" + tbl.spaceName() +
                     ", plan=" + tf.getSelect().getPlanSQL() + ']');
             }
         }
@@ -411,7 +413,7 @@ public final class GridH2CollocationModel {
                 int cmpType = c.getCompareType();
 
                 if ((cmpType == Comparison.EQUAL || cmpType == Comparison.EQUAL_NULL_SAFE) &&
-                    (colId == affColId || tbl.rowDescriptor().isKeyColumn(colId)) && c.isEvaluatable()) {
+                    (colId == affColId || colId == KEY_COL) && c.isEvaluatable()) {
                     affKeyCondFound = true;
 
                     Expression exp = c.getExpression();
@@ -484,7 +486,7 @@ public final class GridH2CollocationModel {
 
         if (t instanceof GridH2Table) {
             if (validate && ((GridH2Table)t).rowDescriptor().context().customAffinityMapper())
-                throw customAffinityError(((GridH2Table)t).cacheName());
+                throw customAffinityError(((GridH2Table)t).spaceName());
 
             IndexColumn affCol = ((GridH2Table)t).getAffinityKeyColumn();
 

@@ -18,8 +18,11 @@
 namespace Apache.Ignite.Core.Tests
 {
     using System;
+    using System.Collections.Generic;
     using System.Linq;
     using Apache.Ignite.Core.Compute;
+    using Apache.Ignite.Core.Events;
+    using Apache.Ignite.Core.Messaging;
     using NUnit.Framework;
 
     /// <summary>
@@ -69,7 +72,7 @@ namespace Apache.Ignite.Core.Tests
         /// <summary>
         /// Gets the grid1.
         /// </summary>
-        protected IIgnite Grid
+        public IIgnite Grid
         {
             get { return _grids[0]; }
         }
@@ -77,24 +80,56 @@ namespace Apache.Ignite.Core.Tests
         /// <summary>
         /// Gets the grid2.
         /// </summary>
-        protected IIgnite Grid2
+        public IIgnite Grid2
         {
             get { return _grids[1]; }
         }
 
         /// <summary>
+        /// Gets the grid3.
+        /// </summary>
+        public IIgnite Grid3
+        {
+            get { return _grids[2]; }
+        }
+
+        /// <summary>
+        /// Gets the events.
+        /// </summary>
+        public IEvents Events
+        {
+            get { return Grid.GetEvents(); }
+        }
+
+        /// <summary>
+        /// Gets the messaging.
+        /// </summary>
+        public IMessaging Messaging
+        {
+            get { return Grid.GetMessaging(); }
+        }
+
+        /// <summary>
         /// Gets the compute.
         /// </summary>
-        protected ICompute Compute
+        public ICompute Compute
         {
             get { return Grid.GetCompute(); }
+        }
+
+        /// <summary>
+        /// Gets the grids.
+        /// </summary>
+        public ICollection<IIgnite> Grids
+        {
+            get { return _grids; }
         }
 
         /// <summary>
         /// Fixture tear down.
         /// </summary>
         [TestFixtureTearDown]
-        public void FixtureTearDown()
+        public virtual void FixtureTearDown()
         {
             StopGrids();
         }
@@ -112,7 +147,7 @@ namespace Apache.Ignite.Core.Tests
         /// Executes after each test.
         /// </summary>
         [TearDown]
-        public void TestTearDown()
+        public virtual void TestTearDown()
         {
             try
             {
@@ -143,9 +178,11 @@ namespace Apache.Ignite.Core.Tests
         /// </summary>
         protected virtual IgniteConfiguration GetConfiguration(string springConfigUrl)
         {
-            return new IgniteConfiguration(TestUtils.GetTestConfiguration())
+            return new IgniteConfiguration
             {
-                SpringConfigUrl = springConfigUrl
+                SpringConfigUrl = springConfigUrl,
+                JvmClasspath = TestUtils.CreateTestClasspath(),
+                JvmOptions = TestUtils.TestJavaOptions()
             };
         }
 

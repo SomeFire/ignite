@@ -98,11 +98,6 @@ public class GridH2RowFactory extends RowFactory {
             assert idx == 0 : idx;
             key = v;
         }
-
-        /** {@inheritDoc} */
-        @Override public long expireTime() {
-            return 0;
-        }
     }
 
     /**
@@ -144,11 +139,6 @@ public class GridH2RowFactory extends RowFactory {
                 v2 = v;
             }
         }
-
-        /** {@inheritDoc} */
-        @Override public long expireTime() {
-            return 0;
-        }
     }
 
     /**
@@ -184,11 +174,6 @@ public class GridH2RowFactory extends RowFactory {
         /** {@inheritDoc} */
         @Override public String toString() {
             return S.toString(RowSimple.class, this);
-        }
-
-        /** {@inheritDoc} */
-        @Override public long expireTime() {
-            return 0;
         }
     }
 }

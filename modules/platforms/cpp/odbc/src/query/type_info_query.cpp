@@ -25,90 +25,87 @@
 
 namespace
 {
-    struct ResultColumn
+    enum ResultColumn
     {
-        enum Type
-        {
-            /** Data source–dependent data-type name. */
-            TYPE_NAME = 1,
+        /** Data source–dependent data-type name. */
+        TYPE_NAME = 1,
 
-            /** SQL data type. */
-            DATA_TYPE,
+        /** SQL data type. */
+        DATA_TYPE,
 
-            /** The maximum column size that the server supports for this data type. */
-            COLUMN_SIZE,
+        /** The maximum column size that the server supports for this data type. */
+        COLUMN_SIZE,
 
-            /** Character or characters used to prefix a literal. */
-            LITERAL_PREFIX,
+        /** Character or characters used to prefix a literal. */
+        LITERAL_PREFIX,
 
-            /** Character or characters used to terminate a literal. */
-            LITERAL_SUFFIX,
+        /** Character or characters used to terminate a literal. */
+        LITERAL_SUFFIX,
 
-            /**
-             * A list of keywords, separated by commas, corresponding to each
-             * parameter that the application may specify in parentheses when using
-             * the name that is returned in the TYPE_NAME field.
-             */
-            CREATE_PARAMS,
+        /**
+         * A list of keywords, separated by commas, corresponding to each
+         * parameter that the application may specify in parentheses when using
+         * the name that is returned in the TYPE_NAME field.
+         */
+        CREATE_PARAMS,
 
-            /** Whether the data type accepts a NULL value. */
-            NULLABLE,
+        /** Whether the data type accepts a NULL value. */
+        NULLABLE,
 
-            /**
-             * Whether a character data type is case-sensitive in collations and
-             * comparisons.
-             */
-            CASE_SENSITIVE,
+        /**
+         * Whether a character data type is case-sensitive in collations and
+         * comparisons.
+         */
+        CASE_SENSITIVE,
 
-            /** How the data type is used in a WHERE clause. */
-            SEARCHABLE,
+        /** How the data type is used in a WHERE clause. */
+        SEARCHABLE,
 
-            /** Whether the data type is unsigned. */
-            UNSIGNED_ATTRIBUTE,
+        /** Whether the data type is unsigned. */
+        UNSIGNED_ATTRIBUTE,
 
-            /** Whether the data type has predefined fixed precision and scale. */
-            FIXED_PREC_SCALE,
+        /** Whether the data type has predefined fixed precision and scale. */
+        FIXED_PREC_SCALE,
 
-            /** Whether the data type is autoincrementing. */
-            AUTO_UNIQUE_VALUE,
+        /** Whether the data type is autoincrementing. */
+        AUTO_UNIQUE_VALUE,
 
-            /**
-             * Localized version of the data source–dependent name of the data
-             * type.
-             */
-            LOCAL_TYPE_NAME,
+        /**
+         * Localized version of the data source–dependent name of the data
+         * type.
+         */
+        LOCAL_TYPE_NAME,
 
-            /** The minimum scale of the data type on the data source. */
-            MINIMUM_SCALE,
+        /** The minimum scale of the data type on the data source. */
+        MINIMUM_SCALE,
 
-            /** The maximum scale of the data type on the data source. */
-            MAXIMUM_SCALE,
+        /** The maximum scale of the data type on the data source. */
+        MAXIMUM_SCALE,
 
-            /**
-             * The value of the SQL data type as it appears in the SQL_DESC_TYPE
-             * field of the descriptor.
-             */
-            SQL_DATA_TYPE,
+        /**
+         * The value of the SQL data type as it appears in the SQL_DESC_TYPE
+         * field of the descriptor.
+         */
+        SQL_DATA_TYPE,
 
-            /**
-             * When the value of SQL_DATA_TYPE is SQL_DATETIME or SQL_INTERVAL,
-             * this column contains the datetime/interval subcode.
-             */
-            SQL_DATETIME_SUB,
+        /**
+         * When the value of SQL_DATA_TYPE is SQL_DATETIME or SQL_INTERVAL,
+         * this column contains the datetime/interval subcode.
+         */
+        SQL_DATETIME_SUB,
 
-            /**
-             * If the data type is an approximate numeric type, this column
-             * contains the value 2 to indicate that COLUMN_SIZE specifies a number
-             * of bits.
-             */
-            NUM_PREC_RADIX,
+        /**
+         * If the data type is an approximate numeric type, this column
+         * contains the value 2 to indicate that COLUMN_SIZE specifies a number
+         * of bits.
+         */
+        NUM_PREC_RADIX,
 
-            /**
-             * If the data type is an interval data type, then this column contains
-             * the value of the interval leading precision.
-             */
-            INTERVAL_PRECISION
-        };
+        /**
+         * If the data type is an interval data type, then this column contains
+         * the value of the interval leading precision.
+         */
+        INTERVAL_PRECISION
     };
 }
 
@@ -119,7 +116,7 @@ namespace ignite
         namespace query
         {
             TypeInfoQuery::TypeInfoQuery(diagnostic::Diagnosable& diag, int16_t sqlType) :
-                Query(diag, QueryType::TYPE_INFO),
+                Query(diag, TYPE_INFO),
                 columnsMeta(),
                 executed(false),
                 types(),
@@ -180,13 +177,13 @@ namespace ignite
                 // No-op.
             }
 
-            SqlResult::Type TypeInfoQuery::Execute()
+            SqlResult TypeInfoQuery::Execute()
             {
                 cursor = types.begin();
 
                 executed = true;
 
-                return SqlResult::AI_SUCCESS;
+                return SQL_RESULT_SUCCESS;
             }
 
             const meta::ColumnMetaVector & TypeInfoQuery::GetMeta() const
@@ -194,17 +191,17 @@ namespace ignite
                 return columnsMeta;
             }
 
-            SqlResult::Type TypeInfoQuery::FetchNextRow(app::ColumnBindingMap & columnBindings)
+            SqlResult TypeInfoQuery::FetchNextRow(app::ColumnBindingMap & columnBindings)
             {
                 if (!executed)
                 {
-                    diag.AddStatusRecord(SqlState::SHY010_SEQUENCE_ERROR, "Query was not executed.");
+                    diag.AddStatusRecord(SQL_STATE_HY010_SEQUENCE_ERROR, "Query was not executed.");
 
-                    return SqlResult::AI_ERROR;
+                    return SQL_RESULT_ERROR;
                 }
 
                 if (cursor == types.end())
-                    return SqlResult::AI_NO_DATA;
+                    return SQL_RESULT_NO_DATA;
 
                 app::ColumnBindingMap::iterator it;
 
@@ -213,50 +210,50 @@ namespace ignite
 
                 ++cursor;
 
-                return SqlResult::AI_SUCCESS;
+                return SQL_RESULT_SUCCESS;
             }
 
-            SqlResult::Type TypeInfoQuery::GetColumn(uint16_t columnIdx, app::ApplicationDataBuffer & buffer)
+            SqlResult TypeInfoQuery::GetColumn(uint16_t columnIdx, app::ApplicationDataBuffer & buffer)
             {
                 using namespace ignite::impl::binary;
 
                 if (!executed)
                 {
-                    diag.AddStatusRecord(SqlState::SHY010_SEQUENCE_ERROR, "Query was not executed.");
+                    diag.AddStatusRecord(SQL_STATE_HY010_SEQUENCE_ERROR, "Query was not executed.");
 
-                    return SqlResult::AI_ERROR;
+                    return SQL_RESULT_ERROR;
                 }
 
                 if (cursor == types.end())
-                    return SqlResult::AI_NO_DATA;
+                    return SQL_RESULT_NO_DATA;
 
                 int8_t currentType = *cursor;
 
                 switch (columnIdx)
                 {
-                    case ResultColumn::TYPE_NAME:
+                    case TYPE_NAME:
                     {
                         buffer.PutString(type_traits::BinaryTypeToSqlTypeName(currentType));
 
                         break;
                     }
 
-                    case ResultColumn::DATA_TYPE:
-                    case ResultColumn::SQL_DATA_TYPE:
+                    case DATA_TYPE:
+                    case SQL_DATA_TYPE:
                     {
                         buffer.PutInt16(type_traits::BinaryToSqlType(currentType));
 
                         break;
                     }
 
-                    case ResultColumn::COLUMN_SIZE:
+                    case COLUMN_SIZE:
                     {
                         buffer.PutInt32(type_traits::BinaryTypeColumnSize(currentType));
 
                         break;
                     }
 
-                    case ResultColumn::LITERAL_PREFIX:
+                    case LITERAL_PREFIX:
                     {
                         if (currentType == IGNITE_TYPE_STRING)
                             buffer.PutString("'");
@@ -268,7 +265,7 @@ namespace ignite
                         break;
                     }
 
-                    case ResultColumn::LITERAL_SUFFIX:
+                    case LITERAL_SUFFIX:
                     {
                         if (currentType == IGNITE_TYPE_STRING)
                             buffer.PutString("'");
@@ -278,21 +275,21 @@ namespace ignite
                         break;
                     }
 
-                    case ResultColumn::CREATE_PARAMS:
+                    case CREATE_PARAMS:
                     {
                         buffer.PutNull();
 
                         break;
                     }
 
-                    case ResultColumn::NULLABLE:
+                    case NULLABLE:
                     {
                         buffer.PutInt32(type_traits::BinaryTypeNullability(currentType));
 
                         break;
                     }
 
-                    case ResultColumn::CASE_SENSITIVE:
+                    case CASE_SENSITIVE:
                     {
                         if (currentType == IGNITE_TYPE_STRING)
                             buffer.PutInt16(SQL_TRUE);
@@ -302,64 +299,64 @@ namespace ignite
                         break;
                     }
 
-                    case ResultColumn::SEARCHABLE:
+                    case SEARCHABLE:
                     {
                         buffer.PutInt16(SQL_SEARCHABLE);
 
                         break;
                     }
 
-                    case ResultColumn::UNSIGNED_ATTRIBUTE:
+                    case UNSIGNED_ATTRIBUTE:
                     {
                         buffer.PutInt16(type_traits::BinaryTypeUnsigned(currentType));
 
                         break;
                     }
 
-                    case ResultColumn::FIXED_PREC_SCALE:
+                    case FIXED_PREC_SCALE:
                     {
                         buffer.PutInt16(SQL_FALSE);
 
                         break;
                     }
 
-                    case ResultColumn::AUTO_UNIQUE_VALUE:
+                    case AUTO_UNIQUE_VALUE:
                     {
                         buffer.PutInt16(SQL_FALSE);
 
                         break;
                     }
 
-                    case ResultColumn::LOCAL_TYPE_NAME:
+                    case LOCAL_TYPE_NAME:
                     {
                         buffer.PutNull();
 
                         break;
                     }
 
-                    case ResultColumn::MINIMUM_SCALE:
-                    case ResultColumn::MAXIMUM_SCALE:
+                    case MINIMUM_SCALE:
+                    case MAXIMUM_SCALE:
                     {
                         buffer.PutInt16(type_traits::BinaryTypeDecimalDigits(currentType));
 
                         break;
                     }
 
-                    case ResultColumn::SQL_DATETIME_SUB:
+                    case SQL_DATETIME_SUB:
                     {
                         buffer.PutNull();
 
                         break;
                     }
 
-                    case ResultColumn::NUM_PREC_RADIX:
+                    case NUM_PREC_RADIX:
                     {
                         buffer.PutInt32(type_traits::BinaryTypeNumPrecRadix(currentType));
 
                         break;
                     }
 
-                    case ResultColumn::INTERVAL_PRECISION:
+                    case INTERVAL_PRECISION:
                     {
                         buffer.PutNull();
 
@@ -370,16 +367,16 @@ namespace ignite
                         break;
                 }
 
-                return SqlResult::AI_SUCCESS;
+                return SQL_RESULT_SUCCESS;
             }
 
-            SqlResult::Type TypeInfoQuery::Close()
+            SqlResult TypeInfoQuery::Close()
             {
                 cursor = types.end();
 
                 executed = false;
 
-                return SqlResult::AI_SUCCESS;
+                return SQL_RESULT_SUCCESS;
             }
 
             bool TypeInfoQuery::DataAvailable() const

@@ -21,7 +21,6 @@ import java.io.InputStream;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.OutputStream;
-import org.apache.ignite.IgniteBinary;
 import org.apache.ignite.IgniteCheckedException;
 import org.apache.ignite.internal.util.io.GridByteArrayInputStream;
 import org.apache.ignite.internal.util.io.GridByteArrayOutputStream;
@@ -37,8 +36,7 @@ import org.jetbrains.annotations.Nullable;
  * <h2 class="header">Mandatory</h2>
  * This marshaller has no mandatory configuration parameters.
  * <h2 class="header">Java Example</h2>
- * {@code JdkMarshaller} needs to be explicitly configured to override default <b>binary marshaller</b> -
- * see {@link IgniteBinary}.
+ * {@code JdkMarshaller} needs to be explicitly configured to override default {@link org.apache.ignite.marshaller.optimized.OptimizedMarshaller}.
  * <pre name="code" class="java">
  * JdkMarshaller marshaller = new JdkMarshaller();
  *

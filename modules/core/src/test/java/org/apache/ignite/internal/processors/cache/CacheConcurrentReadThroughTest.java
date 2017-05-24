@@ -87,7 +87,7 @@ public class CacheConcurrentReadThroughTest extends GridCommonAbstractTest {
         assertTrue(client.configuration().isClientMode());
 
         for (int iter = 0; iter < 10; iter++) {
-            CacheConfiguration ccfg = new CacheConfiguration(DEFAULT_CACHE_NAME);
+            CacheConfiguration ccfg = new CacheConfiguration();
 
             final String cacheName = "test-" + iter;
 

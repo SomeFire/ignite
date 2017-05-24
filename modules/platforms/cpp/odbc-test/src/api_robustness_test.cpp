@@ -114,15 +114,7 @@ struct ApiRobustnessTestSuiteFixture
 
     static Ignite StartAdditionalNode(const char* name)
     {
-        const char* config = NULL;
-
-#ifdef IGNITE_TESTS_32
-        config = "queries-test-noodbc-32.xml";
-#else
-        config = "queries-test-noodbc.xml";
-#endif
-
-        return StartNode(config, name);
+        return StartNode("queries-test-noodbc.xml", name);
     }
 
     /**
@@ -134,15 +126,7 @@ struct ApiRobustnessTestSuiteFixture
         dbc(NULL),
         stmt(NULL)
     {
-        const char* config = NULL;
-
-#ifdef IGNITE_TESTS_32
-          config = "queries-test-32.xml";
-#else
-          config = "queries-test.xml";
-#endif
-
-        grid = StartNode(config, "NodeMain");
+        grid = StartNode("queries-test.xml", "NodeMain");
 
         testCache = grid.GetCache<int64_t, TestType>("cache");
     }

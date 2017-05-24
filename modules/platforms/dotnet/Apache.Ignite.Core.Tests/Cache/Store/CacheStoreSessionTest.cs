@@ -48,11 +48,22 @@ namespace Apache.Ignite.Core.Tests.Cache.Store
         [TestFixtureSetUp]
         public void BeforeTests()
         {
-            Ignition.Start(new IgniteConfiguration(TestUtils.GetTestConfiguration())
+            //TestUtils.JVM_DEBUG = true;
+
+            TestUtils.KillProcesses();
+
+            TestUtils.JvmDebug = true;
+
+            IgniteConfiguration cfg = new IgniteConfiguration
             {
                 IgniteInstanceName = IgniteName,
+                JvmClasspath = TestUtils.CreateTestClasspath(),
+                JvmOptions = TestUtils.TestJavaOptions(),
                 SpringConfigUrl = @"config\cache\store\cache-store-session.xml"
-            });
+            };
+
+
+            Ignition.Start(cfg);
         }
 
         /// <summary>

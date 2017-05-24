@@ -191,7 +191,8 @@ public class GridClientDataImpl extends GridClientAbstractProjection<GridClientD
         A.notNull(key, "key");
 
         return withReconnectHandling(new ClientProjectionClosure<Boolean>() {
-            @Override public GridClientFuture<Boolean> apply(GridClientConnection conn, UUID destNodeId)
+            @Override
+            public GridClientFuture<Boolean> apply(GridClientConnection conn, UUID destNodeId)
                 throws GridClientConnectionResetException, GridClientClosedException {
                 return conn.cacheRemove(cacheName, key, flags, destNodeId);
             }

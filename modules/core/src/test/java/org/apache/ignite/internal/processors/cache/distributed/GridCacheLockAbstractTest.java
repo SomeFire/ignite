@@ -111,8 +111,8 @@ public abstract class GridCacheLockAbstractTest extends GridCommonAbstractTest {
         ignite1 = startGrid(1);
         ignite2 = startGrid(2);
 
-        cache1 = ignite1.cache(DEFAULT_CACHE_NAME);
-        cache2 = ignite2.cache(DEFAULT_CACHE_NAME);
+        cache1 = ignite1.cache(null);
+        cache2 = ignite2.cache(null);
     }
 
     /** {@inheritDoc} */
@@ -507,7 +507,7 @@ public abstract class GridCacheLockAbstractTest extends GridCommonAbstractTest {
      * @throws Throwable If failed.
      */
     public void testLockReentrancy() throws Throwable {
-        Affinity<Integer> aff = ignite1.affinity(DEFAULT_CACHE_NAME);
+        Affinity<Integer> aff = ignite1.affinity(null);
 
         for (int i = 10; i < 100; i++) {
             log.info("Test lock [key=" + i +

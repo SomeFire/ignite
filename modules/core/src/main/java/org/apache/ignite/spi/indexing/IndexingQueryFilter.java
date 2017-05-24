@@ -25,17 +25,17 @@ import org.jetbrains.annotations.Nullable;
  */
 public interface IndexingQueryFilter {
     /**
-     * Creates optional predicate for cache.
+     * Creates optional predicate for space.
      *
-     * @param cacheName Cache name.
+     * @param spaceName Space name.
      * @return Predicate or {@code null} if no filtering is needed.
      */
-    @Nullable public <K, V> IgniteBiPredicate<K, V> forCache(String cacheName);
+    @Nullable public <K, V> IgniteBiPredicate<K, V> forSpace(@Nullable String spaceName);
 
     /**
      * Is the value required for filtering logic?
      * If false then null instead of value will be passed
-     * to IgniteBiPredicate returned by {@link #forCache(String)} method.
+     * to IgniteBiPredicate returned by {@link #forSpace(String)} method.
      *
      * @return true if value is required for filtering, false otherwise.
      */

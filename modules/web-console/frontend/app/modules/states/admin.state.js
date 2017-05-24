@@ -27,13 +27,13 @@ angular
 .config(['$stateProvider', 'AclRouteProvider', function($stateProvider, AclRoute) {
     // set up the states
     $stateProvider
-    .state('base.settings.admin', {
+    .state('settings.admin', {
         url: '/admin',
         views: {
             '@': {
                 template
             },
-            '@base.settings.admin': {
+            '@settings.admin': {
                 templateUrl
             }
         },

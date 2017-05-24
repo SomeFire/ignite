@@ -150,6 +150,11 @@ export default class AbstractTransformer {
         return this.toSection(this.generator.clusterSsl(cluster));
     }
 
+    // Generate swap group.
+    static clusterSwap(cluster) {
+        return this.toSection(this.generator.clusterSwap(cluster));
+    }
+
     // Generate time group.
     static clusterTime(cluster) {
         return this.toSection(this.generator.clusterTime(cluster));
@@ -188,6 +193,11 @@ export default class AbstractTransformer {
     // Generate IGFS fragmentizer group.
     static igfsFragmentizer(igfs) {
         return this.toSection(this.generator.igfsFragmentizer(igfs));
+    }
+
+    // Generate IGFS Dual mode group.
+    static igfsDualMode(igfs) {
+        return this.toSection(this.generator.igfsDualMode(igfs));
     }
 
     // Generate IGFS miscellaneous group.

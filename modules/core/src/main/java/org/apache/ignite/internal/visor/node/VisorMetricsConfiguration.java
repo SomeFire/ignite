@@ -17,17 +17,15 @@
 
 package org.apache.ignite.internal.visor.node;
 
-import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
+import java.io.Serializable;
 import org.apache.ignite.configuration.IgniteConfiguration;
+import org.apache.ignite.internal.LessNamingBean;
 import org.apache.ignite.internal.util.typedef.internal.S;
-import org.apache.ignite.internal.visor.VisorDataTransferObject;
 
 /**
  * Data transfer object for node metrics configuration properties.
  */
-public class VisorMetricsConfiguration extends VisorDataTransferObject {
+public class VisorMetricsConfiguration implements Serializable, LessNamingBean {
     /** */
     private static final long serialVersionUID = 0L;
 
@@ -41,56 +39,38 @@ public class VisorMetricsConfiguration extends VisorDataTransferObject {
     private long logFreq;
 
     /**
-     * Default constructor.
-     */
-    public VisorMetricsConfiguration() {
-        // No-op.
-    }
-
-    /**
-     * Create transfer object for node metrics configuration properties.
-     *
      * @param c Grid configuration.
+     * @return Data transfer object for node metrics configuration properties.
      */
-    public VisorMetricsConfiguration(IgniteConfiguration c) {
-        expTime = c.getMetricsExpireTime();
-        histSize = c.getMetricsHistorySize();
-        logFreq = c.getMetricsLogFrequency();
+    public static VisorMetricsConfiguration from(IgniteConfiguration c) {
+        VisorMetricsConfiguration cfg = new VisorMetricsConfiguration();
+
+        cfg.expTime = c.getMetricsExpireTime();
+        cfg.histSize = c.getMetricsHistorySize();
+        cfg.logFreq = c.getMetricsLogFrequency();
+
+        return cfg;
     }
 
     /**
      * @return Metrics expired time.
      */
-    public long getExpireTime() {
+    public long expireTime() {
         return expTime;
     }
 
     /**
      * @return Number of node metrics stored in memory.
      */
-    public int getHistorySize() {
+    public int historySize() {
         return histSize;
     }
 
     /**
      * @return Frequency of metrics log printout.
      */
-    public long getLoggerFrequency() {
+    public long loggerFrequency() {
         return logFreq;
-    }
-
-    /** {@inheritDoc} */
-    @Override protected void writeExternalData(ObjectOutput out) throws IOException {
-        out.writeLong(expTime);
-        out.writeInt(histSize);
-        out.writeLong(logFreq);
-    }
-
-    /** {@inheritDoc} */
-    @Override protected void readExternalData(byte protoVer, ObjectInput in) throws IOException, ClassNotFoundException {
-        expTime = in.readLong();
-        histSize = in.readInt();
-        logFreq = in.readLong();
     }
 
     /** {@inheritDoc} */

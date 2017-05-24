@@ -478,7 +478,7 @@ namespace ignite
              * @param size Collection size.
              */
             BinaryCollectionReader(impl::binary::BinaryReaderImpl* impl, int32_t id, 
-                const CollectionType::Type type,  int32_t size) : impl(impl), id(id), type(type), size(size)
+                const CollectionType type,  int32_t size) : impl(impl), id(id), type(type), size(size)
             {
                 // No-op.
             }
@@ -511,7 +511,7 @@ namespace ignite
              * @return Collection type. See CollectionType for the list of
              *     available values and their description.
              */
-            CollectionType::Type GetType()
+            CollectionType GetType()
             {
                 return type;
             }
@@ -543,7 +543,7 @@ namespace ignite
             const int32_t id;     
             
             /** Collection type. */
-            const CollectionType::Type type;  
+            const CollectionType type;  
 
             /** Size. */
             const int32_t size;                              
@@ -570,7 +570,7 @@ namespace ignite
              * @param type Map type.
              * @param size Map size.
             */
-            BinaryMapReader(impl::binary::BinaryReaderImpl* impl, int32_t id, MapType::Type type,
+            BinaryMapReader(impl::binary::BinaryReaderImpl* impl, int32_t id, MapType type,
                 int32_t size) : impl(impl), id(id), type(type), size(size)
             {
                 // No-op.
@@ -607,7 +607,7 @@ namespace ignite
              * @return Map type. See MapType for the list of available values
              *     and their description.
              */
-            MapType::Type GetType()
+            MapType GetType()
             {
                 return type;
             }
@@ -639,7 +639,7 @@ namespace ignite
             const int32_t id;     
 
             /** Map type. */
-            const MapType::Type type;
+            const MapType type;
 
             /** Size. */
             const int32_t size;

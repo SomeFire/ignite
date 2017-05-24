@@ -34,6 +34,11 @@ public interface CachePluginContext<C extends CachePluginConfiguration> {
     public IgniteConfiguration igniteConfiguration();
     
     /**
+     * @return Plugin cache configuration.
+     */
+    public C cacheConfiguration();
+
+    /**
      * @return Ignite cache configuration.
      */
     public CacheConfiguration igniteCacheConfiguration();

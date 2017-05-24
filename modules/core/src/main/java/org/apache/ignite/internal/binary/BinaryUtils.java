@@ -1451,7 +1451,7 @@ public class BinaryUtils {
     /**
      * @return Value.
      */
-    public static BinaryObject doReadBinaryObject(BinaryInputStream in, BinaryContext ctx, boolean detach) {
+    public static BinaryObject doReadBinaryObject(BinaryInputStream in, BinaryContext ctx) {
         if (in.offheapPointer() > 0) {
             int len = in.readInt();
 
@@ -1467,15 +1467,7 @@ public class BinaryUtils {
             byte[] arr = doReadByteArray(in);
             int start = in.readInt();
 
-            BinaryObjectImpl binO = new BinaryObjectImpl(ctx, arr, start);
-
-            if (detach) {
-                binO.detachAllowed(true);
-
-                return binO.detach();
-            }
-
-            return binO;
+            return new BinaryObjectImpl(ctx, arr, start);
         }
     }
 
@@ -1900,7 +1892,7 @@ public class BinaryUtils {
                 return doReadMap(in, ctx, ldr, handles, false, null);
 
             case GridBinaryMarshaller.BINARY_OBJ:
-                return doReadBinaryObject(in, ctx, detach);
+                return doReadBinaryObject(in, ctx);
 
             case GridBinaryMarshaller.ENUM:
                 return doReadBinaryEnum(in, ctx, doReadEnumType(in));

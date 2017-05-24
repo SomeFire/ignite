@@ -28,7 +28,7 @@ import org.apache.ignite.visor.visor._
 
 import org.apache.ignite.internal.visor.event.VisorGridDiscoveryEvent
 import org.apache.ignite.internal.visor.node.VisorNodeEventsCollectorTask
-import org.apache.ignite.internal.visor.node.VisorNodeEventsCollectorTaskArg
+import org.apache.ignite.internal.visor.node.VisorNodeEventsCollectorTask.VisorNodeEventsCollectorTaskArg
 
 import scala.collection.JavaConversions._
 import scala.collection.immutable._
@@ -42,7 +42,7 @@ import scala.language.{implicitConversions, reflectiveCalls}
  * {{{
  * +---------------------------------------------------------------------------------------+
  * | disco | Prints topology change log as seen from the oldest node.                      |
- * |       | Time frame for querying events can be specified in arguments.                 |
+ * |       | Timeframe for querying events can be specified in arguments.                  |
  * |       |                                                                               |
  * |       | Note that this command depends on Ignite events.                              |
  * |       |                                                                               |
@@ -66,7 +66,7 @@ import scala.language.{implicitConversions, reflectiveCalls}
  * ====Arguments====
  * {{{
  *     -t=<num>s|m|h|d
- *         Defines time frame for querying events:
+ *         Defines timeframe for querying events:
  *            =<num>s Events fired during last <num> seconds.
  *            =<num>m Events fired during last <num> minutes.
  *            =<num>h Events fired during last <num> hours.
@@ -107,7 +107,7 @@ class VisorDiscoveryCommand extends VisorConsoleCommand {
 
     /**
      * ===Command===
-     * Prints discovery events within specified time frame.
+     * Prints discovery events within specified timeframe.
      *
      * ===Examples===
      * <ex>disco "-r"</ex>
@@ -143,7 +143,7 @@ class VisorDiscoveryCommand extends VisorConsoleCommand {
                     try
                         cntOpt.fold(Int.MaxValue)(_.toInt)
                     catch {
-                        case _: NumberFormatException =>
+                        case e: NumberFormatException =>
                             scold("Invalid count: " + cntOpt.get)
 
                             return
@@ -184,9 +184,9 @@ class VisorDiscoveryCommand extends VisorConsoleCommand {
 
                 evts.take(cnt).foreach {
                     case de: VisorGridDiscoveryEvent =>
-                        t +=(formatDateTime(de.getTimestamp), de.getName,
-                            nodeId8(de.getEventNodeId) + (if (de.isDaemon) "(daemon)" else ""),
-                            if (F.isEmpty(de.getAddress)) NA else de.getAddress)
+                        t +=(formatDateTime(de.timestamp()), de.name(),
+                            nodeId8(de.evtNodeId()) + (if (de.isDaemon) "(daemon)" else ""),
+                            if (F.isEmpty(de.address())) NA else de.address())
                     case _ =>
                 }
 
@@ -216,12 +216,12 @@ class VisorDiscoveryCommand extends VisorConsoleCommand {
 
         if (nodeStartTime > System.currentTimeMillis() - tmFrame) {
             val root = new VisorGridDiscoveryEvent(EVT_NODE_JOINED, null, U.gridEventName(EVT_NODE_JOINED),
-                node.id(), nodeStartTime, "", "", node.id, node.addresses().head, node.isDaemon, 0L)
+                node.id(), nodeStartTime, "", "", node.id, node.addresses().head, node.isDaemon, 0)
 
             evts = Seq(root) ++ evts
         }
 
-        evts = evts.sortBy(_.getTimestamp)
+        evts = evts.sortBy(_.timestamp())
 
         if (reverse) evts.reverse else evts
     }
@@ -239,7 +239,7 @@ object VisorDiscoveryCommand {
         shortInfo = "Prints topology change log.",
         longInfo = List(
             "Prints topology change log as seen from the oldest node.",
-            "Time frame for querying events can be specified in arguments.",
+            "Timeframe for querying events can be specified in arguments.",
             " ",
             "Note that this command depends on Ignite events.",
             " ",
@@ -257,7 +257,7 @@ object VisorDiscoveryCommand {
         ),
         args = List(
             "-t=<num>s|m|h|d" -> List(
-                "Defines time frame for querying events:",
+                "Defines timeframe for quering events:",
                 "   =<num>s Events fired during last <num> seconds.",
                 "   =<num>m Events fired during last <num> minutes.",
                 "   =<num>h Events fired during last <num> hours.",

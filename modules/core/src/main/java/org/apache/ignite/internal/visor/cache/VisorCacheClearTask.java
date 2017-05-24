@@ -24,6 +24,8 @@ import org.apache.ignite.internal.processors.task.GridInternal;
 import org.apache.ignite.internal.util.typedef.internal.S;
 import org.apache.ignite.internal.visor.VisorJob;
 import org.apache.ignite.internal.visor.VisorOneNodeTask;
+import org.apache.ignite.lang.IgniteBiTuple;
+import org.apache.ignite.lang.IgniteCallable;
 import org.apache.ignite.lang.IgniteFuture;
 import org.apache.ignite.lang.IgniteInClosure;
 import org.apache.ignite.resources.JobContextResource;
@@ -32,27 +34,30 @@ import org.apache.ignite.resources.JobContextResource;
  * Task that clears specified caches on specified node.
  */
 @GridInternal
-public class VisorCacheClearTask extends VisorOneNodeTask<VisorCacheClearTaskArg, VisorCacheClearTaskResult> {
+public class VisorCacheClearTask extends VisorOneNodeTask<String, IgniteBiTuple<Integer, Integer>> {
     /** */
     private static final long serialVersionUID = 0L;
 
     /** {@inheritDoc} */
-    @Override protected VisorCacheClearJob job(VisorCacheClearTaskArg arg) {
+    @Override protected VisorCacheClearJob job(String arg) {
         return new VisorCacheClearJob(arg, debug);
     }
 
     /**
      * Job that clear specified caches.
      */
-    private static class VisorCacheClearJob extends VisorJob<VisorCacheClearTaskArg, VisorCacheClearTaskResult> {
+    private static class VisorCacheClearJob extends VisorJob<String, IgniteBiTuple<Integer, Integer>> {
         /** */
         private static final long serialVersionUID = 0L;
 
         /** */
-        private final IgniteInClosure<IgniteFuture> lsnr;
+        private final String cacheName;
 
         /** */
-        private IgniteFuture<Long>[] futs;
+        private final IgniteInClosure<IgniteFuture<Integer>> lsnr;
+
+        /** */
+        private IgniteFuture<Integer>[] futs;
 
         /** */
         @JobContextResource
@@ -61,17 +66,19 @@ public class VisorCacheClearTask extends VisorOneNodeTask<VisorCacheClearTaskArg
         /**
          * Create job.
          *
-         * @param arg Task argument.
+         * @param cacheName Cache name to clear.
          * @param debug Debug flag.
          */
-        private VisorCacheClearJob(VisorCacheClearTaskArg arg, boolean debug) {
-            super(arg, debug);
+        private VisorCacheClearJob(String cacheName, boolean debug) {
+            super(cacheName, debug);
 
-            lsnr = new IgniteInClosure<IgniteFuture>() {
+            this.cacheName = cacheName;
+
+            lsnr = new IgniteInClosure<IgniteFuture<Integer>>() {
                 /** */
                 private static final long serialVersionUID = 0L;
 
-                @Override public void apply(IgniteFuture f) {
+                @Override public void apply(IgniteFuture<Integer> f) {
                     assert futs[0].isDone();
                     assert futs[1] == null || futs[1].isDone();
                     assert futs[2] == null || futs[2].isDone();
@@ -82,10 +89,13 @@ public class VisorCacheClearTask extends VisorOneNodeTask<VisorCacheClearTaskArg
         }
 
         /**
-         * @param fut Future to listen.
-         * @return {@code true} If future was not completed and this job should holdCC.
+         * @param fut Future for asynchronous cache operation.
+         * @param idx Index.
+         * @return {@code true} If subJob was not completed and this job should be suspended.
          */
-        private boolean callAsync(IgniteFuture fut) {
+        private boolean callAsync(IgniteFuture<Integer> fut, int idx) {
+            futs[idx] = fut;
+
             if (fut.isDone())
                 return false;
 
@@ -97,48 +107,91 @@ public class VisorCacheClearTask extends VisorOneNodeTask<VisorCacheClearTaskArg
         }
 
         /** {@inheritDoc} */
-        @Override protected VisorCacheClearTaskResult run(final VisorCacheClearTaskArg arg) {
+        @Override protected IgniteBiTuple<Integer, Integer> run(final String cacheName) {
             if (futs == null)
                 futs = new IgniteFuture[3];
 
             if (futs[0] == null || futs[1] == null || futs[2] == null) {
-                String cacheName = arg.getCacheName();
-
                 IgniteCache cache = ignite.cache(cacheName);
 
-                if (cache == null)
-                    throw new IllegalStateException("Failed to find cache for name: " + cacheName);
-
                 if (futs[0] == null) {
-                    futs[0] = cache.sizeLongAsync(CachePeekMode.PRIMARY);
-
-                    if (callAsync(futs[0]))
+                    if (callAsync(cache.sizeAsync(CachePeekMode.PRIMARY), 0))
                         return null;
                 }
 
                 if (futs[1] == null) {
-                    futs[1] = cache.clearAsync();
-
-                    if (callAsync(futs[1]))
+                    if (callAsync(cache.clearAsync(), 1))
                         return null;
                 }
-
+                
                 if (futs[2] == null) {
-                    futs[2] = cache.sizeLongAsync(CachePeekMode.PRIMARY);
-
-                    if (callAsync(futs[2]))
+                    if (callAsync(cache.sizeAsync(CachePeekMode.PRIMARY), 2))
                         return null;
                 }
             }
 
             assert futs[0].isDone() && futs[1].isDone() && futs[2].isDone();
 
-            return new VisorCacheClearTaskResult(futs[0].get(), futs[2].get());
+            return new IgniteBiTuple<>(futs[0].get(), futs[2].get());
         }
 
         /** {@inheritDoc} */
         @Override public String toString() {
             return S.toString(VisorCacheClearJob.class, this);
+        }
+    }
+
+    /**
+     * Callable to get cache size.
+     *
+     * @deprecated This class needed only for compatibility.
+     */
+    @GridInternal @Deprecated
+    private static class VisorCacheSizeCallable implements IgniteCallable<Integer> {
+        /** */
+        private static final long serialVersionUID = 0L;
+
+        /** */
+        private final IgniteCache cache;
+
+        /**
+         * @param cache Cache to take size from.
+         */
+        private VisorCacheSizeCallable(IgniteCache cache) {
+            this.cache = cache;
+        }
+
+        /** {@inheritDoc} */
+        @Override public Integer call() throws Exception {
+            return cache.size(CachePeekMode.PRIMARY);
+        }
+    }
+
+    /**
+     * Callable to clear cache.
+     *
+     * @deprecated This class needed only for compatibility.
+     */
+    @GridInternal @Deprecated
+    private static class VisorCacheClearCallable implements IgniteCallable<Integer> {
+        /** */
+        private static final long serialVersionUID = 0L;
+
+        /** */
+        private final IgniteCache cache;
+
+        /**
+         * @param cache Cache to clear.
+         */
+        private VisorCacheClearCallable(IgniteCache cache) {
+            this.cache = cache;
+        }
+
+        /** {@inheritDoc} */
+        @Override public Integer call() throws Exception {
+            cache.clear();
+
+            return 0;
         }
     }
 }

@@ -83,24 +83,24 @@ public class GridProjectionForCachesOnDaemonNodeSelfTest extends GridCommonAbstr
 
     /** {@inheritDoc} */
     protected void beforeTest() throws Exception {
-        ignite.getOrCreateCache(DEFAULT_CACHE_NAME);
+        ignite.getOrCreateCache((String)null);
     }
 
     /** {@inheritDoc} */
     @Override protected void afterTest() throws Exception {
-        ignite.cache(DEFAULT_CACHE_NAME).destroy();
+        ignite.cache(null).destroy();
     }
 
     /**
      * @throws Exception If failed.
      */
     public void testForDataNodes() throws Exception {
-        ClusterGroup grp = ignite.cluster().forDataNodes(DEFAULT_CACHE_NAME);
+        ClusterGroup grp = ignite.cluster().forDataNodes(null);
 
         assertFalse(grp.nodes().isEmpty());
 
         try {
-            daemon.cluster().forDataNodes(DEFAULT_CACHE_NAME);
+            daemon.cluster().forDataNodes(null);
         }
         catch (IllegalStateException ignored) {
             return;
@@ -113,12 +113,12 @@ public class GridProjectionForCachesOnDaemonNodeSelfTest extends GridCommonAbstr
      * @throws Exception If failed.
      */
     public void testForClientNodes() throws Exception {
-        ClusterGroup grp = ignite.cluster().forClientNodes(DEFAULT_CACHE_NAME);
+        ClusterGroup grp = ignite.cluster().forClientNodes(null);
 
         assertTrue(grp.nodes().isEmpty());
 
         try {
-            daemon.cluster().forClientNodes(DEFAULT_CACHE_NAME);
+            daemon.cluster().forClientNodes(null);
         }
         catch (IllegalStateException ignored) {
             return;
@@ -131,12 +131,12 @@ public class GridProjectionForCachesOnDaemonNodeSelfTest extends GridCommonAbstr
      * @throws Exception If failed.
      */
     public void testForCacheNodes() throws Exception {
-        ClusterGroup grp = ignite.cluster().forCacheNodes(DEFAULT_CACHE_NAME);
+        ClusterGroup grp = ignite.cluster().forCacheNodes(null);
 
         assertFalse(grp.nodes().isEmpty());
 
         try {
-            daemon.cluster().forCacheNodes(DEFAULT_CACHE_NAME);
+            daemon.cluster().forCacheNodes(null);
         }
         catch (IllegalStateException ignored) {
             return;

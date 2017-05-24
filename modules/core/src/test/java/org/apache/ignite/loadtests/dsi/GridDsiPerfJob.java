@@ -51,10 +51,6 @@ public class GridDsiPerfJob extends ComputeJobAdapter {
         new ConcurrentHashMap8<>();
 
     /** */
-    @AffinityKeyMapped
-    private String affKey;
-
-    /** */
     private static final long PRINT_FREQ = 10000;
 
     /** */
@@ -75,8 +71,6 @@ public class GridDsiPerfJob extends ComputeJobAdapter {
      */
     public GridDsiPerfJob(@Nullable GridDsiMessage msg) {
         super(msg);
-
-        affKey = message().getTerminalId();
     }
 
     /**
@@ -89,6 +83,7 @@ public class GridDsiPerfJob extends ComputeJobAdapter {
     /**
      * @return Terminal ID.
      */
+    @AffinityKeyMapped
     @Nullable public String terminalId() {
         GridDsiMessage msg = message();
 

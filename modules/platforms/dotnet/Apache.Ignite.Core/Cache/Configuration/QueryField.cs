@@ -89,7 +89,7 @@ namespace Apache.Ignite.Core.Cache.Configuration
             {
                 FieldTypeName = value == null
                     ? null
-                    : (JavaTypes.GetJavaTypeName(value) ?? BinaryUtils.GetSqlTypeName(value));
+                    : (JavaTypes.GetJavaTypeName(value) ?? BinaryUtils.GetTypeName(value));
 
                 _type = value;
             }

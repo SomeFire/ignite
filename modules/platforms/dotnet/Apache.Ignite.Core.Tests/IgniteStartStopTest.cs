@@ -20,7 +20,6 @@ namespace Apache.Ignite.Core.Tests
     using System;
     using System.Collections.Generic;
     using System.IO;
-    using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
     using Apache.Ignite.Core.Common;
@@ -35,7 +34,16 @@ namespace Apache.Ignite.Core.Tests
     public class IgniteStartStopTest
     {
         /// <summary>
-        /// Test teardown.
+        /// 
+        /// </summary>
+        [SetUp]
+        public void SetUp()
+        {
+            TestUtils.KillProcesses();
+        }
+
+        /// <summary>
+        /// 
         /// </summary>
         [TearDown]
         public void TearDown()
@@ -67,7 +75,7 @@ namespace Apache.Ignite.Core.Tests
         {
             var cfg = new IgniteConfiguration
             {
-                SpringConfigUrl = "config\\start-test-grid1.xml",
+                SpringConfigUrl = "config/default-config.xml",
                 JvmClasspath = TestUtils.CreateTestClasspath()
             };
 
@@ -96,15 +104,12 @@ namespace Apache.Ignite.Core.Tests
             var grid1 = Ignition.Start(cfg);
 
             Assert.AreEqual("grid1", grid1.Name);
-            Assert.AreSame(grid1, Ignition.GetIgnite());
-            Assert.AreSame(grid1, Ignition.GetAll().Single());
 
             cfg.SpringConfigUrl = cfgs[1];
 
             var grid2 = Ignition.Start(cfg);
 
             Assert.AreEqual("grid2", grid2.Name);
-            Assert.Throws<IgniteException>(() => Ignition.GetIgnite());
 
             cfg.SpringConfigUrl = cfgs[2];
 
@@ -119,11 +124,8 @@ namespace Apache.Ignite.Core.Tests
             Assert.AreSame(grid2, Ignition.TryGetIgnite("grid2"));
 
             Assert.AreSame(grid3, Ignition.GetIgnite(null));
-            Assert.AreSame(grid3, Ignition.GetIgnite());
             Assert.AreSame(grid3, Ignition.TryGetIgnite(null));
             Assert.AreSame(grid3, Ignition.TryGetIgnite());
-
-            Assert.AreEqual(new[] {grid3, grid1, grid2}, Ignition.GetAll().OrderBy(x => x.Name).ToArray());
 
             Assert.Throws<IgniteException>(() => Ignition.GetIgnite("invalid_name"));
             Assert.IsNull(Ignition.TryGetIgnite("invalid_name"));
@@ -161,36 +163,27 @@ namespace Apache.Ignite.Core.Tests
         [Test]
         public void TestStartTheSameName()
         {
-            var cfg = new IgniteConfiguration(TestUtils.GetTestConfiguration())
+            var cfg = new IgniteConfiguration
             {
                 SpringConfigUrl = "config\\start-test-grid1.xml",
+                JvmOptions = TestUtils.TestJavaOptions(),
+                JvmClasspath = TestUtils.CreateTestClasspath()
             };
 
             var grid1 = Ignition.Start(cfg);
 
             Assert.AreEqual("grid1", grid1.Name);
-            
-            var ex = Assert.Throws<IgniteException>(() => Ignition.Start(cfg));
-            Assert.AreEqual("Ignite instance with this name has already been started: grid1", ex.Message);
-        }
 
-        /// <summary>
-        /// Tests automatic grid name generation.
-        /// </summary>
-        [Test]
-        public void TestStartUniqueName()
-        {
-            var cfg = TestUtils.GetTestConfiguration();
-            cfg.AutoGenerateIgniteInstanceName = true;
+            try
+            {
+                Ignition.Start(cfg);
 
-            Ignition.Start(cfg);
-            Assert.IsNotNull(Ignition.GetIgnite());
-            Assert.IsNotNull(Ignition.TryGetIgnite());
-
-            Ignition.Start(cfg);
-            Assert.Throws<IgniteException>(() => Ignition.GetIgnite());
-            Assert.IsNull(Ignition.TryGetIgnite());
-            Assert.AreEqual(2, Ignition.GetAll().Count);
+                Assert.Fail("Start should fail.");
+            }
+            catch (IgniteException e)
+            {
+                Console.WriteLine("Expected exception: " + e);
+            }
         }
 
         /// <summary>
@@ -199,9 +192,11 @@ namespace Apache.Ignite.Core.Tests
         [Test]
         public void TestUsageAfterStop()
         {
-            var cfg = new IgniteConfiguration(TestUtils.GetTestConfiguration())
+            var cfg = new IgniteConfiguration
             {
                 SpringConfigUrl = "config\\start-test-grid1.xml",
+                JvmOptions = TestUtils.TestJavaOptions(),
+                JvmClasspath = TestUtils.CreateTestClasspath()
             };
 
             var grid = Ignition.Start(cfg);
@@ -210,10 +205,16 @@ namespace Apache.Ignite.Core.Tests
 
             grid.Dispose();
 
-            var ex = Assert.Throws<InvalidOperationException>(() => grid.GetCache<int, int>("cache1"));
-            Assert.AreEqual("Grid is in invalid state to perform this operation. " +
-                            "It either not started yet or has already being or have stopped " +
-                            "[igniteInstanceName=grid1, state=STOPPED]", ex.Message);
+            try
+            {
+                grid.GetCache<int, int>("cache1");
+
+                Assert.Fail();
+            }
+            catch (InvalidOperationException e)
+            {
+                Console.WriteLine("Expected exception: " + e);
+            }
         }
 
         /// <summary>
@@ -260,14 +261,18 @@ namespace Apache.Ignite.Core.Tests
         [Test]
         public void TestClientMode()
         {
-            var servCfg = new IgniteConfiguration(TestUtils.GetTestConfiguration())
+            var servCfg = new IgniteConfiguration
             {
                 SpringConfigUrl = "config\\start-test-grid1.xml",
+                JvmOptions = TestUtils.TestJavaOptions(),
+                JvmClasspath = TestUtils.CreateTestClasspath()
             };
 
-            var clientCfg = new IgniteConfiguration(TestUtils.GetTestConfiguration())
+            var clientCfg = new IgniteConfiguration
             {
                 SpringConfigUrl = "config\\start-test-grid2.xml",
+                JvmOptions = TestUtils.TestJavaOptions(),
+                JvmClasspath = TestUtils.CreateTestClasspath()
             };
 
             try

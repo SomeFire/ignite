@@ -49,12 +49,16 @@ public class GridDistributedCacheEntry extends GridCacheMapEntry {
     /**
      * @param ctx Cache context.
      * @param key Cache key.
+     * @param hash Key hash value.
+     * @param val Entry value.
      */
     public GridDistributedCacheEntry(
         GridCacheContext ctx,
-        KeyCacheObject key
+        KeyCacheObject key,
+        int hash,
+        CacheObject val
     ) {
-        super(ctx, key);
+        super(ctx, key, hash, val);
     }
 
     /**

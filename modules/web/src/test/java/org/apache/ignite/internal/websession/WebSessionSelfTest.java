@@ -200,10 +200,6 @@ public class WebSessionSelfTest extends GridCommonAbstractTest {
         }
     }
 
-    /**
-     * @param reqMarker Request marker.
-     * @param sesId Session id.
-     */
     private String sendRequestAndCheckMarker(String reqMarker, String sesId) throws IOException, IgniteCheckedException {
         URLConnection conn = new URL("http://localhost:" + TEST_JETTY_PORT +
             "/ignitetest/test?marker=" + reqMarker).openConnection();

@@ -80,7 +80,7 @@ public class GridCachePartitionedNearDisabledMetricsSelfTest extends GridCacheAb
     public void testGettingRemovedKey() throws Exception {
         fail("https://issues.apache.org/jira/browse/IGNITE-819");
 
-        IgniteCache<Integer, Integer> cache = grid(0).cache(DEFAULT_CACHE_NAME);
+        IgniteCache<Integer, Integer> cache = grid(0).cache(null);
 
         cache.put(0, 0);
 
@@ -88,14 +88,14 @@ public class GridCachePartitionedNearDisabledMetricsSelfTest extends GridCacheAb
             Ignite g = grid(i);
 
             // TODO: getting of removed key will produce 3 inner read operations.
-            g.cache(DEFAULT_CACHE_NAME).removeAll();
+            g.cache(null).removeAll();
 
             // TODO: getting of removed key will produce inner write and 4 inner read operations.
-            //((IgniteKernal)g).cache(DEFAULT_CACHE_NAME).remove(0);
+            //((IgniteKernal)g).cache(null).remove(0);
 
-            assert g.cache(DEFAULT_CACHE_NAME).localSize() == 0;
+            assert g.cache(null).localSize() == 0;
 
-            g.cache(DEFAULT_CACHE_NAME).mxBean().clear();
+            g.cache(null).mxBean().clear();
         }
 
         assertNull("Value is not null for key: " + 0, cache.get(0));
@@ -107,7 +107,7 @@ public class GridCachePartitionedNearDisabledMetricsSelfTest extends GridCacheAb
         long misses = 0;
 
         for (int i = 0; i < gridCount(); i++) {
-            CacheMetrics m = grid(i).cache(DEFAULT_CACHE_NAME).localMetrics();
+            CacheMetrics m = grid(i).cache(null).localMetrics();
 
             removes += m.getCacheRemovals();
             reads += m.getCacheGets();

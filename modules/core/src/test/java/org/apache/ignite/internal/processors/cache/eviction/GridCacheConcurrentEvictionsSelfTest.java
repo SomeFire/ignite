@@ -70,12 +70,13 @@ public class GridCacheConcurrentEvictionsSelfTest extends GridCommonAbstractTest
 
         cc.setCacheMode(mode);
 
+        cc.setSwapEnabled(false);
+
         cc.setWriteSynchronizationMode(FULL_SYNC);
 
         cc.setNearConfiguration(null);
 
         cc.setEvictionPolicy(plc);
-        cc.setOnheapCacheEnabled(true);
 
         c.setCacheConfiguration(cc);
 
@@ -150,7 +151,7 @@ public class GridCacheConcurrentEvictionsSelfTest extends GridCommonAbstractTest
         try {
             Ignite ignite = startGrid(1);
 
-            final IgniteCache<Integer, Integer> cache = ignite.cache(DEFAULT_CACHE_NAME);
+            final IgniteCache<Integer, Integer> cache = ignite.cache(null);
 
             // Warm up.
             for (int i = 0; i < warmUpPutsCnt; i++) {

@@ -80,18 +80,17 @@ public final class IgfsMetaDirectoryListingAddProcessor implements EntryProcesso
     @Override public Void process(MutableEntry<IgniteUuid, IgfsEntryInfo> e, Object... args) {
         IgfsEntryInfo fileInfo = e.getValue();
 
-        assert fileInfo != null && fileInfo.isDirectory() : fileInfo;
+        assert fileInfo.isDirectory();
 
         Map<String, IgfsListingEntry> listing = new HashMap<>(fileInfo.listing());
 
         // Modify listing in-place.
         IgfsListingEntry oldEntry = listing.put(fileName, entry);
 
-        if (oldEntry != null && !oldEntry.fileId().equals(entry.fileId())) {
+        if (oldEntry != null && !oldEntry.fileId().equals(entry.fileId()))
             throw new IgniteException("Directory listing contains unexpected file" +
                 " [listing=" + listing + ", fileName=" + fileName + ", entry=" + entry +
                 ", oldEntry=" + oldEntry + ']');
-        }
 
         e.setValue(fileInfo.listing(listing));
 

@@ -55,9 +55,6 @@ public class GridIoPolicy {
     /** Pool for service proxy executions. */
     public static final byte SERVICE_POOL = 11;
 
-    /** Schema pool.  */
-    public static final byte SCHEMA_POOL = 12;
-
     /**
      * Defines the range of reserved pools that are not available for plugins.
      * @param key The key.

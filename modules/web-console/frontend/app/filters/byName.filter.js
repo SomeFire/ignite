@@ -15,9 +15,9 @@
  * limitations under the License.
  */
 
-export default [() => (arr, search) => {
+export default ['byName', [() => (arr, search) => {
     if (!(arr && arr.length) || !search)
         return arr;
 
     return _.filter(arr, ({ name }) => name.indexOf(search) >= 0);
-}];
+}]];

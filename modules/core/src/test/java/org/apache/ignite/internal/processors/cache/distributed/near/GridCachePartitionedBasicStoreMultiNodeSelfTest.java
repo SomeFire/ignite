@@ -22,9 +22,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import javax.cache.configuration.Factory;
 import org.apache.ignite.IgniteCache;
-import org.apache.ignite.cache.store.CacheStore;
 import org.apache.ignite.configuration.CacheConfiguration;
 import org.apache.ignite.configuration.IgniteConfiguration;
 import org.apache.ignite.configuration.NearCacheConfiguration;
@@ -101,10 +99,15 @@ public class GridCachePartitionedBasicStoreMultiNodeSelfTest extends GridCommonA
 
         cc.setCacheMode(PARTITIONED);
         cc.setWriteSynchronizationMode(FULL_SYNC);
+        cc.setSwapEnabled(false);
         cc.setAtomicityMode(TRANSACTIONAL);
         cc.setBackups(1);
 
-        cc.setCacheStoreFactory(new StoreFactory());
+        GridCacheTestStore store = new GridCacheTestStore();
+
+        stores.add(store);
+
+        cc.setCacheStoreFactory(singletonFactory(store));
         cc.setReadThrough(true);
         cc.setWriteThrough(true);
         cc.setLoadPreviousValue(true);
@@ -266,19 +269,5 @@ public class GridCachePartitionedBasicStoreMultiNodeSelfTest extends GridCommonA
         assertEquals(expPut, put);
         assertEquals(expPutAll, putAll);
         assertEquals(expTxs, txs);
-    }
-
-    /**
-     *
-     */
-    static class StoreFactory implements Factory<CacheStore> {
-        /** {@inheritDoc} */
-        @Override public CacheStore create() {
-            GridCacheTestStore store = new GridCacheTestStore();
-
-            stores.add(store);
-
-            return store;
-        }
     }
 }

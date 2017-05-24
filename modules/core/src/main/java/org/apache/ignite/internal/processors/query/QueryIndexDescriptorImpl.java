@@ -17,9 +17,7 @@
 
 package org.apache.ignite.internal.processors.query;
 
-import org.apache.ignite.IgniteCheckedException;
 import org.apache.ignite.cache.QueryIndexType;
-import org.apache.ignite.internal.util.tostring.GridToStringExclude;
 import org.apache.ignite.internal.util.typedef.T2;
 import org.apache.ignite.internal.util.typedef.internal.S;
 
@@ -47,46 +45,16 @@ public class QueryIndexDescriptorImpl implements GridQueryIndexDescriptor {
     /** Fields which should be indexed in descending order. */
     private Collection<String> descendings;
 
-    /** Type descriptor. */
-    @GridToStringExclude
-    private final QueryTypeDescriptorImpl typDesc;
-
-    /** Index name. */
-    private final String name;
-
     /** */
     private final QueryIndexType type;
 
-    /** */
-    private final int inlineSize;
-
     /**
-     * Constructor.
-     *
-     * @param typDesc Type descriptor.
-     * @param name Index name.
      * @param type Type.
-     * @param inlineSize Inline size.
      */
-    public QueryIndexDescriptorImpl(QueryTypeDescriptorImpl typDesc, String name, QueryIndexType type, int inlineSize) {
+    public QueryIndexDescriptorImpl(QueryIndexType type) {
         assert type != null;
 
-        this.typDesc = typDesc;
-        this.name = name;
         this.type = type;
-        this.inlineSize = inlineSize;
-    }
-
-    /**
-     * @return Type descriptor.
-     */
-    public QueryTypeDescriptorImpl typeDescriptor() {
-        return typDesc;
-    }
-
-    /** {@inheritDoc} */
-    @Override public String name() {
-        return name;
     }
 
     /** {@inheritDoc} */
@@ -100,11 +68,6 @@ public class QueryIndexDescriptorImpl implements GridQueryIndexDescriptor {
     }
 
     /** {@inheritDoc} */
-    @Override public int inlineSize() {
-        return inlineSize;
-    }
-
-    /** {@inheritDoc} */
     @Override public boolean descending(String field) {
         return descendings != null && descendings.contains(field);
     }
@@ -115,14 +78,8 @@ public class QueryIndexDescriptorImpl implements GridQueryIndexDescriptor {
      * @param field Field name.
      * @param orderNum Field order number in this index.
      * @param descending Sort order.
-     * @return This instance for chaining.
-     * @throws IgniteCheckedException If failed.
      */
-    public QueryIndexDescriptorImpl addField(String field, int orderNum, boolean descending)
-        throws IgniteCheckedException {
-        if (!typDesc.hasField(field))
-            throw new IgniteCheckedException("Field not found: " + field);
-
+    public void addField(String field, int orderNum, boolean descending) {
         fields.add(new T2<>(field, orderNum));
 
         if (descending) {
@@ -131,8 +88,6 @@ public class QueryIndexDescriptorImpl implements GridQueryIndexDescriptor {
 
             descendings.add(field);
         }
-
-        return this;
     }
 
     /** {@inheritDoc} */

@@ -29,6 +29,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.Callable;
 import javax.cache.Cache;
 import javax.cache.processor.EntryProcessor;
 import javax.cache.processor.EntryProcessorException;
@@ -36,10 +37,12 @@ import javax.cache.processor.MutableEntry;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteBinary;
 import org.apache.ignite.IgniteCache;
+import org.apache.ignite.binary.BinaryArrayIdentityResolver;
 import org.apache.ignite.binary.BinaryNameMapper;
 import org.apache.ignite.binary.BinaryObject;
 import org.apache.ignite.binary.BinaryObjectBuilder;
 import org.apache.ignite.binary.BinaryObjectException;
+import org.apache.ignite.binary.BinaryIdentityResolver;
 import org.apache.ignite.binary.BinaryReader;
 import org.apache.ignite.binary.BinaryTypeConfiguration;
 import org.apache.ignite.binary.BinaryWriter;
@@ -58,10 +61,12 @@ import org.apache.ignite.internal.binary.BinaryContext;
 import org.apache.ignite.internal.binary.BinaryMarshaller;
 import org.apache.ignite.internal.binary.BinaryObjectImpl;
 import org.apache.ignite.internal.binary.BinaryObjectOffheapImpl;
+import org.apache.ignite.binary.BinaryFieldIdentityResolver;
 import org.apache.ignite.internal.processors.cache.GridCacheAdapter;
 import org.apache.ignite.internal.processors.cache.GridCacheEntryEx;
 import org.apache.ignite.internal.processors.cache.IgniteCacheProxy;
 import org.apache.ignite.internal.processors.cache.MapCacheStoreStrategy;
+import org.apache.ignite.internal.util.typedef.F;
 import org.apache.ignite.internal.util.typedef.P2;
 import org.apache.ignite.internal.util.typedef.internal.CU;
 import org.apache.ignite.internal.util.typedef.internal.S;
@@ -78,6 +83,7 @@ import org.apache.ignite.transactions.TransactionIsolation;
 import org.jetbrains.annotations.Nullable;
 
 import static org.apache.ignite.cache.CacheAtomicityMode.TRANSACTIONAL;
+import static org.apache.ignite.cache.CacheMemoryMode.OFFHEAP_TIERED;
 import static org.apache.ignite.cache.CacheWriteSynchronizationMode.FULL_SYNC;
 import static org.apache.ignite.transactions.TransactionConcurrency.PESSIMISTIC;
 import static org.apache.ignite.transactions.TransactionIsolation.READ_COMMITTED;
@@ -124,6 +130,33 @@ public abstract class GridCacheBinaryObjectsAbstractSelfTest extends GridCommonA
 
         binTypes.add(new BinaryTypeConfiguration() {{
             setTypeName("ArrayHashedKey");
+
+            setIdentityResolver(new BinaryArrayIdentityResolver());
+        }});
+
+        binTypes.add(new BinaryTypeConfiguration() {{
+            setTypeName("FieldsHashedKey");
+
+            BinaryFieldIdentityResolver id = new BinaryFieldIdentityResolver();
+            id.setFieldNames("fld1", "fld3");
+
+            setIdentityResolver(id);
+        }});
+
+        binTypes.add(new BinaryTypeConfiguration() {{
+            setTypeName("CustomHashedKey");
+
+            setIdentityResolver(new IdentityResolver());
+        }});
+
+        binTypes.add(new BinaryTypeConfiguration() {{
+            setTypeName(ComplexBinaryFieldsListHashedKey.class.getName());
+
+            BinaryFieldIdentityResolver id = new BinaryFieldIdentityResolver();
+
+            id.setFieldNames("secondField", "thirdField");
+
+            setIdentityResolver(id);
         }});
 
         BinaryConfiguration binCfg = new BinaryConfiguration();
@@ -132,8 +165,10 @@ public abstract class GridCacheBinaryObjectsAbstractSelfTest extends GridCommonA
         cfg.setBinaryConfiguration(binCfg);
 
         CacheKeyConfiguration arrayHashCfg = new CacheKeyConfiguration("ArrayHashedKey", "fld1");
+        CacheKeyConfiguration fieldsHashCfg = new CacheKeyConfiguration("FieldsHashedKey", "fld1");
+        CacheKeyConfiguration customHashCfg = new CacheKeyConfiguration("CustomHashedKey", "fld1");
 
-        cfg.setCacheKeyConfiguration(arrayHashCfg);
+        cfg.setCacheKeyConfiguration(arrayHashCfg, fieldsHashCfg, customHashCfg);
 
         GridCacheBinaryObjectsAbstractSelfTest.cfg = cfg;
 
@@ -145,7 +180,7 @@ public abstract class GridCacheBinaryObjectsAbstractSelfTest extends GridCommonA
      */
     @SuppressWarnings("unchecked")
     private CacheConfiguration createCacheConfig() {
-        CacheConfiguration cacheCfg = new CacheConfiguration(DEFAULT_CACHE_NAME);
+        CacheConfiguration cacheCfg = new CacheConfiguration();
 
         cacheCfg.setCacheMode(cacheMode());
         cacheCfg.setAtomicityMode(atomicityMode());
@@ -155,9 +190,20 @@ public abstract class GridCacheBinaryObjectsAbstractSelfTest extends GridCommonA
         cacheCfg.setWriteThrough(true);
         cacheCfg.setLoadPreviousValue(true);
         cacheCfg.setBackups(1);
-        cacheCfg.setOnheapCacheEnabled(false);
+
+        if (offheapTiered()) {
+            cacheCfg.setMemoryMode(OFFHEAP_TIERED);
+            cacheCfg.setOffHeapMaxMemory(0);
+        }
 
         return cacheCfg;
+    }
+
+    /**
+     * @return {@code True} if should use OFFHEAP_TIERED mode.
+     */
+    protected boolean offheapTiered() {
+        return false;
     }
 
     /** {@inheritDoc} */
@@ -173,7 +219,7 @@ public abstract class GridCacheBinaryObjectsAbstractSelfTest extends GridCommonA
     /** {@inheritDoc} */
     @Override protected void afterTest() throws Exception {
         for (int i = 0; i < gridCount(); i++) {
-            GridCacheAdapter<Object, Object> c = ((IgniteKernal)grid(i)).internalCache(DEFAULT_CACHE_NAME);
+            GridCacheAdapter<Object, Object> c = ((IgniteKernal)grid(i)).internalCache();
 
             for (GridCacheEntryEx e : c.map().entries()) {
                 Object key = e.key().value(c.context().cacheObjectContext(), false);
@@ -191,6 +237,11 @@ public abstract class GridCacheBinaryObjectsAbstractSelfTest extends GridCommonA
 
         for (int i = 0; i < ENTRY_CNT; i++)
             c.remove(i);
+
+        if (offheapTiered()) {
+            for (int k = 0; k < 100; k++)
+                c.remove(k);
+        }
 
         assertEquals(0, c.size());
     }
@@ -214,13 +265,6 @@ public abstract class GridCacheBinaryObjectsAbstractSelfTest extends GridCommonA
      * @return Grid count.
      */
     protected abstract int gridCount();
-
-    /**
-     * @return {@code True} if on-heap cache is enabled.
-     */
-    protected boolean onheapCacheEnabled() {
-        return false;
-    }
 
     /**
      * @throws Exception If failed.
@@ -893,7 +937,7 @@ public abstract class GridCacheBinaryObjectsAbstractSelfTest extends GridCommonA
         // Now let's build an identical key for get
         BinaryObjectBuilder bldr = grid(0).binary().builder(ComplexBinaryFieldsListHashedKey.class.getName());
 
-        bldr.setField("firstField", 1);
+        bldr.setField("firstField", 365);
         bldr.setField("secondField", "value");
         bldr.setField("thirdField", 0x1020304050607080L);
 
@@ -947,7 +991,7 @@ public abstract class GridCacheBinaryObjectsAbstractSelfTest extends GridCommonA
             BinaryObjectBuilder bldr = grid(0).binary().builder("FieldsHashedKey");
 
             bldr.setField("fld1", 5);
-            bldr.setField("fld2", 100);
+            bldr.setField("fld2", 1);
             bldr.setField("fld3", "abc");
 
             BinaryObject binKey = bldr.build();
@@ -992,7 +1036,7 @@ public abstract class GridCacheBinaryObjectsAbstractSelfTest extends GridCommonA
             BinaryObjectBuilder bldr = grid(0).binary().builder("CustomHashedKey");
 
             bldr.setField("fld1", 5);
-            bldr.setField("fld2", "abc");
+            bldr.setField("fld2", "xxx");
 
             BinaryObject binKey = bldr.build();
 
@@ -1007,7 +1051,7 @@ public abstract class GridCacheBinaryObjectsAbstractSelfTest extends GridCommonA
         if (atomicityMode() != TRANSACTIONAL)
             return;
 
-        IgniteCache<Integer, TestObject> cache = ignite(0).cache(DEFAULT_CACHE_NAME);
+        IgniteCache<Integer, TestObject> cache = ignite(0).cache(null);
 
         cache.put(0, new TestObject(1));
 
@@ -1100,7 +1144,7 @@ public abstract class GridCacheBinaryObjectsAbstractSelfTest extends GridCommonA
      * @return Cache with keep binary flag.
      */
     private <K, V> IgniteCache<K, V> keepBinaryCache() {
-        return ignite(0).cache(DEFAULT_CACHE_NAME).withKeepBinary();
+        return ignite(0).cache(null).withKeepBinary();
     }
 
     /**
@@ -1232,7 +1276,8 @@ public abstract class GridCacheBinaryObjectsAbstractSelfTest extends GridCommonA
      * No-op entry processor.
      */
     private static class ObjectEntryProcessor implements EntryProcessor<Integer, TestObject, Boolean> {
-        @Override public Boolean process(MutableEntry<Integer, TestObject> entry, Object... args) throws EntryProcessorException {
+        @Override
+        public Boolean process(MutableEntry<Integer, TestObject> entry, Object... args) throws EntryProcessorException {
             TestObject obj = entry.getValue();
 
             entry.setValue(new TestObject(obj.val));
@@ -1295,6 +1340,22 @@ public abstract class GridCacheBinaryObjectsAbstractSelfTest extends GridCommonA
         /** {@inheritDoc} */
         @Override public void delete(Object key) {
             // No-op.
+        }
+    }
+
+    /**
+     *
+     */
+    private final static class IdentityResolver implements BinaryIdentityResolver {
+        /** {@inheritDoc} */
+        @Override public int hashCode(BinaryObject builder) {
+            return (Integer) builder.field("fld1") * 31 / 5;
+        }
+
+        /** {@inheritDoc} */
+        @Override public boolean equals(BinaryObject o1, BinaryObject o2) {
+            return o1 == o2 || (o1 != null && o2 != null && F.eq(o1.field("fld1"), o2.field("fld1")));
+
         }
     }
 

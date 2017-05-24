@@ -59,46 +59,48 @@ namespace ignite
         template<>
         struct BinaryType<ignite::examples::Address>
         {
-            static int32_t GetTypeId()
+            int32_t GetTypeId()
             {
                 return GetBinaryStringHashCode("Address");
             }
 
-            static void GetTypeName(std::string& dst)
+            std::string GetTypeName()
             {
-                dst = "Address";
+                return "Address";
             }
 
-            static int32_t GetFieldId(const char* name)
+            int32_t GetFieldId(const char* name)
             {
                 return GetBinaryStringHashCode(name);
             }
 
-            static int32_t GetHashCode(ignite::examples::Address obj)
+            int32_t GetHashCode(ignite::examples::Address obj)
             {
                 return 0;
             }
 
-            static bool IsNull(ignite::examples::Address obj)
+            bool IsNull(ignite::examples::Address obj)
             {
                 return false;
             }
 
-            static void GetNull(ignite::examples::Address& dst)
+            ignite::examples::Address GetNull()
             {
-                dst = ignite::examples::Address("", 0);
+                return ignite::examples::Address("", 0);
             }
 
-            static void Write(BinaryWriter& writer, const ignite::examples::Address& obj)
+            void Write(BinaryWriter& writer, ignite::examples::Address obj)
             {
                 writer.WriteString("street", obj.street);
                 writer.WriteInt32("zip", obj.zip);
             }
 
-            static void Read(BinaryReader& reader, ignite::examples::Address& dst)
+            ignite::examples::Address Read(BinaryReader& reader)
             {
-                dst.street = reader.ReadString("street");
-                dst.zip = reader.ReadInt32("zip");
+                std::string street = reader.ReadString("street");
+                int zip = reader.ReadInt32("zip");
+
+                return ignite::examples::Address(street, zip);
             }
         };
     }

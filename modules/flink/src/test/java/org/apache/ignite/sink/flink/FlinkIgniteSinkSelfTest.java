@@ -97,7 +97,8 @@ public class FlinkIgniteSinkSelfTest extends GridCommonAbstractTest {
 
             private boolean running = true;
 
-            @Override public void run(SourceContext<Map> ctx) throws Exception {
+            @Override
+            public void run(SourceContext<Map> ctx) throws Exception {
                 Map testDataMap = new HashMap<>();
                 long cnt = 0;
 
@@ -109,7 +110,8 @@ public class FlinkIgniteSinkSelfTest extends GridCommonAbstractTest {
                 ctx.collect(testDataMap);
             }
 
-            @Override public void cancel() {
+            @Override
+            public void cancel() {
                 running = false;
             }
         }).setParallelism(1);
@@ -149,7 +151,7 @@ public class FlinkIgniteSinkSelfTest extends GridCommonAbstractTest {
         // Listen to cache PUT events and expect as many as messages as test data items.
         CacheListener listener = new CacheListener();
 
-        ignite.events(ignite.cluster().forCacheNodes(DEFAULT_CACHE_NAME)).localListen(listener, EVT_CACHE_OBJECT_PUT);
+        ignite.events(ignite.cluster().forCacheNodes(null)).localListen(listener, EVT_CACHE_OBJECT_PUT);
 
         return listener;
     }
@@ -160,7 +162,7 @@ public class FlinkIgniteSinkSelfTest extends GridCommonAbstractTest {
      * @param listener Cache listener.
      */
     private void unsubscribeToPutEvents(CacheListener listener) {
-        ignite.events(ignite.cluster().forCacheNodes(DEFAULT_CACHE_NAME)).stopLocalListen(listener, EVT_CACHE_OBJECT_PUT);
+        ignite.events(ignite.cluster().forCacheNodes(null)).stopLocalListen(listener, EVT_CACHE_OBJECT_PUT);
     }
 
     /** Listener. */
@@ -176,7 +178,8 @@ public class FlinkIgniteSinkSelfTest extends GridCommonAbstractTest {
          * @param evt Cache Event.
          * @return {@code true}.
          */
-        @Override public boolean apply(CacheEvent evt) {
+        @Override
+        public boolean apply(CacheEvent evt) {
             latch.countDown();
 
             return true;

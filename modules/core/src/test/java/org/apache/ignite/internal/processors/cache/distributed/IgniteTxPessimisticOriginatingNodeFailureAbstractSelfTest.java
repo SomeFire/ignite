@@ -32,6 +32,7 @@ import org.apache.ignite.IgniteCache;
 import org.apache.ignite.IgniteException;
 import org.apache.ignite.Ignition;
 import org.apache.ignite.cache.CacheMode;
+import org.apache.ignite.cache.CachePeekMode;
 import org.apache.ignite.cluster.ClusterNode;
 import org.apache.ignite.configuration.CacheConfiguration;
 import org.apache.ignite.configuration.IgniteConfiguration;
@@ -161,7 +162,7 @@ public abstract class IgniteTxPessimisticOriginatingNodeFailureAbstractSelfTest 
         final String initVal = "initialValue";
 
         for (Integer key : keys) {
-            grid(originatingNode()).cache(DEFAULT_CACHE_NAME).put(key, initVal);
+            grid(originatingNode()).cache(null).put(key, initVal);
 
             map.put(key, String.valueOf(key));
         }
@@ -173,7 +174,7 @@ public abstract class IgniteTxPessimisticOriginatingNodeFailureAbstractSelfTest 
         for (Integer key : keys) {
             Collection<ClusterNode> nodes = new ArrayList<>();
 
-            nodes.addAll(grid(1).affinity(DEFAULT_CACHE_NAME).mapKeyToPrimaryAndBackups(key));
+            nodes.addAll(grid(1).affinity(null).mapKeyToPrimaryAndBackups(key));
 
             nodes.remove(txNode);
 
@@ -190,7 +191,7 @@ public abstract class IgniteTxPessimisticOriginatingNodeFailureAbstractSelfTest 
 
         GridTestUtils.runAsync(new Callable<Void>() {
             @Override public Void call() throws Exception {
-                IgniteCache<Integer, String> cache = originatingNodeGrid.cache(DEFAULT_CACHE_NAME);
+                IgniteCache<Integer, String> cache = originatingNodeGrid.cache(null);
 
                 assertNotNull(cache);
 
@@ -228,7 +229,7 @@ public abstract class IgniteTxPessimisticOriginatingNodeFailureAbstractSelfTest 
         boolean txFinished = GridTestUtils.waitForCondition(new GridAbsPredicate() {
             @Override public boolean apply() {
                 for (IgniteKernal g : grids) {
-                    GridCacheAdapter<?, ?> cache = g.internalCache(DEFAULT_CACHE_NAME);
+                    GridCacheAdapter<?, ?> cache = g.internalCache();
 
                     IgniteTxManager txMgr = cache.isNear() ?
                         ((GridNearCacheAdapter)cache).dht().context().tm() :
@@ -264,12 +265,12 @@ public abstract class IgniteTxPessimisticOriginatingNodeFailureAbstractSelfTest 
                     private Ignite ignite;
 
                     @Override public Void call() throws Exception {
-                        IgniteCache<Integer, String> cache = ignite.cache(DEFAULT_CACHE_NAME);
+                        IgniteCache<Integer, String> cache = ignite.cache(null);
 
                         assertNotNull(cache);
 
                         assertEquals("Failed to check entry value on node: " + checkNodeId,
-                            fullFailure ? initVal : val, cache.localPeek(key));
+                            fullFailure ? initVal : val, cache.localPeek(key, CachePeekMode.ONHEAP));
 
                         return null;
                     }
@@ -279,7 +280,7 @@ public abstract class IgniteTxPessimisticOriginatingNodeFailureAbstractSelfTest 
 
         for (Map.Entry<Integer, String> e : map.entrySet()) {
             for (Ignite g : G.allGrids())
-                assertEquals(fullFailure ? initVal : e.getValue(), g.cache(DEFAULT_CACHE_NAME).get(e.getKey()));
+                assertEquals(fullFailure ? initVal : e.getValue(), g.cache(null).get(e.getKey()));
         }
     }
 
@@ -311,14 +312,14 @@ public abstract class IgniteTxPessimisticOriginatingNodeFailureAbstractSelfTest 
         final String initVal = "initialValue";
 
         for (Integer key : keys) {
-            grid(originatingNode()).cache(DEFAULT_CACHE_NAME).put(key, initVal);
+            grid(originatingNode()).cache(null).put(key, initVal);
 
             map.put(key, String.valueOf(key));
         }
 
         Map<Integer, Collection<ClusterNode>> nodeMap = new HashMap<>();
 
-        IgniteCache<Integer, String> cache = grid(0).cache(DEFAULT_CACHE_NAME);
+        IgniteCache<Integer, String> cache = grid(0).cache(null);
 
         info("Failing node ID: " + grid(1).localNode().id());
 
@@ -375,7 +376,7 @@ public abstract class IgniteTxPessimisticOriginatingNodeFailureAbstractSelfTest 
         boolean txFinished = GridTestUtils.waitForCondition(new GridAbsPredicate() {
             @Override public boolean apply() {
                 for (IgniteKernal g : grids) {
-                    GridCacheAdapter<?, ?> cache = g.internalCache(DEFAULT_CACHE_NAME);
+                    GridCacheAdapter<?, ?> cache = g.internalCache();
 
                     IgniteTxManager txMgr = cache.isNear() ?
                         ((GridNearCacheAdapter)cache).dht().context().tm() :
@@ -411,12 +412,12 @@ public abstract class IgniteTxPessimisticOriginatingNodeFailureAbstractSelfTest 
                     private Ignite ignite;
 
                     @Override public Void call() throws Exception {
-                        IgniteCache<Integer, String> cache = ignite.cache(DEFAULT_CACHE_NAME);
+                        IgniteCache<Integer, String> cache = ignite.cache(null);
 
                         assertNotNull(cache);
 
                         assertEquals("Failed to check entry value on node: " + checkNodeId,
-                            !commmit ? initVal : val, cache.localPeek(key));
+                            !commmit ? initVal : val, cache.localPeek(key, CachePeekMode.ONHEAP));
 
                         return null;
                     }
@@ -426,7 +427,7 @@ public abstract class IgniteTxPessimisticOriginatingNodeFailureAbstractSelfTest 
 
         for (Map.Entry<Integer, String> e : map.entrySet()) {
             for (Ignite g : G.allGrids())
-                assertEquals(!commmit ? initVal : e.getValue(), g.cache(DEFAULT_CACHE_NAME).get(e.getKey()));
+                assertEquals(!commmit ? initVal : e.getValue(), g.cache(null).get(e.getKey()));
         }
     }
 

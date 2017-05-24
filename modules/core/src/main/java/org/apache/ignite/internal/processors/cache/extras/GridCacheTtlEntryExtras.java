@@ -19,7 +19,6 @@ package org.apache.ignite.internal.processors.cache.extras;
 
 import org.apache.ignite.internal.processors.cache.GridCacheMvcc;
 import org.apache.ignite.internal.processors.cache.version.GridCacheVersion;
-import org.apache.ignite.internal.util.typedef.internal.CU;
 import org.apache.ignite.internal.util.typedef.internal.S;
 
 /**
@@ -39,7 +38,7 @@ public class GridCacheTtlEntryExtras extends GridCacheEntryExtrasAdapter {
      * @param expireTime Expire time.
      */
     public GridCacheTtlEntryExtras(long ttl, long expireTime) {
-        assert expireTime != CU.EXPIRE_TIME_ETERNAL;
+        assert ttl != 0;
 
         this.ttl = ttl;
         this.expireTime = expireTime;
@@ -67,7 +66,7 @@ public class GridCacheTtlEntryExtras extends GridCacheEntryExtrasAdapter {
 
     /** {@inheritDoc} */
     @Override public GridCacheEntryExtras ttlAndExpireTime(long ttl, long expireTime) {
-        if (expireTime != CU.EXPIRE_TIME_ETERNAL) {
+        if (ttl != 0) {
             this.ttl = ttl;
             this.expireTime = expireTime;
 

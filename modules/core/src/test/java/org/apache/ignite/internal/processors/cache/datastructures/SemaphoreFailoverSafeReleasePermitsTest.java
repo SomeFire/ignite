@@ -92,9 +92,6 @@ public class SemaphoreFailoverSafeReleasePermitsTest extends GridCommonAbstractT
 
             IgniteSemaphore sem = ignite.semaphore("sem", 1, true, true);
 
-            // Initialize second semaphore before the first one is broken.
-            IgniteSemaphore sem2 = grid(1).semaphore("sem", 1, true, true);
-
             assertEquals(1, sem.availablePermits());
 
             sem.acquire(1);
@@ -105,7 +102,11 @@ public class SemaphoreFailoverSafeReleasePermitsTest extends GridCommonAbstractT
 
             awaitPartitionMapExchange();
 
-            assertTrue(sem2.tryAcquire(1, 5000, TimeUnit.MILLISECONDS));
+            ignite = grid(1);
+
+            sem = ignite.semaphore("sem", 1, true, true);
+
+            assertTrue(sem.tryAcquire(1, 5000, TimeUnit.MILLISECONDS));
         }
         finally {
             stopAllGrids();

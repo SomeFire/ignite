@@ -31,9 +31,9 @@ import org.apache.ignite.examples.ExamplesUtils;
 import org.hibernate.Session;
 import org.hibernate.SessionFactory;
 import org.hibernate.Transaction;
-import org.hibernate.boot.MetadataSources;
-import org.hibernate.boot.registry.StandardServiceRegistryBuilder;
 import org.hibernate.cache.spi.access.AccessType;
+import org.hibernate.cfg.Configuration;
+import org.hibernate.service.ServiceRegistryBuilder;
 import org.hibernate.stat.SecondLevelCacheStatistics;
 
 import static org.apache.ignite.cache.CacheAtomicityMode.ATOMIC;
@@ -226,14 +226,14 @@ public class HibernateL2CacheExample {
      * @return New Hibernate {@link SessionFactory}.
      */
     private static SessionFactory createHibernateSessionFactory(URL hibernateCfg) {
-        StandardServiceRegistryBuilder builder = new StandardServiceRegistryBuilder();
+        ServiceRegistryBuilder builder = new ServiceRegistryBuilder();
 
         builder.applySetting("hibernate.connection.url", JDBC_URL);
         builder.applySetting("hibernate.show_sql", true);
 
-        builder.configure(hibernateCfg);
-
-        return new MetadataSources(builder.build()).buildMetadata().buildSessionFactory();
+        return new Configuration()
+            .configure(hibernateCfg)
+            .buildSessionFactory(builder.buildServiceRegistry());
     }
 
     /**

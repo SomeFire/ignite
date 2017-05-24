@@ -74,7 +74,6 @@ import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
-import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.security.AccessController;
 import java.security.KeyManagementException;
@@ -177,6 +176,8 @@ import org.apache.ignite.internal.IgniteFutureTimeoutCheckedException;
 import org.apache.ignite.internal.IgniteInternalFuture;
 import org.apache.ignite.internal.IgniteInterruptedCheckedException;
 import org.apache.ignite.internal.IgniteNodeAttributes;
+import org.apache.ignite.internal.binary.BinaryObjectEx;
+import org.apache.ignite.internal.binary.BinaryUtils;
 import org.apache.ignite.internal.cluster.ClusterGroupEmptyCheckedException;
 import org.apache.ignite.internal.cluster.ClusterTopologyCheckedException;
 import org.apache.ignite.internal.compute.ComputeTaskCancelledCheckedException;
@@ -236,7 +237,6 @@ import org.jetbrains.annotations.Nullable;
 import org.jsr166.ConcurrentHashMap8;
 import sun.misc.SharedSecrets;
 import sun.misc.URLClassPath;
-import sun.misc.Unsafe;
 
 import static org.apache.ignite.IgniteSystemProperties.IGNITE_DISABLE_HOSTNAME_VERIFIER;
 import static org.apache.ignite.IgniteSystemProperties.IGNITE_HOME;
@@ -265,9 +265,6 @@ import static org.apache.ignite.internal.util.GridUnsafe.staticFieldOffset;
  */
 @SuppressWarnings({"UnusedReturnValue", "UnnecessaryFullyQualifiedName", "RedundantStringConstructorCall"})
 public abstract class IgniteUtils {
-    /** {@code True} if {@code unsafe} should be used for array copy. */
-    private static final boolean UNSAFE_BYTE_ARR_CP = unsafeByteArrayCopyAvailable();
-
     /** Sun-specific JDK constructor factory for objects that don't have empty constructor. */
     private static final Method CTOR_FACTORY;
 
@@ -415,9 +412,6 @@ public abstract class IgniteUtils {
 
     /** Name of the JVM implementation. */
     private static String jvmImplName;
-
-    /** Will be set to {@code true} if detected a 32-bit JVM. */
-    private static boolean jvm32Bit;
 
     /** JMX domain as 'xxx.apache.ignite'. */
     public static final String JMX_DOMAIN = IgniteUtils.class.getName().substring(0, IgniteUtils.class.getName().
@@ -575,7 +569,7 @@ public abstract class IgniteUtils {
             mac = true;
         else {
             // UNIXs flavors tokens.
-            for (CharSequence os : new String[] {"ix", "inux", "olaris", "un", "ux", "sco", "bsd", "att"})
+            for (CharSequence os : new String[]{"ix", "inux", "olaris", "un", "ux", "sco", "bsd", "att"})
                 if (osLow.contains(os)) {
                     unix = true;
 
@@ -610,9 +604,6 @@ public abstract class IgniteUtils {
         String jvmImplVendor = System.getProperty("java.vm.vendor");
         String jvmImplName = System.getProperty("java.vm.name");
 
-        // Best effort to detect a 32-bit JVM.
-        String jvmArchDataModel = System.getProperty("sun.arch.data.model");
-
         String jdkStr = javaRtName + ' ' + javaRtVer + ' ' + jvmImplVendor + ' ' + jvmImplName + ' ' +
             jvmImplVer;
 
@@ -633,8 +624,6 @@ public abstract class IgniteUtils {
         IgniteUtils.jvmImplName = jvmImplName;
         IgniteUtils.javaRtName = javaRtName;
         IgniteUtils.javaRtVer = javaRtVer;
-
-        jvm32Bit = "32".equals(jvmArchDataModel);
 
         primitiveMap.put("byte", byte.class);
         primitiveMap.put("short", short.class);
@@ -692,7 +681,7 @@ public abstract class IgniteUtils {
         }
 
         // Event names initialization.
-        Class<?>[] evtHolderClasses = new Class[] {EventType.class, DiscoveryCustomEvent.class};
+        Class<?>[] evtHolderClasses = new Class[]{EventType.class, DiscoveryCustomEvent.class};
 
         for (Class<?> cls : evtHolderClasses) {
             for (Field field : cls.getFields()) {
@@ -1267,7 +1256,7 @@ public abstract class IgniteUtils {
             warn(log, "No deadlocked threads detected.");
         else
             warn(log, "Deadlocked threads detected (see thread dump below) " +
-                "[deadlockedThreadsCnt=" + deadlockedThreadsIds.size() + ']');
+                    "[deadlockedThreadsCnt=" + deadlockedThreadsIds.size() + ']');
 
         ThreadInfo[] threadInfos =
             mxBean.dumpAllThreads(mxBean.isObjectMonitorUsageSupported(), mxBean.isSynchronizerUsageSupported());
@@ -1513,8 +1502,7 @@ public abstract class IgniteUtils {
         }
         catch (InstantiationException | InvocationTargetException | IllegalAccessException e) {
             throw new IgniteCheckedException("Failed to create new instance for class: " + cls, e);
-        }
-        finally {
+        } finally {
             if (ctor != null && set)
                 ctor.setAccessible(false);
         }
@@ -1548,8 +1536,7 @@ public abstract class IgniteUtils {
         }
         catch (InstantiationException | InvocationTargetException | IllegalAccessException e) {
             throw new IgniteCheckedException("Failed to create new instance for class: " + cls, e);
-        }
-        finally {
+        } finally {
             if (set)
                 ctor.setAccessible(false);
         }
@@ -1866,10 +1853,10 @@ public abstract class IgniteUtils {
      * @return List of reachable addresses.
      */
     public static List<InetAddress> filterReachable(Collection<InetAddress> addrs) {
+        final int reachTimeout = 2000;
+
         if (addrs.isEmpty())
             return Collections.emptyList();
-
-        final int reachTimeout = 2000;
 
         if (addrs.size() == 1) {
             InetAddress addr = F.first(addrs);
@@ -1886,36 +1873,33 @@ public abstract class IgniteUtils {
 
         ExecutorService executor = Executors.newFixedThreadPool(Math.min(10, addrs.size()));
 
-        try {
-            for (final InetAddress addr : addrs) {
-                futs.add(executor.submit(new Runnable() {
-                    @Override public void run() {
-                        if (reachable(addr, reachTimeout)) {
-                            synchronized (res) {
-                                res.add(addr);
-                            }
+        for (final InetAddress addr : addrs) {
+            futs.add(executor.submit(new Runnable() {
+                @Override public void run() {
+                    if (reachable(addr, reachTimeout)) {
+                        synchronized (res) {
+                            res.add(addr);
                         }
                     }
-                }));
+                }
+            }));
+        }
+
+        for (Future<?> fut : futs) {
+            try {
+                fut.get();
             }
+            catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
 
-            for (Future<?> fut : futs) {
-                try {
-                    fut.get();
-                }
-                catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
-
-                    throw new IgniteException("Thread has been interrupted.", e);
-                }
-                catch (ExecutionException e) {
-                    throw new IgniteException(e);
-                }
+                throw new IgniteException("Thread has been interrupted.", e);
+            }
+            catch (ExecutionException e) {
+                throw new IgniteException(e);
             }
         }
-        finally {
-            executor.shutdown();
-        }
+
+        executor.shutdown();
 
         return res;
     }
@@ -2255,8 +2239,7 @@ public abstract class IgniteUtils {
         }
         catch (NoSuchAlgorithmException | KeyManagementException e) {
             throw new IOException("Failed to open HTTPs connection [url=" + url.toString() + ", msg=" + e + ']', e);
-        }
-        finally {
+        } finally {
             close(in, null);
             close(out, null);
         }
@@ -2270,7 +2253,7 @@ public abstract class IgniteUtils {
      * @return Array with one X509TrustManager implementation of trust manager.
      */
     private static TrustManager[] getTrustManagers() {
-        return new TrustManager[] {
+        return new TrustManager[]{
             new X509TrustManager() {
                 @Nullable @Override public X509Certificate[] getAcceptedIssuers() {
                     return null;
@@ -2665,16 +2648,6 @@ public abstract class IgniteUtils {
     }
 
     /**
-     * Gets a hex string representation of the given long value.
-     *
-     * @param val Value to convert to string.
-     * @return Hex string.
-     */
-    public static String hexInt(int val) {
-        return new SB().appendHex(val).toString();
-    }
-
-    /**
      * Return byte value for certain character.
      *
      * @param ch Character
@@ -3036,24 +3009,6 @@ public abstract class IgniteUtils {
     }
 
     /**
-     * @param bytes Number of bytes to display.
-     * @param si If {@code true}, then unit base is 1000, otherwise unit base is 1024.
-     * @return Formatted size.
-     */
-    public static String readableSize(long bytes, boolean si) {
-        int unit = si ? 1000 : 1024;
-
-        if (bytes < unit)
-            return bytes + " B";
-
-        int exp = (int)(Math.log(bytes) / Math.log(unit));
-
-        String pre = (si ? "kMGTPE" : "KMGTPE").charAt(exp - 1) + (si ? "" : "i");
-
-        return String.format("%.1f %sB", bytes / Math.pow(unit, exp), pre);
-    }
-
-    /**
      * Verifier always returns successful result for any host.
      */
     private static class DeploymentHostnameVerifier implements HostnameVerifier {
@@ -3325,7 +3280,7 @@ public abstract class IgniteUtils {
 
         int cnt = 0;
 
-        for (int n; (n = in.read(buf)) > 0; ) {
+        for (int n; (n = in.read(buf)) > 0;) {
             out.write(buf, 0, n);
 
             cnt += n;
@@ -3350,7 +3305,7 @@ public abstract class IgniteUtils {
 
         int cnt = 0;
 
-        for (int n; (n = in.read(buf)) > 0; ) {
+        for (int n; (n = in.read(buf)) > 0;) {
             out.write(buf, 0, n);
 
             cnt += n;
@@ -3647,22 +3602,9 @@ public abstract class IgniteUtils {
         else
             ggHome0 = ggHomeTup.get();
 
-        if (ggHome0 != null && !ggHome0.equals(path)) {
-            try {
-                Path path0 = new File(ggHome0).toPath();
-
-                Path path1 = new File(path).toPath();
-
-                if (!Files.isSameFile(path0, path1))
-                    throw new IgniteException("Failed to set IGNITE_HOME after it has been already resolved " +
-                        "[igniteHome=" + path0 + ", newIgniteHome=" + path1 + ']');
-            }
-            catch (IOException ignore) {
-                // Throw an exception if failed to follow symlinks.
-                throw new IgniteException("Failed to set IGNITE_HOME after it has been already resolved " +
-                    "[igniteHome=" + ggHome0 + ", newIgniteHome=" + path + ']');
-            }
-        }
+        if (ggHome0 != null && !ggHome0.equals(path))
+            throw new IgniteException("Failed to set IGNITE_HOME after it has been already resolved " +
+                "[igniteHome=" + ggHome0 + ", newIgniteHome=" + path + ']');
     }
 
     /**
@@ -4457,7 +4399,7 @@ public abstract class IgniteUtils {
      * @param sb Sb.
      */
     private static void appendJvmId(SB sb) {
-        if (getBoolean(IGNITE_MBEAN_APPEND_JVM_ID)) {
+        if (getBoolean(IGNITE_MBEAN_APPEND_JVM_ID)){
             String jvmId = ManagementFactory.getRuntimeMXBean().getName();
 
             sb.a("jvmId=").a(jvmId).a(',');
@@ -5165,8 +5107,7 @@ public abstract class IgniteUtils {
      * @throws ClassNotFoundException If deserialized class could not be found.
      */
     @SuppressWarnings({"unchecked"})
-    @Nullable public static <K, V> TreeMap<K, V> readTreeMap(
-        ObjectInput in) throws IOException, ClassNotFoundException {
+    @Nullable public static <K, V> TreeMap<K, V> readTreeMap(ObjectInput in) throws IOException, ClassNotFoundException {
         int size = in.readInt();
 
         if (size == -1)
@@ -5371,7 +5312,7 @@ public abstract class IgniteUtils {
         Set<E> set = new HashSet(size, 1.0f);
 
         for (int i = 0; i < size; i++)
-            set.add((E)in.readObject());
+            set.add((E) in.readObject());
 
         return set;
     }
@@ -5638,28 +5579,6 @@ public abstract class IgniteUtils {
     }
 
     /**
-     * Gets amount of RAM memory available on this machine.
-     *
-     * @return Total amount of memory in bytes or -1 if any exception happened.
-     */
-    public static long getTotalMemoryAvailable() {
-        MBeanServer mBeanSrv = ManagementFactory.getPlatformMBeanServer();
-
-        Object attr;
-
-        try {
-            attr = mBeanSrv.getAttribute(
-                    ObjectName.getInstance("java.lang", "type", "OperatingSystem"),
-                    "TotalPhysicalMemorySize");
-        }
-        catch (Exception e) {
-            return -1;
-        }
-
-        return (attr instanceof Long) ? (Long) attr : -1;
-    }
-
-    /**
      * Gets compilation MBean.
      *
      * @return Compilation MBean.
@@ -5798,7 +5717,7 @@ public abstract class IgniteUtils {
             // We need to find common classloader for all elements AND the collection itself
             Collection<Object> tmpC = new ArrayList<>();
 
-            for (Object e : c)
+            for (Object e: c)
                 tmpC.add(e);
 
             tmpC.add(c);
@@ -6517,15 +6436,6 @@ public abstract class IgniteUtils {
     }
 
     /**
-     * Does a best effort to detect if we a running on a 32-bit JVM.
-     *
-     * @return {@code true} if detected that we are running on a 32-bit JVM.
-     */
-    public static boolean jvm32Bit() {
-        return jvm32Bit;
-    }
-
-    /**
      * Compare java implementation version
      *
      * @param v1 - java implementation version
@@ -6553,7 +6463,7 @@ public abstract class IgniteUtils {
             String p2 = part2[idx];
 
             int cmp = (p1.matches("\\d+") && p2.matches("\\d+"))
-                ? Integer.valueOf(p1).compareTo(Integer.valueOf(p2)) : p1.compareTo(p2);
+                        ? Integer.valueOf(p1).compareTo(Integer.valueOf(p2)) : p1.compareTo(p2);
 
             if (cmp != 0)
                 return cmp;
@@ -7945,22 +7855,6 @@ public abstract class IgniteUtils {
     }
 
     /**
-     * Check that field exist.
-     *
-     * @param obj Object.
-     * @param fieldName Field name.
-     * @return Boolean flag.
-     */
-    public static boolean hasField(Object obj, String fieldName){
-        try {
-            field(obj, fieldName);
-
-            return true;
-        }catch (IgniteException e){
-            return false;
-        }
-    }
-    /**
      * Gets object field offset.
      *
      * @param cls Object class.
@@ -8409,7 +8303,7 @@ public abstract class IgniteUtils {
             sb.append(" [");
 
             for (int i = 0; i < args.length / 2; i++) {
-                sb.append(args[i * 2]).append('=').append(args[i * 2 + 1]);
+                sb.append(args[ i * 2]).append('=').append(args[i * 2 + 1]);
                 sb.append(", ");
             }
 
@@ -8587,28 +8481,6 @@ public abstract class IgniteUtils {
     }
 
     /**
-     * As long as array copying uses JVM-private API, which is not guaranteed
-     * to be available on all JVM, this method should be called to ensure
-     * logic could work properly.
-     *
-     * @return {@code True} if unsafe copying can work on the current JVM or
-     *      {@code false} if it can't.
-     */
-    @SuppressWarnings("TypeParameterExtendsFinalClass")
-    private static boolean unsafeByteArrayCopyAvailable() {
-        try {
-            Class<? extends Unsafe> unsafeCls = Unsafe.class;
-
-            unsafeCls.getMethod("copyMemory", Object.class, long.class, Object.class, long.class, long.class);
-
-            return true;
-        }
-        catch (Exception ignored) {
-            return false;
-        }
-    }
-
-    /**
      * @param src Buffer to copy from (length included).
      * @param off Offset in source buffer.
      * @param resBuf Result buffer.
@@ -8619,29 +8491,9 @@ public abstract class IgniteUtils {
     public static int arrayCopy(byte[] src, int off, byte[] resBuf, int resOff, int len) {
         assert resBuf.length >= resOff + len;
 
-        if (UNSAFE_BYTE_ARR_CP)
-            GridUnsafe.copyMemory(src, GridUnsafe.BYTE_ARR_OFF + off, resBuf, GridUnsafe.BYTE_ARR_OFF + resOff, len);
-        else
-            System.arraycopy(src, off, resBuf, resOff, len);
+        System.arraycopy(src, off, resBuf, resOff, len);
 
         return resOff + len;
-    }
-
-    /**
-     * @param addrs Node's addresses.
-     * @return A string compatible with {@link ClusterNode#consistentId()} requirements.
-     */
-    public static String consistentId(Collection<String> addrs) {
-        assert !F.isEmpty(addrs);
-
-        StringBuilder sb = new StringBuilder();
-
-        for (String addr : addrs)
-            sb.append(addr).append(',');
-
-        sb.delete(sb.length() - 1, sb.length());
-
-        return sb.toString();
     }
 
     /**
@@ -8652,28 +8504,16 @@ public abstract class IgniteUtils {
     public static String consistentId(Collection<String> addrs, int port) {
         assert !F.isEmpty(addrs);
 
-        return consistentId(addrs) + ':' + port;
-    }
+        StringBuilder sb = new StringBuilder();
 
-    /**
-     * Masks name for a valid directory path.
-     *
-     * @param name Name.
-     * @return Masked name.
-     */
-    public static String maskForFileName(CharSequence name) {
-        StringBuilder b = new StringBuilder(name.length());
+        for (String addr : addrs)
+            sb.append(addr).append(',');
 
-        for (int i = 0; i < name.length(); i++) {
-            char c = name.charAt(i);
+        sb.delete(sb.length() - 1, sb.length());
 
-            if (Character.isLetterOrDigit(c))
-                b.append(c);
-            else
-                b.append('_');
-        }
+        sb.append(':').append(port);
 
-        return b.toString();
+        return sb.toString();
     }
 
     /**
@@ -8947,7 +8787,7 @@ public abstract class IgniteUtils {
 
         Collection<InetSocketAddress> resolved = new HashSet<>();
 
-        for (InetSocketAddress address : sockAddr)
+        for (InetSocketAddress address :sockAddr)
             resolved.addAll(resolveAddress(addrRslvr, address));
 
         return resolved;
@@ -9109,29 +8949,6 @@ public abstract class IgniteUtils {
             throw new IgniteCheckedException("Cannot write to directory: " + dir);
 
         return dir;
-    }
-
-    /**
-     * Checks if the given directory exists and attempts to create one if not.
-     *
-     * @param dir Directory to check.
-     * @param msg Directory name for the messages.
-     * @param log Optional logger to log a message that the directory has been resolved.
-     * @throws IgniteCheckedException If directory does not exist and failed to create it, or if a file with
-     *      the same name already exists.
-     */
-    public static void ensureDirectory(File dir, String msg, IgniteLogger log) throws IgniteCheckedException {
-        if (!dir.exists()) {
-            if (!dir.mkdirs())
-                throw new IgniteCheckedException("Failed to create " + msg + ": " +
-                    dir.getAbsolutePath());
-        }
-        else if (!dir.isDirectory())
-            throw new IgniteCheckedException("Failed to initialize " + msg +
-                " (a file with the same name already exists): " + dir.getAbsolutePath());
-
-        if (log != null && log.isInfoEnabled())
-            log.info("Resolved " + msg + ": " + dir.getAbsolutePath());
     }
 
     /**
@@ -9325,6 +9142,10 @@ public abstract class IgniteUtils {
 
             off += 4;
 
+            GridUnsafe.putLong(arr, off, drVer.globalTime());
+
+            off += 8;
+
             GridUnsafe.putLong(arr, off, drVer.order());
 
             off += 8;
@@ -9337,6 +9158,10 @@ public abstract class IgniteUtils {
         GridUnsafe.putInt(arr, off, ver.nodeOrderAndDrIdRaw());
 
         off += 4;
+
+        GridUnsafe.putLong(arr, off, ver.globalTime());
+
+        off += 8;
 
         GridUnsafe.putLong(arr, off, ver.order());
 
@@ -9353,14 +9178,16 @@ public abstract class IgniteUtils {
     public static GridCacheVersion readVersion(long ptr, boolean verEx) {
         GridCacheVersion ver = new GridCacheVersion(GridUnsafe.getInt(ptr),
             GridUnsafe.getInt(ptr + 4),
-            GridUnsafe.getLong(ptr + 8));
+            GridUnsafe.getLong(ptr + 8),
+            GridUnsafe.getLong(ptr + 16));
 
         if (verEx) {
-            ptr += 16;
+            ptr += 24;
 
             ver = new GridCacheVersionEx(GridUnsafe.getInt(ptr),
                 GridUnsafe.getInt(ptr + 4),
                 GridUnsafe.getLong(ptr + 8),
+                GridUnsafe.getLong(ptr + 16),
                 ver);
         }
 
@@ -9382,11 +9209,15 @@ public abstract class IgniteUtils {
 
         off += 4;
 
+        long globalTime = GridUnsafe.getLong(arr, off);
+
+        off += 8;
+
         long order = GridUnsafe.getLong(arr, off);
 
         off += 8;
 
-        GridCacheVersion ver = new GridCacheVersion(topVer, nodeOrderDrId, order);
+        GridCacheVersion ver = new GridCacheVersion(topVer, nodeOrderDrId, globalTime, order);
 
         if (verEx) {
             topVer = GridUnsafe.getInt(arr, off);
@@ -9397,9 +9228,13 @@ public abstract class IgniteUtils {
 
             off += 4;
 
+            globalTime = GridUnsafe.getLong(arr, off);
+
+            off += 8;
+
             order = GridUnsafe.getLong(arr, off);
 
-            ver = new GridCacheVersionEx(topVer, nodeOrderDrId, order, ver);
+            ver = new GridCacheVersionEx(topVer, nodeOrderDrId, globalTime, order, ver);
         }
 
         return ver;
@@ -9413,7 +9248,7 @@ public abstract class IgniteUtils {
     public static byte[] copyMemory(long ptr, int size) {
         byte[] res = new byte[size];
 
-        GridUnsafe.copyMemory(null, ptr, res, GridUnsafe.BYTE_ARR_OFF, size);
+        GridUnsafe.copyOffheapHeap(ptr, res, GridUnsafe.BYTE_ARR_OFF, size);
 
         return res;
     }
@@ -9594,7 +9429,7 @@ public abstract class IgniteUtils {
     public static <T extends R, R> List<R> arrayList(Collection<T> c, @Nullable IgnitePredicate<? super T>... p) {
         assert c != null;
 
-        return arrayList(c, c.size(), p);
+        return IgniteUtils.arrayList(c, c.size(), p);
     }
 
     /**
@@ -9830,6 +9665,7 @@ public abstract class IgniteUtils {
     public static <T extends Comparable<? super T>> T max(T t0, T t1) {
         return t0.compareTo(t1) > 0 ? t0 : t1;
     }
+
 
     /**
      * Unmarshals object from the input stream using given class loader.
@@ -10133,24 +9969,5 @@ public abstract class IgniteUtils {
         catch (Exception e) {
             throw new IgniteCheckedException(e);
         }
-    }
-
-    /**
-     * Returns {@link GridIntIterator} for range of primitive integers.
-     * @param start Start.
-     * @param cnt Count.
-     */
-    public static GridIntIterator forRange(final int start, final int cnt) {
-        return new GridIntIterator() {
-            int c = 0;
-
-            @Override public boolean hasNext() {
-                return c < cnt;
-            }
-
-            @Override public int next() {
-                return start + c++;
-            }
-        };
     }
 }

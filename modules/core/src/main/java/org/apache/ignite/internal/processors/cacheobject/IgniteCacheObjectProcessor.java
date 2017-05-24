@@ -17,7 +17,6 @@
 
 package org.apache.ignite.internal.processors.cacheobject;
 
-import java.nio.ByteBuffer;
 import org.apache.ignite.IgniteBinary;
 import org.apache.ignite.IgniteCheckedException;
 import org.apache.ignite.IgniteException;
@@ -28,7 +27,6 @@ import org.apache.ignite.internal.processors.GridProcessor;
 import org.apache.ignite.internal.processors.cache.CacheObject;
 import org.apache.ignite.internal.processors.cache.CacheObjectContext;
 import org.apache.ignite.internal.processors.cache.GridCacheContext;
-import org.apache.ignite.internal.processors.cache.IncompleteCacheObject;
 import org.apache.ignite.internal.processors.cache.KeyCacheObject;
 import org.jetbrains.annotations.Nullable;
 
@@ -43,7 +41,7 @@ public interface IgniteCacheObjectProcessor extends GridProcessor {
     public void onContinuousProcessorStarted(GridKernalContext ctx) throws IgniteCheckedException;
 
     /**
-     * @see GridComponent#onKernalStart(boolean)
+     * @see GridComponent#onKernalStart()
      * @throws IgniteCheckedException If failed.
      */
     public void onUtilityCacheStarted() throws IgniteCheckedException;
@@ -165,39 +163,13 @@ public interface IgniteCacheObjectProcessor extends GridProcessor {
     public CacheObject toCacheObject(CacheObjectContext ctx, byte type, byte[] bytes);
 
     /**
-     * @param ctx Cache context.
-     * @param type Object type.
-     * @param bytes Object bytes.
+     * @param ctx Context.
+     * @param valPtr Value pointer.
+     * @param tmp If {@code true} can return temporary instance which is valid while entry lock is held.
      * @return Cache object.
+     * @throws IgniteCheckedException If failed.
      */
-    public KeyCacheObject toKeyCacheObject(CacheObjectContext ctx, byte type, byte[] bytes) throws IgniteCheckedException;
-
-    /**
-     * @param ctx Cache context.
-     * @param buf Buffer to read from.
-     * @return Cache object.
-     */
-    public CacheObject toCacheObject(CacheObjectContext ctx, ByteBuffer buf);
-
-    /**
-     * @param ctx Cache object context.
-     * @param buf Buffer.
-     * @param incompleteObj Incomplete cache object or {@code null} if it's a first read.
-     * @return Incomplete cache object.
-     * @throws IgniteCheckedException If fail.
-     */
-    public IncompleteCacheObject toCacheObject(CacheObjectContext ctx, ByteBuffer buf,
-        @Nullable IncompleteCacheObject incompleteObj) throws IgniteCheckedException;
-
-    /**
-     * @param ctx Cache object context.
-     * @param buf Buffer.
-     * @param incompleteObj Incomplete cache object or {@code null} if it's a first read.
-     * @return Incomplete cache object.
-     * @throws IgniteCheckedException If fail.
-     */
-    public IncompleteCacheObject toKeyCacheObject(CacheObjectContext ctx, ByteBuffer buf,
-        @Nullable IncompleteCacheObject incompleteObj) throws IgniteCheckedException;
+    public CacheObject toCacheObject(GridCacheContext ctx, long valPtr, boolean tmp) throws IgniteCheckedException;
 
     /**
      * @param obj Value.

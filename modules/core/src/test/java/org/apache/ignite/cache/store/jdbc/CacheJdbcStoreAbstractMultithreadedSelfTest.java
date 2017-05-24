@@ -181,6 +181,7 @@ public abstract class CacheJdbcStoreAbstractMultithreadedSelfTest<T extends Cach
 
         cc.setCacheMode(PARTITIONED);
         cc.setAtomicityMode(ATOMIC);
+        cc.setSwapEnabled(false);
         cc.setWriteBehindEnabled(false);
 
         cc.setCacheStoreFactory(singletonFactory(store));

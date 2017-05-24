@@ -96,7 +96,7 @@ public class IgniteNodeRunner {
      * @throws IOException If failed.
      * @see #readCfgFromFileAndDeleteFile(String)
      */
-    public static String storeToFile(IgniteConfiguration cfg, boolean resetDiscovery) throws IOException, IgniteCheckedException {
+    public static String storeToFile(IgniteConfiguration cfg, boolean resetDiscovery) throws IOException {
         String fileName = IGNITE_CONFIGURATION_FILE + cfg.getNodeId();
 
         storeToFile(cfg, fileName, true, resetDiscovery);
@@ -116,7 +116,7 @@ public class IgniteNodeRunner {
      */
     public static void storeToFile(IgniteConfiguration cfg, String fileName,
         boolean resetMarshaller,
-        boolean resetDiscovery) throws IOException, IgniteCheckedException {
+        boolean resetDiscovery) throws IOException {
         try(OutputStream out = new BufferedOutputStream(new FileOutputStream(fileName))) {
             IgniteConfiguration cfg0 = new IgniteConfiguration(cfg);
 
@@ -126,7 +126,6 @@ public class IgniteNodeRunner {
             if (resetDiscovery)
                 cfg0.setDiscoverySpi(null);
 
-            cfg0.setWorkDirectory(U.defaultWorkDirectory());
             cfg0.setMBeanServer(null);
             cfg0.setGridLogger(null);
 

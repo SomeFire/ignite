@@ -68,7 +68,6 @@ public class GridRedisDbSizeCommandHandler extends GridRedisRestCommandHandler {
         restReq.clientId(msg.clientId());
         restReq.key(msg.key());
         restReq.command(CACHE_SIZE);
-        restReq.cacheName(CACHE_NAME);
 
         return restReq;
     }

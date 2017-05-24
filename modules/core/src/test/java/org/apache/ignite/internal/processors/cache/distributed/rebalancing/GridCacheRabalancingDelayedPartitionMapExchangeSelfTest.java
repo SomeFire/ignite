@@ -45,6 +45,9 @@ public class GridCacheRabalancingDelayedPartitionMapExchangeSelfTest extends Gri
     /** */
     protected static TcpDiscoveryIpFinder ipFinder = new TcpDiscoveryVmIpFinder(true);
 
+    /** partitioned cache name. */
+    protected static String CACHE = null;
+
     /** */
     private final ConcurrentHashMap8<UUID, Runnable> rs = new ConcurrentHashMap8<>();
 
@@ -99,8 +102,9 @@ public class GridCacheRabalancingDelayedPartitionMapExchangeSelfTest extends Gri
     public void test() throws Exception {
         IgniteKernal ignite = (IgniteKernal)startGrid(0);
 
-        CacheConfiguration<Integer, Integer> cfg = new CacheConfiguration<>(DEFAULT_CACHE_NAME);
+        CacheConfiguration<Integer, Integer> cfg = new CacheConfiguration<>();
 
+        cfg.setName(CACHE);
         cfg.setCacheMode(CacheMode.PARTITIONED);
         cfg.setRebalanceMode(CacheRebalanceMode.SYNC);
         cfg.setBackups(1);
@@ -138,7 +142,7 @@ public class GridCacheRabalancingDelayedPartitionMapExchangeSelfTest extends Gri
             U.sleep(10);
         }
 
-        ignite(0).destroyCache(DEFAULT_CACHE_NAME);
+        ignite(0).destroyCache(CACHE);
 
         ignite(0).getOrCreateCache(cfg);
 

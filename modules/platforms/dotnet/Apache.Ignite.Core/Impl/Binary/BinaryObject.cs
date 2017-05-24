@@ -132,7 +132,7 @@ namespace Apache.Ignite.Core.Impl.Binary
             get
             {
                 throw new NotSupportedException("IBinaryObject.Value is only supported for enums. " +
-                    "Check IBinaryObject.GetBinaryType().IsEnum property before accessing Value.");
+                    "Check IBinaryObject.IsEnum property before accessing Value.");
             }
         }
 
@@ -256,7 +256,9 @@ namespace Apache.Ignite.Core.Impl.Binary
             if (TypeId != that.TypeId)
                 return false;
 
-            return BinaryArrayEqualityComparer.Equals(this, that);
+            var desc = _marsh.GetDescriptor(true, TypeId);
+
+            return BinaryUtils.GetEqualityComparer(desc).Equals(this, that);
         }
 
         /** <inheritdoc /> */

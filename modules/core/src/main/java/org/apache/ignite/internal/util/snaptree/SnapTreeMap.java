@@ -35,10 +35,6 @@
 
 package org.apache.ignite.internal.util.snaptree;
 
-import org.apache.ignite.*;
-import org.apache.ignite.internal.util.*;
-import org.apache.ignite.internal.util.lang.*;
-
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
@@ -106,9 +102,7 @@ import java.util.concurrent.ConcurrentNavigableMap;
  *  @author Nathan Bronson
  */
 @SuppressWarnings("ALL")
-public class SnapTreeMap<K, V> extends AbstractMap<K, V> implements ConcurrentNavigableMap<K, V>, Cloneable,
-    Serializable {
-
+public class SnapTreeMap<K,V> extends AbstractMap<K,V> implements ConcurrentNavigableMap<K,V>, Cloneable, Serializable {
     /** */
     private static final long serialVersionUID = 0L;
 
@@ -2347,7 +2341,7 @@ public class SnapTreeMap<K, V> extends AbstractMap<K, V> implements ConcurrentNa
         return new SubMap(this, null, null, false, null, null, false, true);
     }
 
-    private static class SubMap<K, V> extends AbstractMap<K, V> implements ConcurrentNavigableMap<K, V>, Serializable {
+    private static class SubMap<K,V> extends AbstractMap<K,V> implements ConcurrentNavigableMap<K,V>, Serializable {
         /** */
         private static final long serialVersionUID = 0L;
 

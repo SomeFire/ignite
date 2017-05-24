@@ -117,8 +117,6 @@ public class GridJavadocAntTask extends MatchingTask {
 
         boolean fail = false;
 
-        ArrayList<String> errMsgs = new ArrayList<>();
-
         for (String fileName : scanner.getIncludedFiles()) {
             String file = dir.getAbsolutePath() + '/' + fileName;
 
@@ -131,26 +129,12 @@ public class GridJavadocAntTask extends MatchingTask {
             catch (IllegalArgumentException e) {
                 System.err.println("JavaDoc error: " + e.getMessage());
 
-                errMsgs.add(e.getMessage());
-
                 fail = true;
             }
         }
 
         if (fail)
-            throw new BuildException("Execution failed due to: " + prepareErrorSummary(errMsgs));
-    }
-
-    /**
-     * @param errMsgs Err msgs.
-     */
-    private String prepareErrorSummary(ArrayList<String> errMsgs) {
-        StringBuilder strBdr = new StringBuilder();
-
-        for (String errMsg : errMsgs)
-            strBdr.append(errMsg).append(System.lineSeparator());
-
-        return strBdr.toString();
+            throw new BuildException("Execution failed due to previous errors.");
     }
 
     /**

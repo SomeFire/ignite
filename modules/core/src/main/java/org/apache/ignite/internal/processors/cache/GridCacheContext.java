@@ -54,10 +54,8 @@ import org.apache.ignite.internal.managers.communication.GridIoManager;
 import org.apache.ignite.internal.managers.deployment.GridDeploymentManager;
 import org.apache.ignite.internal.managers.discovery.GridDiscoveryManager;
 import org.apache.ignite.internal.managers.eventstorage.GridEventStorageManager;
+import org.apache.ignite.internal.managers.swapspace.GridSwapSpaceManager;
 import org.apache.ignite.internal.processors.affinity.AffinityTopologyVersion;
-import org.apache.ignite.internal.processors.cache.database.MemoryPolicy;
-import org.apache.ignite.internal.processors.cache.database.freelist.FreeList;
-import org.apache.ignite.internal.processors.cache.database.tree.reuse.ReuseList;
 import org.apache.ignite.internal.processors.cache.datastructures.CacheDataStructuresManager;
 import org.apache.ignite.internal.processors.cache.distributed.dht.GridDhtCacheAdapter;
 import org.apache.ignite.internal.processors.cache.distributed.dht.GridDhtCacheEntry;
@@ -83,11 +81,12 @@ import org.apache.ignite.internal.processors.cache.version.GridCacheVersionManag
 import org.apache.ignite.internal.processors.cache.version.GridCacheVersionedEntryEx;
 import org.apache.ignite.internal.processors.cacheobject.IgniteCacheObjectProcessor;
 import org.apache.ignite.internal.processors.closure.GridClosureProcessor;
+import org.apache.ignite.internal.processors.offheap.GridOffHeapProcessor;
 import org.apache.ignite.internal.processors.plugin.CachePluginManager;
-import org.apache.ignite.internal.processors.query.QueryUtils;
 import org.apache.ignite.internal.processors.timeout.GridTimeoutProcessor;
 import org.apache.ignite.internal.util.F0;
 import org.apache.ignite.internal.util.lang.GridFunc;
+import org.apache.ignite.internal.util.offheap.unsafe.GridUnsafeMemory;
 import org.apache.ignite.internal.util.tostring.GridToStringExclude;
 import org.apache.ignite.internal.util.typedef.C1;
 import org.apache.ignite.internal.util.typedef.F;
@@ -106,6 +105,8 @@ import org.jetbrains.annotations.Nullable;
 
 import static org.apache.ignite.cache.CacheAtomicityMode.ATOMIC;
 import static org.apache.ignite.cache.CacheAtomicityMode.TRANSACTIONAL;
+import static org.apache.ignite.cache.CacheMemoryMode.OFFHEAP_TIERED;
+import static org.apache.ignite.cache.CacheMemoryMode.OFFHEAP_VALUES;
 import static org.apache.ignite.cache.CacheRebalanceMode.NONE;
 import static org.apache.ignite.cache.CacheWriteSynchronizationMode.FULL_SYNC;
 import static org.apache.ignite.cache.CacheWriteSynchronizationMode.PRIMARY_SYNC;
@@ -135,20 +136,14 @@ public class GridCacheContext<K, V> implements Externalizable {
     /** Cache shared context. */
     private GridCacheSharedContext<K, V> sharedCtx;
 
-    /** Memory policy. */
-    private MemoryPolicy memPlc;
-
-    /** FreeList instance this cache is associated with. */
-    private FreeList freeList;
-
-    /** ReuseList instance this cache is associated with */
-    private ReuseList reuseList;
-
     /** Logger. */
     private IgniteLogger log;
 
     /** Cache configuration. */
     private CacheConfiguration cacheCfg;
+
+    /** Unsafe memory object for direct memory allocation. */
+    private GridUnsafeMemory unsafeMemory;
 
     /** Affinity manager. */
     private GridCacheAffinityManager affMgr;
@@ -162,8 +157,11 @@ public class GridCacheContext<K, V> implements Externalizable {
     /** Continuous query manager. */
     private CacheContinuousQueryManager contQryMgr;
 
+    /** Swap manager. */
+    private GridCacheSwapManager swapMgr;
+
     /** Evictions manager. */
-    private CacheEvictionManager evictMgr;
+    private GridCacheEvictionManager evictMgr;
 
     /** Data structures manager. */
     private CacheDataStructuresManager dataStructuresMgr;
@@ -176,9 +174,6 @@ public class GridCacheContext<K, V> implements Externalizable {
 
     /** Replication manager. */
     private GridCacheDrManager drMgr;
-
-    /** */
-    private IgniteCacheOffheapManager offheapMgr;
 
     /** Conflict resolver manager. */
     private CacheConflictResolutionManager rslvrMgr;
@@ -234,20 +229,14 @@ public class GridCacheContext<K, V> implements Externalizable {
     /** */
     private CountDownLatch startLatch = new CountDownLatch(1);
 
-    /** Topology version when cache was started on local node. */
-    private AffinityTopologyVersion locStartTopVer;
-
-    /** */
-    private UUID rcvdFrom;
+    /** Start topology version. */
+    private AffinityTopologyVersion startTopVer;
 
     /** Dynamic cache deployment ID. */
     private IgniteUuid dynamicDeploymentId;
 
     /** Updates allowed flag. */
     private boolean updatesAllowed;
-
-    /** Flag indicating that this cache is in a recovery mode. */
-    private boolean needsRecovery;
 
     /** Deployment enabled flag for this specific cache */
     private boolean depEnabled;
@@ -270,11 +259,10 @@ public class GridCacheContext<K, V> implements Externalizable {
      * @param sharedCtx Cache shared context.
      * @param cacheCfg Cache configuration.
      * @param cacheType Cache type.
-     * @param memPlc MemoryPolicy instance.
-     * @param freeList FreeList instance.
      * @param affNode {@code True} if local node is affinity node.
      * @param updatesAllowed Updates allowed flag.
      * @param evtMgr Cache event manager.
+     * @param swapMgr Cache swap manager.
      * @param storeMgr Store manager.
      * @param evictMgr Cache eviction manager.
      * @param qryMgr Cache query manager.
@@ -292,13 +280,8 @@ public class GridCacheContext<K, V> implements Externalizable {
         GridCacheSharedContext sharedCtx,
         CacheConfiguration cacheCfg,
         CacheType cacheType,
-        AffinityTopologyVersion locStartTopVer,
-        UUID rcvdFrom,
         boolean affNode,
         boolean updatesAllowed,
-        MemoryPolicy memPlc,
-        FreeList freeList,
-        ReuseList reuseList,
 
         /*
          * Managers in starting order!
@@ -306,14 +289,14 @@ public class GridCacheContext<K, V> implements Externalizable {
          */
 
         GridCacheEventManager evtMgr,
+        GridCacheSwapManager swapMgr,
         CacheStoreManager storeMgr,
-        CacheEvictionManager evictMgr,
+        GridCacheEvictionManager evictMgr,
         GridCacheQueryManager<K, V> qryMgr,
         CacheContinuousQueryManager contQryMgr,
         CacheDataStructuresManager dataStructuresMgr,
         GridCacheTtlManager ttlMgr,
         GridCacheDrManager drMgr,
-        IgniteCacheOffheapManager offheapMgr,
         CacheConflictResolutionManager<K, V> rslvrMgr,
         CachePluginManager pluginMgr,
         GridCacheAffinityManager affMgr
@@ -321,9 +304,9 @@ public class GridCacheContext<K, V> implements Externalizable {
         assert ctx != null;
         assert sharedCtx != null;
         assert cacheCfg != null;
-        assert locStartTopVer != null : cacheCfg.getName();
 
         assert evtMgr != null;
+        assert swapMgr != null;
         assert storeMgr != null;
         assert evictMgr != null;
         assert qryMgr != null;
@@ -333,27 +316,21 @@ public class GridCacheContext<K, V> implements Externalizable {
         assert ttlMgr != null;
         assert rslvrMgr != null;
         assert pluginMgr != null;
-        assert offheapMgr != null;
 
         this.ctx = ctx;
         this.sharedCtx = sharedCtx;
         this.cacheCfg = cacheCfg;
         this.cacheType = cacheType;
-        this.locStartTopVer = locStartTopVer;
-        this.rcvdFrom = rcvdFrom;
         this.affNode = affNode;
         this.updatesAllowed = updatesAllowed;
         this.depEnabled = ctx.deploy().enabled() && !cacheObjects().isBinaryEnabled(cacheCfg);
-
-        this.memPlc = memPlc;
-        this.freeList = freeList;
-        this.reuseList = reuseList;
 
         /*
          * Managers in starting order!
          * ===========================
          */
         this.evtMgr = add(evtMgr);
+        this.swapMgr = add(swapMgr);
         this.storeMgr = add(storeMgr);
         this.evictMgr = add(evictMgr);
         this.qryMgr = add(qryMgr);
@@ -361,12 +338,15 @@ public class GridCacheContext<K, V> implements Externalizable {
         this.dataStructuresMgr = add(dataStructuresMgr);
         this.ttlMgr = add(ttlMgr);
         this.drMgr = add(drMgr);
-        this.offheapMgr = add(offheapMgr);
         this.rslvrMgr = add(rslvrMgr);
         this.pluginMgr = add(pluginMgr);
         this.affMgr = add(affMgr);
 
         log = ctx.log(getClass());
+
+        // Create unsafe memory only if writing values
+        unsafeMemory = (cacheCfg.getMemoryMode() == OFFHEAP_VALUES || cacheCfg.getMemoryMode() == OFFHEAP_TIERED) ?
+            new GridUnsafeMemory(cacheCfg.getOffHeapMaxMemory()) : null;
 
         gate = new GridCacheGateway<>(this);
 
@@ -422,13 +402,6 @@ public class GridCacheContext<K, V> implements Externalizable {
     }
 
     /**
-     * @return {@code true} If this is a replicated cache and we are on a data node.
-     */
-    public boolean isReplicatedAffinityNode() {
-        return isReplicated() && affinityNode();
-    }
-
-    /**
      * @throws IgniteCheckedException If failed to wait.
      */
     public void awaitStarted() throws IgniteCheckedException {
@@ -460,19 +433,17 @@ public class GridCacheContext<K, V> implements Externalizable {
     }
 
     /**
-     * @return Node ID cache was received from.
+     * @return Start topology version.
      */
-    public UUID receivedFrom() {
-        return rcvdFrom;
+    public AffinityTopologyVersion startTopologyVersion() {
+        return startTopVer;
     }
 
     /**
-     * @return Topology version when cache was started on local node.
+     * @param startTopVer Start topology version.
      */
-    public AffinityTopologyVersion startTopologyVersion() {
-        assert locStartTopVer != null : name();
-
-        return locStartTopVer;
+    public void startTopologyVersion(AffinityTopologyVersion startTopVer) {
+        this.startTopVer = startTopVer;
     }
 
     /**
@@ -690,6 +661,13 @@ public class GridCacheContext<K, V> implements Externalizable {
     }
 
     /**
+     * @return Instance of {@link GridUnsafeMemory} object.
+     */
+    @Nullable public GridUnsafeMemory unsafeMemory() {
+        return unsafeMemory;
+    }
+
+    /**
      * @return Kernal context.
      */
     public GridKernalContext kernalContext() {
@@ -718,24 +696,23 @@ public class GridCacheContext<K, V> implements Externalizable {
     }
 
     /**
-     * @return Memory policy.
+     * Gets public name for cache.
+     *
+     * @return Public name of the cache.
      */
-    public MemoryPolicy memoryPolicy() {
-        return memPlc;
+    public String namex() {
+        return isDht() ? dht().near().name() : name();
     }
 
     /**
-     * @return Free List.
+     * Gets public cache name substituting null name by {@code 'default'}.
+     *
+     * @return Public cache name substituting null name by {@code 'default'}.
      */
-    public FreeList freeList() {
-        return freeList;
-    }
+    public String namexx() {
+        String name = namex();
 
-    /**
-     * @return Reuse List.
-     */
-    public ReuseList reuseList() {
-        return reuseList;
+        return name == null ? "default" : name;
     }
 
     /**
@@ -921,10 +898,24 @@ public class GridCacheContext<K, V> implements Externalizable {
     }
 
     /**
+     * @return Grid off-heap processor.
+     */
+    public GridOffHeapProcessor offheap() {
+        return ctx.offheap();
+    }
+
+    /**
      * @return Grid deployment manager.
      */
     public GridDeploymentManager gridDeploy() {
         return ctx.deploy();
+    }
+
+    /**
+     * @return Grid swap space manager.
+     */
+    public GridSwapSpaceManager gridSwap() {
+        return ctx.swap();
     }
 
     /**
@@ -1028,6 +1019,13 @@ public class GridCacheContext<K, V> implements Externalizable {
     }
 
     /**
+     * @return Swap manager.
+     */
+    public GridCacheSwapManager swap() {
+        return swapMgr;
+    }
+
+    /**
      * @return Store manager.
      */
     public CacheStoreManager store() {
@@ -1051,7 +1049,7 @@ public class GridCacheContext<K, V> implements Externalizable {
     /**
      * @return Eviction manager.
      */
-    public CacheEvictionManager evicts() {
+    public GridCacheEvictionManager evicts() {
         return evictMgr;
     }
 
@@ -1067,13 +1065,6 @@ public class GridCacheContext<K, V> implements Externalizable {
      */
     public GridCacheDrManager dr() {
         return drMgr;
-    }
-
-    /**
-     * @return Offheap manager.
-     */
-    public IgniteCacheOffheapManager offheap() {
-        return offheapMgr;
     }
 
     /**
@@ -1417,11 +1408,17 @@ public class GridCacheContext<K, V> implements Externalizable {
     }
 
     /**
-     * @return {@code True} if should use offheap (PageMemory) index.
+     * @return {@code True} if swap store of off-heap cache are enabled.
      */
-    public boolean offheapIndex() {
-        // TODO GG-10884.
-        return true;
+    public boolean isSwapOrOffheapEnabled() {
+        return swapMgr.swapEnabled() || isOffHeapEnabled();
+    }
+
+    /**
+     * @return {@code True} if offheap storage is enabled.
+     */
+    public boolean isOffHeapEnabled() {
+        return swapMgr.offHeapEnabled();
     }
 
     /**
@@ -1688,11 +1685,26 @@ public class GridCacheContext<K, V> implements Externalizable {
     }
 
     /**
+     * @return {@code True} if OFFHEAP_TIERED memory mode is enabled.
+     */
+    public boolean offheapTiered() {
+        return cacheCfg != null && cacheCfg.getMemoryMode() == OFFHEAP_TIERED && isOffHeapEnabled();
+    }
+
+    /**
+     * @return {@code True} if should use entry with offheap value pointer.
+     */
+    public boolean useOffheapEntry() {
+        return cacheCfg != null &&
+            (cacheCfg.getMemoryMode() == OFFHEAP_TIERED || cacheCfg.getMemoryMode() == OFFHEAP_VALUES);
+    }
+
+    /**
      * @return {@code True} if the value for the cache object has to be copied because
      * of {@link CacheConfiguration#isCopyOnRead()}.
      */
     public boolean needValueCopy() {
-        return affNode && cacheCfg.isCopyOnRead();
+        return affNode && cacheCfg.isCopyOnRead() && cacheCfg.getMemoryMode() != OFFHEAP_VALUES;
     }
 
     /**
@@ -1702,6 +1714,9 @@ public class GridCacheContext<K, V> implements Externalizable {
      * @return Heap-based object.
      */
     @Nullable public <T> T unwrapTemporary(@Nullable Object obj) {
+        if (!useOffheapEntry())
+            return (T)obj;
+
         return (T)cacheObjects().unwrapTemporary(this, obj);
     }
 
@@ -1806,6 +1821,42 @@ public class GridCacheContext<K, V> implements Externalizable {
         Object obj = ctx.cacheObjects().unmarshal(cacheObjCtx, bytes, deploy().localLoader());
 
         return cacheObjects().toCacheKeyObject(cacheObjCtx, this, obj, false);
+    }
+
+    /**
+     * @param type Type.
+     * @param bytes Bytes.
+     * @param clsLdrId Class loader ID.
+     * @return Cache object.
+     * @throws IgniteCheckedException If failed.
+     */
+    @Nullable public CacheObject unswapCacheObject(byte type, byte[] bytes, @Nullable IgniteUuid clsLdrId)
+        throws IgniteCheckedException {
+        if (ctx.config().isPeerClassLoadingEnabled() && type != CacheObject.TYPE_BYTE_ARR) {
+            ClassLoader ldr = clsLdrId != null ? deploy().getClassLoader(clsLdrId) : deploy().localLoader();
+
+            if (ldr == null)
+                return null;
+
+            return ctx.cacheObjects().toCacheObject(cacheObjCtx,
+                ctx.cacheObjects().unmarshal(cacheObjCtx, bytes, ldr),
+                false);
+        }
+
+        return ctx.cacheObjects().toCacheObject(cacheObjCtx, type, bytes);
+    }
+
+    /**
+     * @param valPtr Value pointer.
+     * @param tmp If {@code true} can return temporary instance which is valid while entry lock is held.
+     * @return Cache object.
+     * @throws IgniteCheckedException If failed.
+     */
+    public CacheObject fromOffheap(long valPtr, boolean tmp) throws IgniteCheckedException {
+        assert config().getMemoryMode() == OFFHEAP_TIERED || config().getMemoryMode() == OFFHEAP_VALUES : cacheCfg;
+        assert valPtr != 0;
+
+        return ctx.cacheObjects().toCacheObject(this, valPtr, tmp);
     }
 
     /**
@@ -1953,20 +2004,6 @@ public class GridCacheContext<K, V> implements Externalizable {
     }
 
     /**
-     * @return Current cache state. Must only be modified during exchange.
-     */
-    public boolean needsRecovery() {
-        return needsRecovery;
-    }
-
-    /**
-     * @param needsRecovery Needs recovery flag.
-     */
-    public void needsRecovery(boolean needsRecovery) {
-        this.needsRecovery = needsRecovery;
-    }
-
-    /**
      * Nulling references to potentially leak-prone objects.
      */
     public void cleanup() {
@@ -2032,25 +2069,6 @@ public class GridCacheContext<K, V> implements Externalizable {
     }
 
     /**
-     * Checks if it is possible to directly read data memory without entry creation (this
-     * is optimization to avoid unnecessary blocking synchronization on cache entry).
-     *
-     * @param expiryPlc Optional expiry policy for read operation.
-     * @param readers {@code True} if need update near cache readers.
-     * @return {@code True} if it is possible to directly read offheap instead of using {@link GridCacheEntryEx#innerGet}.
-     */
-    public boolean readNoEntry(@Nullable IgniteCacheExpiryPolicy expiryPlc, boolean readers) {
-        return !config().isOnheapCacheEnabled() && !readers && expiryPlc == null;
-    }
-
-    /**
-     * @return {@code True} if fast eviction is allowed.
-     */
-    public boolean allowFastEviction() {
-        return shared().database().persistenceEnabled() && !QueryUtils.isEnabled(cacheCfg);
-    }
-
-    /**
      * @param part Partition.
      * @param affNodes Affinity nodes.
      * @param topVer Topology version.
@@ -2068,7 +2086,7 @@ public class GridCacheContext<K, V> implements Externalizable {
     /** {@inheritDoc} */
     @Override public void writeExternal(ObjectOutput out) throws IOException {
         U.writeString(out, igniteInstanceName());
-        U.writeString(out, name());
+        U.writeString(out, namex());
     }
 
     /** {@inheritDoc} */

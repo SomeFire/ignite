@@ -44,13 +44,27 @@ public class IgniteFutureImplTest extends GridCommonAbstractTest {
 
         assertFalse(fut.isDone());
 
+        assertTrue(fut.startTime() > 0);
+
         U.sleep(100);
+
+        assertTrue(fut.duration() > 0);
 
         fut0.onDone("test");
 
         assertEquals("test", fut.get());
 
         assertTrue(fut.isDone());
+
+        assertTrue(fut.duration() > 0);
+
+        long dur0 = fut.duration();
+
+        U.sleep(100);
+
+        assertEquals(dur0, fut.duration());
+
+        assertEquals("test", fut.get());
     }
 
     /**
@@ -63,7 +77,11 @@ public class IgniteFutureImplTest extends GridCommonAbstractTest {
 
         assertFalse(fut.isDone());
 
+        assertTrue(fut.startTime() > 0);
+
         U.sleep(100);
+
+        assertTrue(fut.duration() > 0);
 
         IgniteCheckedException err0 = new IgniteCheckedException("test error");
 
@@ -80,6 +98,14 @@ public class IgniteFutureImplTest extends GridCommonAbstractTest {
         assertEquals(err0, err.getCause());
 
         assertTrue(fut.isDone());
+
+        assertTrue(fut.duration() > 0);
+
+        long dur0 = fut.duration();
+
+        U.sleep(100);
+
+        assertEquals(dur0, fut.duration());
 
         err = (IgniteException)GridTestUtils.assertThrows(log, new Callable<Void>() {
             @Override public Void call() throws Exception {
@@ -242,7 +268,11 @@ public class IgniteFutureImplTest extends GridCommonAbstractTest {
 
         assertFalse(chained.isDone());
 
+        assertTrue(chained.startTime() > 0);
+
         U.sleep(100);
+
+        assertTrue(chained.duration() > 0);
 
         final AtomicInteger lsnrCnt = new AtomicInteger();
 
@@ -257,6 +287,14 @@ public class IgniteFutureImplTest extends GridCommonAbstractTest {
         fut0.onDone("10");
 
         assertTrue(chained.isDone());
+
+        assertTrue(chained.duration() > 0);
+
+        long dur0 = chained.duration();
+
+        U.sleep(100);
+
+        assertEquals(dur0, chained.duration());
 
         assertEquals(10, (int)chained.get());
 

@@ -68,11 +68,11 @@ public class GridCacheNearMetricsSelfTest extends GridCacheAbstractSelfTest {
         for (int i = 0; i < gridCount(); i++) {
             Ignite g = grid(i);
 
-            g.cache(DEFAULT_CACHE_NAME).removeAll();
+            g.cache(null).removeAll();
 
-            assert g.cache(DEFAULT_CACHE_NAME).localSize() == 0;
+            assert g.cache(null).localSize() == 0;
 
-            g.cache(DEFAULT_CACHE_NAME).localMxBean().clear();
+            g.cache(null).localMxBean().clear();
         }
     }
 
@@ -83,7 +83,7 @@ public class GridCacheNearMetricsSelfTest extends GridCacheAbstractSelfTest {
         for (int i = 0; i < gridCount(); i++) {
             Ignite g = grid(i);
 
-            g.cache(DEFAULT_CACHE_NAME).getConfiguration(CacheConfiguration.class).setStatisticsEnabled(true);
+            g.cache(null).getConfiguration(CacheConfiguration.class).setStatisticsEnabled(true);
         }
     }
 
@@ -103,7 +103,7 @@ public class GridCacheNearMetricsSelfTest extends GridCacheAbstractSelfTest {
     public void testPrimaryPut() throws Exception {
         Ignite g0 = grid(0);
 
-        IgniteCache<Integer, Integer> cache0 = g0.cache(DEFAULT_CACHE_NAME);
+        IgniteCache<Integer, Integer> cache0 = g0.cache(null);
 
         int key;
 
@@ -129,7 +129,7 @@ public class GridCacheNearMetricsSelfTest extends GridCacheAbstractSelfTest {
 
             info("Checking grid: " + g.name());
 
-            IgniteCache<Object, Object> jcache = g.cache(DEFAULT_CACHE_NAME);
+            IgniteCache<Object, Object> jcache = g.cache(null);
 
             info("Puts: " + jcache.localMetrics().getCachePuts());
             info("Reads: " + jcache.localMetrics().getCacheGets());
@@ -158,7 +158,7 @@ public class GridCacheNearMetricsSelfTest extends GridCacheAbstractSelfTest {
     public void testBackupPut() throws Exception {
         Ignite g0 = grid(0);
 
-        IgniteCache<Integer, Integer> cache0 = g0.cache(DEFAULT_CACHE_NAME);
+        IgniteCache<Integer, Integer> cache0 = g0.cache(null);
 
         int key;
 
@@ -181,7 +181,7 @@ public class GridCacheNearMetricsSelfTest extends GridCacheAbstractSelfTest {
 
         for (int j = 0; j < gridCount(); j++) {
             Ignite g = grid(j);
-            IgniteCache<Object, Object> jcache = g.cache(DEFAULT_CACHE_NAME);
+            IgniteCache<Object, Object> jcache = g.cache(null);
 
             if (affinity(jcache).isPrimaryOrBackup(g.cluster().localNode(), key))
                 assertEquals(1, jcache.localMetrics().getCachePuts());
@@ -212,7 +212,7 @@ public class GridCacheNearMetricsSelfTest extends GridCacheAbstractSelfTest {
     public void testNearPut() throws Exception {
         Ignite g0 = grid(0);
 
-        IgniteCache<Integer, Integer> cache0 = g0.cache(DEFAULT_CACHE_NAME);
+        IgniteCache<Integer, Integer> cache0 = g0.cache(null);
 
         int key;
 
@@ -236,7 +236,7 @@ public class GridCacheNearMetricsSelfTest extends GridCacheAbstractSelfTest {
         for (int j = 0; j < gridCount(); j++) {
             Ignite g = grid(j);
 
-            IgniteCache<Object, Object> jcache = g.cache(DEFAULT_CACHE_NAME);
+            IgniteCache<Object, Object> jcache = g.cache(null);
 
             assertEquals(1, jcache.localMetrics().getCachePuts());
 
@@ -264,7 +264,7 @@ public class GridCacheNearMetricsSelfTest extends GridCacheAbstractSelfTest {
     public void testPrimaryRead() throws Exception {
         Ignite g0 = grid(0);
 
-        IgniteCache<Integer, Integer> cache0 = g0.cache(DEFAULT_CACHE_NAME);
+        IgniteCache<Integer, Integer> cache0 = g0.cache(null);
 
         int key;
 
@@ -294,7 +294,7 @@ public class GridCacheNearMetricsSelfTest extends GridCacheAbstractSelfTest {
 
             info("Checking grid: " + g.name());
 
-            IgniteCache<Object, Object> jcache = g.cache(DEFAULT_CACHE_NAME);
+            IgniteCache<Object, Object> jcache = g.cache(null);
 
             info("Writes: " + jcache.localMetrics().getCachePuts());
             info("Reads: " + jcache.localMetrics().getCacheGets());
@@ -320,7 +320,7 @@ public class GridCacheNearMetricsSelfTest extends GridCacheAbstractSelfTest {
     public void testBackupRead() throws Exception {
         Ignite g0 = grid(0);
 
-        IgniteCache<Integer, Integer> cache0 = g0.cache(DEFAULT_CACHE_NAME);
+        IgniteCache<Integer, Integer> cache0 = g0.cache(null);
 
         int key;
 
@@ -348,7 +348,7 @@ public class GridCacheNearMetricsSelfTest extends GridCacheAbstractSelfTest {
         for (int j = 0; j < gridCount(); j++) {
             Ignite g = grid(j);
 
-            IgniteCache<Object, Object> jcache = g.cache(DEFAULT_CACHE_NAME);
+            IgniteCache<Object, Object> jcache = g.cache(null);
 
             assertEquals(0, jcache.localMetrics().getCachePuts());
 
@@ -371,7 +371,7 @@ public class GridCacheNearMetricsSelfTest extends GridCacheAbstractSelfTest {
     public void testNearRead() throws Exception {
         Ignite g0 = grid(0);
 
-        IgniteCache<Integer, Integer> cache0 = g0.cache(DEFAULT_CACHE_NAME);
+        IgniteCache<Integer, Integer> cache0 = g0.cache(null);
 
         int key;
 
@@ -396,7 +396,7 @@ public class GridCacheNearMetricsSelfTest extends GridCacheAbstractSelfTest {
         for (int j = 0; j < gridCount(); j++) {
             Ignite g = grid(j);
 
-            IgniteCache<Object, Object> jcache = g.cache(DEFAULT_CACHE_NAME);
+            IgniteCache<Object, Object> jcache = g.cache(null);
 
             assertEquals(0, jcache.localMetrics().getCachePuts());
 

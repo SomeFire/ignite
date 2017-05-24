@@ -17,8 +17,6 @@
 
 package org.apache.ignite.internal.processors.hadoop.impl.igfs;
 
-import java.util.HashMap;
-import java.util.Map;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -129,8 +127,9 @@ public class HadoopFIleSystemFactorySelfTest extends IgfsCommonAbstractTest {
         // Create remote instance.
         FileSystem fs = FileSystem.get(URI.create("igfs://primary@127.0.0.1:10500/"), baseConfiguration());
 
-        assertEquals(1, START_CNT.get());
-        assertEquals(0, STOP_CNT.get());
+        // Ensure lifecycle callback was invoked.
+        assert START_CNT.get() == 2;
+        assert STOP_CNT.get() == 0;
 
         // Check file system operations.
         assert fs.exists(PATH_DUAL);
@@ -149,16 +148,17 @@ public class HadoopFIleSystemFactorySelfTest extends IgfsCommonAbstractTest {
         assert secondary.exists(IGFS_PATH_PROXY);
         assert fs.exists(PATH_PROXY);
 
+        // Close file system and ensure that associated factory was notified.
         fs.close();
 
-        assertEquals(1, START_CNT.get());
-        assertEquals(0, STOP_CNT.get());
+        assert START_CNT.get() == 2;
+        assert STOP_CNT.get() == 1;
 
         // Stop primary node and ensure that base factory was notified.
         G.stop(primary.context().kernalContext().grid().name(), true);
 
-        assertEquals(1, START_CNT.get());
-        assertEquals(1, STOP_CNT.get());
+        assert START_CNT.get() == 2;
+        assert STOP_CNT.get() == 2;
     }
 
     /**
@@ -226,6 +226,7 @@ public class HadoopFIleSystemFactorySelfTest extends IgfsCommonAbstractTest {
         igfsCfg.setDefaultMode(dfltMode);
         igfsCfg.setIpcEndpointConfiguration(endpointCfg);
         igfsCfg.setSecondaryFileSystem(secondaryFs);
+        igfsCfg.setInitializeDefaultPathModes(true);
 
         CacheConfiguration dataCacheCfg = defaultCacheConfiguration();
 
@@ -234,6 +235,7 @@ public class HadoopFIleSystemFactorySelfTest extends IgfsCommonAbstractTest {
         dataCacheCfg.setAffinityMapper(new IgfsGroupDataBlocksKeyMapper(2));
         dataCacheCfg.setBackups(0);
         dataCacheCfg.setAtomicityMode(TRANSACTIONAL);
+        dataCacheCfg.setOffHeapMaxMemory(0);
 
         CacheConfiguration metaCacheCfg = defaultCacheConfiguration();
 
@@ -243,15 +245,6 @@ public class HadoopFIleSystemFactorySelfTest extends IgfsCommonAbstractTest {
 
         igfsCfg.setDataCacheConfiguration(dataCacheCfg);
         igfsCfg.setMetaCacheConfiguration(metaCacheCfg);
-
-        if (secondaryFs != null) {
-            Map<String, IgfsMode> modes = new HashMap<>();
-            modes.put("/ignite/sync/", IgfsMode.DUAL_SYNC);
-            modes.put("/ignite/async/", IgfsMode.DUAL_ASYNC);
-            modes.put("/ignite/proxy/", IgfsMode.PROXY);
-
-            igfsCfg.setPathModes(modes);
-        }
 
         IgniteConfiguration cfg = new IgniteConfiguration();
 

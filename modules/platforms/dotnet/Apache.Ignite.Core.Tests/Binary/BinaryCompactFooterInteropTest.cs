@@ -115,7 +115,7 @@ namespace Apache.Ignite.Core.Tests.Binary
         {
             var grid = client ? _clientGrid : _grid;
 
-            var cache = grid.GetCache<int, PlatformComputeBinarizable>("default");
+            var cache = grid.GetCache<int, PlatformComputeBinarizable>(null);
 
             // Populate cache in .NET
             for (var i = 0; i < 100; i++)
@@ -133,15 +133,14 @@ namespace Apache.Ignite.Core.Tests.Binary
         /// </summary>
         private static IgniteConfiguration Config(string springUrl)
         {
-            return new IgniteConfiguration(TestUtils.GetTestConfiguration())
+            return new IgniteConfiguration
             {
                 SpringConfigUrl = springUrl,
+                JvmOptions = TestUtils.TestJavaOptions(),
+                JvmClasspath = TestUtils.CreateTestClasspath(),
                 BinaryConfiguration = new BinaryConfiguration(
                     typeof (PlatformComputeBinarizable),
                     typeof (PlatformComputeNetBinarizable))
-                {
-                    NameMapper = BinaryBasicNameMapper.SimpleNameInstance
-                }
             };
         }
     }

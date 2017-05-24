@@ -42,6 +42,8 @@ public class GridCacheReplicatedNodeRestartSelfTest extends GridCacheAbstractNod
 
         cc.setWriteSynchronizationMode(FULL_SYNC);
 
+        cc.setStartSize(20);
+
         cc.setRebalanceMode(SYNC);
 
         cc.setRebalanceBatchSize(20);

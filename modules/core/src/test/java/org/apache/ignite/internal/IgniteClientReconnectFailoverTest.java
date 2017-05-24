@@ -54,13 +54,13 @@ public class IgniteClientReconnectFailoverTest extends IgniteClientReconnectFail
     @Override protected IgniteConfiguration getConfiguration(String igniteInstanceName) throws Exception {
         IgniteConfiguration cfg = super.getConfiguration(igniteInstanceName);
 
-        CacheConfiguration ccfg1 = new CacheConfiguration(DEFAULT_CACHE_NAME);
+        CacheConfiguration ccfg1 = new CacheConfiguration();
 
         ccfg1.setName(ATOMIC_CACHE);
         ccfg1.setBackups(1);
         ccfg1.setAtomicityMode(ATOMIC);
 
-        CacheConfiguration ccfg2 = new CacheConfiguration(DEFAULT_CACHE_NAME);
+        CacheConfiguration ccfg2 = new CacheConfiguration();
 
         ccfg2.setName(TX_CACHE);
         ccfg2.setBackups(1);

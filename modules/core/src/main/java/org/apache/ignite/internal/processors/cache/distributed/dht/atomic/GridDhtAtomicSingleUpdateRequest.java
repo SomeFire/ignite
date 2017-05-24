@@ -135,7 +135,7 @@ public class GridDhtAtomicSingleUpdateRequest extends GridDhtAtomicAbstractUpdat
         assert conflictVer == null : conflictVer;
         assert key.partition() >= 0 : key;
 
-        assert this.key == null;
+        near(false);
 
         this.key = key;
         this.val = val;
@@ -161,12 +161,6 @@ public class GridDhtAtomicSingleUpdateRequest extends GridDhtAtomicAbstractUpdat
         assert entryProcessor == null;
         assert ttl <= 0 : ttl;
         assert key.partition() >= 0 : key;
-
-        if (this.key != null) {
-            setFlag(true, DHT_ATOMIC_OBSOLETE_NEAR_KEY_FLAG_MASK);
-
-            return;
-        }
 
         near(true);
 
@@ -199,18 +193,6 @@ public class GridDhtAtomicSingleUpdateRequest extends GridDhtAtomicAbstractUpdat
         assert idx == 0 : idx;
 
         return near() ? null : key;
-    }
-
-    /** {@inheritDoc} */
-    @Override public int obsoleteNearKeysSize() {
-        return isFlag(DHT_ATOMIC_OBSOLETE_NEAR_KEY_FLAG_MASK) ? 1 : 0;
-    }
-
-    /** {@inheritDoc} */
-    @Override public KeyCacheObject obsoleteNearKey(int idx) {
-        assert obsoleteNearKeysSize() == 1 && idx == 0 : idx;
-
-        return key;
     }
 
     /** {@inheritDoc} */
@@ -322,6 +304,7 @@ public class GridDhtAtomicSingleUpdateRequest extends GridDhtAtomicAbstractUpdat
         prepareMarshalObject(val, cctx);
 
         prepareMarshalObject(prevVal, cctx);
+
     }
 
     /** {@inheritDoc} */

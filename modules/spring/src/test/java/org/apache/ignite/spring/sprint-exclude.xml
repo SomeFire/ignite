@@ -34,6 +34,8 @@
                 <bean class="org.apache.ignite.configuration.FileSystemConfiguration">
                     <property name="name" value="test"/>
 
+                    <property name="maxSpaceSize" value="#{100L * 1024 * 1024}"/>
+
                     <!-- Loopback endpoint. -->
                     <property name="ipcEndpointConfiguration">
                         <bean class="org.apache.ignite.igfs.IgfsIpcEndpointConfiguration">

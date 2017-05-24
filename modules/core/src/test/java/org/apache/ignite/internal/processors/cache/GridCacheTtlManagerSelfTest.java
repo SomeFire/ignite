@@ -56,7 +56,7 @@ public class GridCacheTtlManagerSelfTest extends GridCommonAbstractTest {
 
         cfg.setDiscoverySpi(discoSpi);
 
-        CacheConfiguration ccfg = new CacheConfiguration(DEFAULT_CACHE_NAME);
+        CacheConfiguration ccfg = new CacheConfiguration();
 
         ccfg.setCacheMode(cacheMode);
         ccfg.setEagerTtl(true);
@@ -99,20 +99,20 @@ public class GridCacheTtlManagerSelfTest extends GridCommonAbstractTest {
         try {
             final String key = "key";
 
-            g.cache(DEFAULT_CACHE_NAME).withExpiryPolicy(
+            g.cache(null).withExpiryPolicy(
                     new TouchedExpiryPolicy(new Duration(MILLISECONDS, 1000))).put(key, 1);
 
-            assertEquals(1, g.cache(DEFAULT_CACHE_NAME).get(key));
+            assertEquals(1, g.cache(null).get(key));
 
             U.sleep(1100);
 
             GridTestUtils.retryAssert(log, 10, 100, new CAX() {
                 @Override public void applyx() {
                     // Check that no more entries left in the map.
-                    assertNull(g.cache(DEFAULT_CACHE_NAME).get(key));
+                    assertNull(g.cache(null).get(key));
 
-                    if (!g.internalCache(DEFAULT_CACHE_NAME).context().deferredDelete())
-                        assertNull(g.internalCache(DEFAULT_CACHE_NAME).map().getEntry(g.internalCache(DEFAULT_CACHE_NAME).context().toCacheKeyObject(key)));
+                    if (!g.internalCache().context().deferredDelete())
+                        assertNull(g.internalCache().map().getEntry(g.internalCache().context().toCacheKeyObject(key)));
                 }
             });
         }

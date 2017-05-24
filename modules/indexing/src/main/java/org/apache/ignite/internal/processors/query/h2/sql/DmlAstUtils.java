@@ -24,6 +24,7 @@ import java.util.Set;
 import org.apache.ignite.IgniteCheckedException;
 import org.apache.ignite.IgniteException;
 import org.apache.ignite.internal.processors.query.IgniteSQLException;
+import org.apache.ignite.internal.processors.query.h2.IgniteH2Indexing;
 import org.apache.ignite.internal.processors.query.h2.dml.FastUpdateArgument;
 import org.apache.ignite.internal.processors.query.h2.dml.FastUpdateArguments;
 import org.apache.ignite.internal.processors.query.h2.opt.GridH2AbstractKeyValueRow;
@@ -45,6 +46,7 @@ import org.h2.value.ValueInt;
 import org.h2.value.ValueString;
 import org.h2.value.ValueTime;
 import org.h2.value.ValueTimestamp;
+import org.h2.value.ValueTimestampUtc;
 import org.jetbrains.annotations.Nullable;
 
 /**
@@ -174,15 +176,8 @@ public final class DmlAstUtils {
         if (filter == null)
             return null;
 
-        if (update.cols().size() != 1)
-            return null;
-
-        Table tbl = update.cols().get(0).column().getTable();
-        if (!(tbl instanceof GridH2Table))
-            return null;
-
-        GridH2RowDescriptor desc = ((GridH2Table)tbl).rowDescriptor();
-        if (!desc.isValueColumn(update.cols().get(0).column().getColumnId()))
+        if (update.cols().size() != 1 ||
+            !IgniteH2Indexing.VAL_FIELD_NAME.equalsIgnoreCase(update.cols().get(0).columnName()))
             return null;
 
         GridSqlElement set = update.set().get(update.cols().get(0).columnName());
@@ -274,29 +269,19 @@ public final class DmlAstUtils {
 
     /**
      * @param op Operation.
-     * @param key true - check for key equality condition,
-     *            otherwise check for value equality condition
+     * @param colName Column name to check.
      * @return Whether this condition is of form {@code colName} = ?
      */
-    private static boolean isEqualityCondition(GridSqlOperation op, boolean key) {
+    private static boolean isEqualityCondition(GridSqlOperation op, String colName) {
         if (op.operationType() != GridSqlOperationType.EQUAL)
             return false;
 
         GridSqlElement left = op.child(0);
         GridSqlElement right = op.child(1);
 
-        if (!(left instanceof GridSqlColumn))
-            return false;
-
-        GridSqlColumn column = (GridSqlColumn)left;
-        if (!(column.column().getTable() instanceof GridH2Table))
-            return false;
-
-        GridH2RowDescriptor desc =((GridH2Table) column.column().getTable()).rowDescriptor();
-
-        return  (key ? desc.isKeyColumn(column.column().getColumnId()) :
-                       desc.isValueColumn(column.column().getColumnId())) &&
-                (right instanceof GridSqlConst || right instanceof GridSqlParameter);
+        return left instanceof GridSqlColumn &&
+            colName.equals(((GridSqlColumn) left).columnName()) &&
+            (right instanceof GridSqlConst || right instanceof GridSqlParameter);
     }
 
     /**
@@ -304,7 +289,7 @@ public final class DmlAstUtils {
      * @return Whether this condition is of form _key = ?
      */
     private static boolean isKeyEqualityCondition(GridSqlOperation op) {
-        return isEqualityCondition(op, true);
+        return isEqualityCondition(op, IgniteH2Indexing.KEY_FIELD_NAME);
     }
 
     /**
@@ -312,7 +297,7 @@ public final class DmlAstUtils {
      * @return Whether this condition is of form _val = ?
      */
     private static boolean isValueEqualityCondition(GridSqlOperation op) {
-        return isEqualityCondition(op, false);
+        return isEqualityCondition(op, IgniteH2Indexing.VAL_FIELD_NAME);
     }
 
 
@@ -412,6 +397,8 @@ public final class DmlAstUtils {
             dfltVal = ValueInt.get(0).convertTo(type);
         else if (dt.type == Value.TIMESTAMP)
             dfltVal = ValueTimestamp.fromMillis(U.currentTimeMillis());
+        else if (dt.type == Value.TIMESTAMP_UTC)
+            dfltVal = ValueTimestampUtc.fromMillis(U.currentTimeMillis());
         else if (dt.type == Value.TIME)
             dfltVal = ValueTime.fromNanos(0);
         else if (dt.type == Value.DATE)

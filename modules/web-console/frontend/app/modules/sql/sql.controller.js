@@ -26,6 +26,12 @@ const TIME_LINE = {value: -1, type: 'java.sql.Date', label: 'TIME_LINE'};
 // Row index X axis descriptor.
 const ROW_IDX = {value: -2, type: 'java.lang.Integer', label: 'ROW_IDX'};
 
+/** Prefix for node local key for SCAN near queries. */
+const SCAN_CACHE_WITH_FILTER = 'VISOR_SCAN_CACHE_WITH_FILTER';
+
+/** Prefix for node local key for SCAN near queries. */
+const SCAN_CACHE_WITH_FILTER_CASE_SENSITIVE = 'VISOR_SCAN_CACHE_WITH_FILTER_CASE_SENSITIVE';
+
 const NON_COLLOCATED_JOINS_SINCE = '1.7.0';
 
 const ENFORCE_JOIN_VERS = [['1.7.9', '1.8.0'], ['1.8.4', '1.9.0'], ['1.9.1']];
@@ -210,8 +216,8 @@ class Paragraph {
 }
 
 // Controller for SQL notebook screen.
-export default ['$rootScope', '$scope', '$http', '$q', '$timeout', '$interval', '$animate', '$location', '$anchorScroll', '$state', '$filter', '$modal', '$popover', 'IgniteLoading', 'IgniteLegacyUtils', 'IgniteMessages', 'IgniteConfirm', 'AgentManager', 'IgniteChartColors', 'IgniteNotebook', 'IgniteNodes', 'uiGridExporterConstants', 'IgniteVersion', 'IgniteActivitiesData', 'JavaTypes',
-    function($root, $scope, $http, $q, $timeout, $interval, $animate, $location, $anchorScroll, $state, $filter, $modal, $popover, Loading, LegacyUtils, Messages, Confirm, agentMgr, IgniteChartColors, Notebook, Nodes, uiGridExporterConstants, Version, ActivitiesData, JavaTypes) {
+export default ['$rootScope', '$scope', '$http', '$q', '$timeout', '$interval', '$animate', '$location', '$anchorScroll', '$state', '$filter', '$modal', '$popover', 'IgniteLoading', 'IgniteLegacyUtils', 'IgniteMessages', 'IgniteConfirm', 'IgniteAgentMonitor', 'IgniteChartColors', 'IgniteNotebook', 'IgniteNodes', 'uiGridExporterConstants', 'IgniteVersion', 'IgniteActivitiesData', 'JavaTypes',
+    function($root, $scope, $http, $q, $timeout, $interval, $animate, $location, $anchorScroll, $state, $filter, $modal, $popover, Loading, LegacyUtils, Messages, Confirm, agentMonitor, IgniteChartColors, Notebook, Nodes, uiGridExporterConstants, Version, ActivitiesData, JavaTypes) {
         const $ctrl = this;
 
         // Define template urls.
@@ -263,6 +269,12 @@ export default ['$rootScope', '$scope', '$http', '$q', '$timeout', '$interval', 
             {value: 1000, label: 'seconds', short: 's'},
             {value: 60000, label: 'minutes', short: 'm'},
             {value: 3600000, label: 'hours', short: 'h'}
+        ];
+
+        $scope.exportDropdown = [
+            { text: 'Export all', click: 'exportCsvAll(paragraph)' }
+            // { 'text': 'Export all to CSV', 'click': 'exportCsvAll(paragraph)' },
+            // { 'text': 'Export all to PDF', 'click': 'exportPdfAll(paragraph)' }
         ];
 
         $scope.metadata = [];
@@ -846,7 +858,7 @@ export default ['$rootScope', '$scope', '$http', '$q', '$timeout', '$interval', 
          * @private
          */
         const _refreshFn = () =>
-            agentMgr.topology(true)
+            agentMonitor.topology(true)
                 .then((nodes) => {
                     $scope.caches = _.sortBy(_.reduce(nodes, (cachesAcc, node) => {
                         _.forEach(node.caches, (cache) => {
@@ -884,10 +896,20 @@ export default ['$rootScope', '$scope', '$http', '$q', '$timeout', '$interval', 
                             paragraph.cacheName = _.head(cacheNames);
                     });
                 })
-                .catch((err) => Messages.showError(err));
+                .then(() => agentMonitor.checkModal())
+                .catch((err) => agentMonitor.showNodeError(err));
 
         const _startWatch = () =>
-            agentMgr.startClusterWatch('Back to Configuration', 'base.configuration.clusters')
+            agentMonitor.startWatch({
+                state: 'base.configuration.clusters',
+                text: 'Back to Configuration',
+                goal: 'execute sql statements',
+                onDisconnect: () => {
+                    _stopTopologyRefresh();
+
+                    _startWatch();
+                }
+            })
                 .then(() => Loading.start('sqlLoading'))
                 .then(_refreshFn)
                 .then(() => Loading.finish('sqlLoading'))
@@ -1303,8 +1325,8 @@ export default ['$rootScope', '$scope', '$http', '$q', '$timeout', '$interval', 
         const _closeOldQuery = (paragraph) => {
             const nid = paragraph.resNodeId;
 
-            if (paragraph.queryId && _.find($scope.caches, ({nodes}) => _.find(nodes, {nid: nid.toUpperCase()})))
-                return agentMgr.queryClose(nid, paragraph.queryId);
+            if (paragraph.queryId && _.find($scope.caches, ({nodes}) => _.includes(nodes, nid)))
+                return agentMonitor.queryClose(nid, paragraph.queryId);
 
             return $q.when();
         };
@@ -1336,12 +1358,12 @@ export default ['$rootScope', '$scope', '$http', '$q', '$timeout', '$interval', 
         const _executeRefresh = (paragraph) => {
             const args = paragraph.queryArgs;
 
-            agentMgr.awaitCluster()
+            agentMonitor.awaitAgent()
                 .then(() => _closeOldQuery(paragraph))
                 .then(() => args.localNid || _chooseNode(args.cacheName, false))
-                .then((nid) => agentMgr.querySql(nid, args.cacheName, args.query, args.nonCollocatedJoins,
-                    args.enforceJoinOrder, false, !!args.localNid, args.pageSize))
-                .then((res) => _processQueryResult(paragraph, false, res))
+                .then((nid) => agentMonitor.query(nid, args.cacheName, args.query, args.nonCollocatedJoins,
+                    args.enforceJoinOrder, !!args.localNid, args.pageSize))
+                .then(_processQueryResult.bind(this, paragraph, false))
                 .catch((err) => paragraph.setError(err));
         };
 
@@ -1412,7 +1434,7 @@ export default ['$rootScope', '$scope', '$http', '$q', '$timeout', '$interval', 
 
                             ActivitiesData.post({ action: '/queries/execute' });
 
-                            return agentMgr.querySql(nid, args.cacheName, qry, nonCollocatedJoins, enforceJoinOrder, false, local, args.pageSize);
+                            return agentMonitor.query(nid, args.cacheName, qry, nonCollocatedJoins, enforceJoinOrder, local, args.pageSize);
                         })
                         .then((res) => {
                             _processQueryResult(paragraph, true, res);
@@ -1465,9 +1487,9 @@ export default ['$rootScope', '$scope', '$http', '$q', '$timeout', '$interval', 
 
                     ActivitiesData.post({ action: '/queries/explain' });
 
-                    return agentMgr.querySql(nid, args.cacheName, args.query, false, !!paragraph.enforceJoinOrder, false, false, args.pageSize);
+                    return agentMonitor.query(nid, args.cacheName, args.query, false, !!paragraph.enforceJoinOrder, false, args.pageSize);
                 })
-                .then((res) => _processQueryResult(paragraph, true, res))
+                .then(_processQueryResult.bind(this, paragraph, true))
                 .catch((err) => {
                     paragraph.setError(err);
 
@@ -1477,12 +1499,11 @@ export default ['$rootScope', '$scope', '$http', '$q', '$timeout', '$interval', 
         };
 
         $scope.scan = (paragraph, local = false) => {
-            const cacheName = paragraph.cacheName;
-            const caseSensitive = !!paragraph.caseSensitive;
-            const filter = paragraph.filter;
-            const pageSize = paragraph.pageSize;
+            const {filter, caseSensitive} = paragraph;
+            const prefix = caseSensitive ? SCAN_CACHE_WITH_FILTER_CASE_SENSITIVE : SCAN_CACHE_WITH_FILTER;
+            const query = `${prefix}${filter}`;
 
-            $scope.actionAvailable(paragraph, false) && _chooseNode(cacheName, local)
+            $scope.actionAvailable(paragraph, false) && _chooseNode(paragraph.cacheName, local)
                 .then((nid) => {
                     Notebook.save($scope.notebook)
                         .catch(Messages.showError);
@@ -1493,20 +1514,18 @@ export default ['$rootScope', '$scope', '$http', '$q', '$timeout', '$interval', 
 
                     _closeOldQuery(paragraph)
                         .then(() => {
-                            paragraph.queryArgs = {
+                            const args = paragraph.queryArgs = {
                                 type: 'SCAN',
-                                cacheName,
+                                cacheName: paragraph.cacheName,
+                                query,
                                 filter,
-                                regEx: false,
-                                caseSensitive,
-                                near: false,
-                                pageSize,
+                                pageSize: paragraph.pageSize,
                                 localNid: local ? nid : null
                             };
 
                             ActivitiesData.post({ action: '/queries/scan' });
 
-                            return agentMgr.queryScan(nid, cacheName, filter, false, caseSensitive, false, local, pageSize);
+                            return agentMonitor.query(nid, args.cacheName, query, false, false, local, args.pageSize);
                         })
                         .then((res) => _processQueryResult(paragraph, true, res))
                         .catch((err) => {
@@ -1539,7 +1558,7 @@ export default ['$rootScope', '$scope', '$http', '$q', '$timeout', '$interval', 
 
             paragraph.queryArgs.pageSize = paragraph.pageSize;
 
-            agentMgr.queryNextPage(paragraph.resNodeId, paragraph.queryId, paragraph.pageSize)
+            agentMonitor.next(paragraph.resNodeId, paragraph.queryId, paragraph.pageSize)
                 .then((res) => {
                     paragraph.page++;
 
@@ -1627,9 +1646,8 @@ export default ['$rootScope', '$scope', '$http', '$q', '$timeout', '$interval', 
             const args = paragraph.queryArgs;
 
             return Promise.resolve(args.localNid || _chooseNode(args.cacheName, false))
-                .then((nid) => args.type === 'SCAN'
-                    ? agentMgr.queryScanGetAll(nid, args.cacheName, args.query, !!args.regEx, !!args.caseSensitive, !!args.near, !!args.localNid)
-                    : agentMgr.querySqlGetAll(nid, args.cacheName, args.query, !!args.nonCollocatedJoins, !!args.enforceJoinOrder, false, !!args.localNid))
+                .then((nid) => agentMonitor.queryGetAll(nid, args.cacheName, args.query, !!args.nonCollocatedJoins,
+                    !!args.enforceJoinOrder, !!args.localNid))
                 .then((res) => _export(paragraph.name + '-all.csv', paragraph.gridOptions.columnDefs, res.columns, res.rows))
                 .catch(Messages.showError)
                 .then(() => paragraph.ace && paragraph.ace.focus());
@@ -1717,7 +1735,7 @@ export default ['$rootScope', '$scope', '$http', '$q', '$timeout', '$interval', 
 
             $scope.metadata = [];
 
-            agentMgr.metadata()
+            agentMonitor.metadata()
                 .then((metadata) => {
                     $scope.metadata = _.sortBy(_.filter(metadata, (meta) => {
                         const cache = _.find($scope.caches, { name: meta.cacheName });
@@ -1743,15 +1761,21 @@ export default ['$rootScope', '$scope', '$http', '$q', '$timeout', '$interval', 
             if (!_.isNil(paragraph)) {
                 const scope = $scope.$new();
 
-                if (paragraph.queryArgs.type === 'SCAN') {
+                if (_.isNil(paragraph.queryArgs.query)) {
+                    scope.title = 'SCAN query';
+                    scope.content = [`SCAN query for cache: <b>${maskCacheName(paragraph.queryArgs.cacheName, true)}</b>`];
+                }
+                else if (paragraph.queryArgs.query.startsWith(SCAN_CACHE_WITH_FILTER)) {
                     scope.title = 'SCAN query';
 
-                    const filter = paragraph.queryArgs.filter;
+                    let filter = '';
 
-                    if (_.isEmpty(filter))
-                        scope.content = [`SCAN query for cache: <b>${maskCacheName(paragraph.queryArgs.cacheName, true)}</b>`];
+                    if (paragraph.queryArgs.query.startsWith(SCAN_CACHE_WITH_FILTER_CASE_SENSITIVE))
+                        filter = paragraph.queryArgs.query.substr(SCAN_CACHE_WITH_FILTER_CASE_SENSITIVE.length);
                     else
-                        scope.content = [`SCAN query for cache: <b>${maskCacheName(paragraph.queryArgs.cacheName, true)}</b> with filter: <b>${filter}</b>`];
+                        filter = paragraph.queryArgs.query.substr(SCAN_CACHE_WITH_FILTER.length);
+
+                    scope.content = [`SCAN query for cache: <b>${maskCacheName(paragraph.queryArgs.cacheName, true)}</b> with filter: <b>${filter}</b>`];
                 }
                 else if (paragraph.queryArgs.query .startsWith('EXPLAIN ')) {
                     scope.title = 'Explain query';
@@ -1763,7 +1787,7 @@ export default ['$rootScope', '$scope', '$http', '$q', '$timeout', '$interval', 
                 }
 
                 // Show a basic modal from a controller
-                $modal({scope, templateUrl: messageTemplateUrl, show: true});
+                $modal({scope, templateUrl: messageTemplateUrl, placement: 'center', show: true});
             }
         };
 
@@ -1776,18 +1800,15 @@ export default ['$rootScope', '$scope', '$http', '$q', '$timeout', '$interval', 
 
                 let cause = paragraph.error.root;
 
-                const tab = '&nbsp;&nbsp;&nbsp;&nbsp;';
-
                 while (_.nonNil(cause)) {
-                    const clsName = _.isEmpty(cause.className) ? '' : '[' + JavaTypes.shortClassName(cause.className) + '] ';
-
-                    scope.content.push((scope.content.length > 0 ? tab : '') + clsName + cause.message);
+                    scope.content.push((scope.content.length > 0 ? '&nbsp;&nbsp;&nbsp;&nbsp;' : '') +
+                        '[' + JavaTypes.shortClassName(cause.className) + '] ' + cause.message);
 
                     cause = cause.cause;
                 }
 
                 // Show a basic modal from a controller
-                $modal({scope, templateUrl: messageTemplateUrl, show: true});
+                $modal({scope, templateUrl: messageTemplateUrl, placement: 'center', show: true});
             }
         };
     }

@@ -29,7 +29,6 @@ import java.util.Properties;
 import java.util.logging.Logger;
 import org.apache.ignite.cache.affinity.AffinityKey;
 import org.apache.ignite.internal.jdbc.JdbcConnection;
-import org.apache.ignite.internal.jdbc.JdbcDriverPropertyInfo;
 import org.apache.ignite.logger.java.JavaLogger;
 
 /**
@@ -409,67 +408,67 @@ public class IgniteJdbcDriver implements Driver {
             throw new SQLException("URL is invalid: " + url);
 
         List<DriverPropertyInfo> props = Arrays.<DriverPropertyInfo>asList(
-            new JdbcDriverPropertyInfo("Hostname", info.getProperty(PROP_HOST), ""),
-            new JdbcDriverPropertyInfo("Port number", info.getProperty(PROP_PORT), ""),
-            new JdbcDriverPropertyInfo("Cache name", info.getProperty(PROP_CACHE), ""),
-            new JdbcDriverPropertyInfo("Node ID", info.getProperty(PROP_NODE_ID), ""),
-            new JdbcDriverPropertyInfo("Local", info.getProperty(PROP_LOCAL), ""),
-            new JdbcDriverPropertyInfo("Collocated", info.getProperty(PROP_COLLOCATED), ""),
-            new JdbcDriverPropertyInfo("Distributed Joins", info.getProperty(PROP_DISTRIBUTED_JOINS), ""),
-            new JdbcDriverPropertyInfo("Transactions Allowed", info.getProperty(PROP_TX_ALLOWED), "")
+            new PropertyInfo("Hostname", info.getProperty(PROP_HOST), ""),
+            new PropertyInfo("Port number", info.getProperty(PROP_PORT), ""),
+            new PropertyInfo("Cache name", info.getProperty(PROP_CACHE), ""),
+            new PropertyInfo("Node ID", info.getProperty(PROP_NODE_ID), ""),
+            new PropertyInfo("Local", info.getProperty(PROP_LOCAL), ""),
+            new PropertyInfo("Collocated", info.getProperty(PROP_COLLOCATED), ""),
+            new PropertyInfo("Distributed Joins", info.getProperty(PROP_DISTRIBUTED_JOINS), ""),
+            new PropertyInfo("Transactions Allowed", info.getProperty(PROP_TX_ALLOWED), "")
         );
 
         if (info.getProperty(PROP_CFG) != null)
-            props.add(new JdbcDriverPropertyInfo("Configuration path", info.getProperty(PROP_CFG), ""));
+            props.add(new PropertyInfo("Configuration path", info.getProperty(PROP_CFG), ""));
         else
             props.addAll(Arrays.<DriverPropertyInfo>asList(
-                new JdbcDriverPropertyInfo("ignite.client.protocol",
+                new PropertyInfo("ignite.client.protocol",
                     info.getProperty("ignite.client.protocol", "TCP"),
                     "Communication protocol (TCP or HTTP)."),
-                new JdbcDriverPropertyInfo("ignite.client.connectTimeout",
+                new PropertyInfo("ignite.client.connectTimeout",
                     info.getProperty("ignite.client.connectTimeout", "0"),
                     "Socket connection timeout."),
-                new JdbcDriverPropertyInfo("ignite.client.tcp.noDelay",
+                new PropertyInfo("ignite.client.tcp.noDelay",
                     info.getProperty("ignite.client.tcp.noDelay", "true"),
                     "Flag indicating whether TCP_NODELAY flag should be enabled for outgoing connections."),
-                new JdbcDriverPropertyInfo("ignite.client.ssl.enabled",
+                new PropertyInfo("ignite.client.ssl.enabled",
                     info.getProperty("ignite.client.ssl.enabled", "false"),
                     "Flag indicating that SSL is needed for connection."),
-                new JdbcDriverPropertyInfo("ignite.client.ssl.protocol",
+                new PropertyInfo("ignite.client.ssl.protocol",
                     info.getProperty("ignite.client.ssl.protocol", "TLS"),
                     "SSL protocol."),
-                new JdbcDriverPropertyInfo("ignite.client.ssl.key.algorithm",
+                new PropertyInfo("ignite.client.ssl.key.algorithm",
                     info.getProperty("ignite.client.ssl.key.algorithm", "SunX509"),
                     "Key manager algorithm."),
-                new JdbcDriverPropertyInfo("ignite.client.ssl.keystore.location",
+                new PropertyInfo("ignite.client.ssl.keystore.location",
                     info.getProperty("ignite.client.ssl.keystore.location", ""),
                     "Key store to be used by client to connect with Ignite topology."),
-                new JdbcDriverPropertyInfo("ignite.client.ssl.keystore.password",
+                new PropertyInfo("ignite.client.ssl.keystore.password",
                     info.getProperty("ignite.client.ssl.keystore.password", ""),
                     "Key store password."),
-                new JdbcDriverPropertyInfo("ignite.client.ssl.keystore.type",
+                new PropertyInfo("ignite.client.ssl.keystore.type",
                     info.getProperty("ignite.client.ssl.keystore.type", "jks"),
                     "Key store type."),
-                new JdbcDriverPropertyInfo("ignite.client.ssl.truststore.location",
+                new PropertyInfo("ignite.client.ssl.truststore.location",
                     info.getProperty("ignite.client.ssl.truststore.location", ""),
                     "Trust store to be used by client to connect with Ignite topology."),
-                new JdbcDriverPropertyInfo("ignite.client.ssl.keystore.password",
+                new PropertyInfo("ignite.client.ssl.keystore.password",
                     info.getProperty("ignite.client.ssl.truststore.password", ""),
                     "Trust store password."),
-                new JdbcDriverPropertyInfo("ignite.client.ssl.truststore.type",
+                new PropertyInfo("ignite.client.ssl.truststore.type",
                     info.getProperty("ignite.client.ssl.truststore.type", "jks"),
                     "Trust store type."),
-                new JdbcDriverPropertyInfo("ignite.client.credentials",
+                new PropertyInfo("ignite.client.credentials",
                     info.getProperty("ignite.client.credentials", ""),
                     "Client credentials used in authentication process."),
-                new JdbcDriverPropertyInfo("ignite.client.cache.top",
+                new PropertyInfo("ignite.client.cache.top",
                     info.getProperty("ignite.client.cache.top", "false"),
                     "Flag indicating that topology is cached internally. Cache will be refreshed in the " +
                         "background with interval defined by topologyRefreshFrequency property (see below)."),
-                new JdbcDriverPropertyInfo("ignite.client.topology.refresh",
+                new PropertyInfo("ignite.client.topology.refresh",
                     info.getProperty("ignite.client.topology.refresh", "2000"),
                     "Topology cache refresh frequency (ms)."),
-                new JdbcDriverPropertyInfo("ignite.client.idleTimeout",
+                new PropertyInfo("ignite.client.idleTimeout",
                     info.getProperty("ignite.client.idleTimeout", "30000"),
                     "Maximum amount of time that connection can be idle before it is closed (ms).")
                 )
@@ -607,5 +606,23 @@ public class IgniteJdbcDriver implements Driver {
         }
 
         return true;
+    }
+
+    /**
+     * Extension of {@link DriverPropertyInfo} that adds
+     * convenient constructors.
+     */
+    private static class PropertyInfo extends DriverPropertyInfo {
+
+        /**
+         * @param name Name.
+         * @param val Value.
+         * @param desc Description.
+         */
+        private PropertyInfo(String name, String val, String desc) {
+            super(name, val);
+
+            description = desc;
+        }
     }
 }

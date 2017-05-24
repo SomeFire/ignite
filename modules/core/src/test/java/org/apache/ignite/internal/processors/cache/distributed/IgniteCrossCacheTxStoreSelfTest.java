@@ -26,7 +26,6 @@ import javax.cache.Cache;
 import javax.cache.configuration.Factory;
 import javax.cache.integration.CacheLoaderException;
 import javax.cache.integration.CacheWriterException;
-import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteCache;
 import org.apache.ignite.cache.store.CacheStore;
 import org.apache.ignite.cache.store.CacheStoreSession;
@@ -36,7 +35,6 @@ import org.apache.ignite.internal.IgniteEx;
 import org.apache.ignite.internal.util.typedef.F;
 import org.apache.ignite.lang.IgniteBiInClosure;
 import org.apache.ignite.resources.CacheStoreSessionResource;
-import org.apache.ignite.resources.IgniteInstanceResource;
 import org.apache.ignite.testframework.junits.common.GridCommonAbstractTest;
 import org.apache.ignite.transactions.Transaction;
 import org.jetbrains.annotations.Nullable;
@@ -359,12 +357,9 @@ public class IgniteCrossCacheTxStoreSelfTest extends GridCommonAbstractTest {
      *
      */
     private static class FirstStoreFactory implements Factory<CacheStore> {
-        @IgniteInstanceResource
-        private Ignite ignite;
-
         /** {@inheritDoc} */
         @Override public CacheStore create() {
-            String igniteInstanceName = ignite.name();
+            String igniteInstanceName = startingIgniteInstanceName.get();
 
             CacheStore store = firstStores.get(igniteInstanceName);
 
@@ -379,12 +374,9 @@ public class IgniteCrossCacheTxStoreSelfTest extends GridCommonAbstractTest {
      *
      */
     private static class SecondStoreFactory implements Factory<CacheStore> {
-        @IgniteInstanceResource
-        private Ignite ignite;
-
         /** {@inheritDoc} */
         @Override public CacheStore create() {
-            String igniteInstanceName = ignite.name();
+            String igniteInstanceName = startingIgniteInstanceName.get();
 
             CacheStore store = secondStores.get(igniteInstanceName);
 

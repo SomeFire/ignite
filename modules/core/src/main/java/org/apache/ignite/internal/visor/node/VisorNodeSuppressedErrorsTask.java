@@ -29,30 +29,32 @@ import org.apache.ignite.internal.util.typedef.internal.S;
 import org.apache.ignite.internal.visor.VisorJob;
 import org.apache.ignite.internal.visor.VisorMultiNodeTask;
 import org.apache.ignite.internal.visor.util.VisorExceptionWrapper;
+import org.apache.ignite.lang.IgniteBiTuple;
 import org.jetbrains.annotations.Nullable;
 
 /**
  * Task to collect last errors on nodes.
  */
 @GridInternal
-public class VisorNodeSuppressedErrorsTask extends VisorMultiNodeTask<VisorNodeSuppressedErrorsTaskArg,
-    Map<UUID, VisorNodeSuppressedErrors>, VisorNodeSuppressedErrors> {
+public class VisorNodeSuppressedErrorsTask extends VisorMultiNodeTask<Map<UUID, Long>,
+    Map<UUID, IgniteBiTuple<Long, List<IgniteExceptionRegistry.ExceptionInfo>>>,
+    IgniteBiTuple<Long, List<IgniteExceptionRegistry.ExceptionInfo>>> {
     /** */
     private static final long serialVersionUID = 0L;
 
     /** {@inheritDoc} */
-    @Override protected VisorNodeSuppressedErrorsJob job(VisorNodeSuppressedErrorsTaskArg arg) {
+    @Override protected VisorNodeSuppressedErrorsJob job(Map<UUID, Long> arg) {
         return new VisorNodeSuppressedErrorsJob(arg, debug);
     }
 
     /** {@inheritDoc} */
-    @Nullable @Override protected Map<UUID, VisorNodeSuppressedErrors>
+    @Nullable @Override protected Map<UUID, IgniteBiTuple<Long, List<IgniteExceptionRegistry.ExceptionInfo>>>
         reduce0(List<ComputeJobResult> results) {
-        Map<UUID, VisorNodeSuppressedErrors> taskRes =
+        Map<UUID, IgniteBiTuple<Long, List<IgniteExceptionRegistry.ExceptionInfo>>> taskRes =
             new HashMap<>(results.size());
 
         for (ComputeJobResult res : results) {
-            VisorNodeSuppressedErrors jobRes = res.getData();
+            IgniteBiTuple<Long, List<IgniteExceptionRegistry.ExceptionInfo>> jobRes = res.getData();
 
             taskRes.put(res.getNode().id(), jobRes);
         }
@@ -63,7 +65,8 @@ public class VisorNodeSuppressedErrorsTask extends VisorMultiNodeTask<VisorNodeS
     /**
      * Job to collect last errors on nodes.
      */
-    private static class VisorNodeSuppressedErrorsJob extends VisorJob<VisorNodeSuppressedErrorsTaskArg, VisorNodeSuppressedErrors> {
+    private static class VisorNodeSuppressedErrorsJob extends VisorJob<Map<UUID, Long>,
+        IgniteBiTuple<Long, List<IgniteExceptionRegistry.ExceptionInfo>>> {
         /** */
         private static final long serialVersionUID = 0L;
 
@@ -73,25 +76,25 @@ public class VisorNodeSuppressedErrorsTask extends VisorMultiNodeTask<VisorNodeS
          * @param arg Map with last error counter.
          * @param debug Debug flag.
          */
-        private VisorNodeSuppressedErrorsJob(VisorNodeSuppressedErrorsTaskArg arg, boolean debug) {
+        private VisorNodeSuppressedErrorsJob(Map<UUID, Long> arg, boolean debug) {
             super(arg, debug);
         }
 
         /** {@inheritDoc} */
-        @Override protected VisorNodeSuppressedErrors run(VisorNodeSuppressedErrorsTaskArg arg) {
-            Long lastOrder = arg.getOrders().get(ignite.localNode().id());
+        @Override protected IgniteBiTuple<Long, List<IgniteExceptionRegistry.ExceptionInfo>> run(Map<UUID, Long> arg) {
+            Long lastOrder = arg.get(ignite.localNode().id());
 
             long order = lastOrder != null ? lastOrder : 0;
 
             List<IgniteExceptionRegistry.ExceptionInfo> errors = ignite.context().exceptionRegistry().getErrors(order);
 
-            List<VisorSuppressedError> wrapped = new ArrayList<>(errors.size());
+            List<IgniteExceptionRegistry.ExceptionInfo> wrapped = new ArrayList<>(errors.size());
 
             for (IgniteExceptionRegistry.ExceptionInfo error : errors) {
                 if (error.order() > order)
                     order = error.order();
 
-                wrapped.add(new VisorSuppressedError(error.order(),
+                wrapped.add(new IgniteExceptionRegistry.ExceptionInfo(error.order(),
                     new VisorExceptionWrapper(error.error()),
                     error.message(),
                     error.threadId(),
@@ -99,7 +102,7 @@ public class VisorNodeSuppressedErrorsTask extends VisorMultiNodeTask<VisorNodeS
                     error.time()));
             }
 
-            return new VisorNodeSuppressedErrors(order, wrapped);
+            return new IgniteBiTuple<>(order, wrapped);
         }
 
         /** {@inheritDoc} */

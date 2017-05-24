@@ -17,19 +17,16 @@
 
 package org.apache.ignite.internal.visor.igfs;
 
-import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
+import java.io.Serializable;
 import java.util.Comparator;
 import org.apache.ignite.igfs.IgfsMode;
+import org.apache.ignite.internal.LessNamingBean;
 import org.apache.ignite.internal.util.typedef.internal.S;
-import org.apache.ignite.internal.util.typedef.internal.U;
-import org.apache.ignite.internal.visor.VisorDataTransferObject;
 
 /**
  * Visor IGFS profiler information about one file.
  */
-public class VisorIgfsProfilerEntry extends VisorDataTransferObject {
+public class VisorIgfsProfilerEntry implements Serializable, LessNamingBean {
     /** */
     private static final long serialVersionUID = 0L;
 
@@ -42,53 +39,46 @@ public class VisorIgfsProfilerEntry extends VisorDataTransferObject {
         };
 
     /** Path to file. */
-    private String path;
+    private final String path;
 
     /** Timestamp of last file operation. */
-    private long ts;
+    private final long ts;
 
     /** IGFS mode. */
-    private IgfsMode mode;
+    private final IgfsMode mode;
 
     /** File size. */
-    private long size;
+    private final long size;
 
     /** How many bytes were read. */
-    private long bytesRead;
+    private final long bytesRead;
 
     /** How long read take. */
-    private long readTime;
+    private final long readTime;
 
     /** User read time. */
-    private long userReadTime;
+    private final long userReadTime;
 
     /** How many bytes were written. */
-    private long bytesWritten;
+    private final long bytesWritten;
 
     /** How long write take. */
-    private long writeTime;
+    private final long writeTime;
 
     /** User write read time. */
-    private long userWriteTime;
+    private final long userWriteTime;
 
     /** Calculated uniformity. */
     private double uniformity = -1;
 
     /** Counters for uniformity calculation. */
-    private VisorIgfsProfilerUniformityCounters counters;
+    private final VisorIgfsProfilerUniformityCounters counters;
 
     /** Read speed in bytes per second or {@code -1} if speed not available. */
-    private long readSpeed;
+    private final long readSpeed;
 
     /** Write speed in bytes per second or {@code -1} if speed not available. */
-    private long writeSpeed;
-
-    /**
-     * Default constructor.
-     */
-    public VisorIgfsProfilerEntry() {
-        // No-op.
-    }
+    private final long writeSpeed;
 
     /** Create data transfer object with given parameters. */
     public VisorIgfsProfilerEntry(
@@ -143,77 +133,77 @@ public class VisorIgfsProfilerEntry extends VisorDataTransferObject {
     /**
      * @return Path to file.
      */
-    public String getPath() {
+    public String path() {
         return path;
     }
 
     /**
      * @return Timestamp of last file operation.
      */
-    public long getTimestamp() {
+    public long timestamp() {
         return ts;
     }
 
     /**
      * @return IGFS mode.
      */
-    public IgfsMode getMode() {
+    public IgfsMode mode() {
         return mode;
     }
 
     /**
      * @return File size.
      */
-    public long getSize() {
+    public long size() {
         return size;
     }
 
     /**
      * @return How many bytes were read.
      */
-    public long getBytesRead() {
+    public long bytesRead() {
         return bytesRead;
     }
 
     /**
      * @return How long read take.
      */
-    public long getReadTime() {
+    public long readTime() {
         return readTime;
     }
 
     /**
      * @return User read time.
      */
-    public long getUserReadTime() {
+    public long userReadTime() {
         return userReadTime;
     }
 
     /**
      * @return How many bytes were written.
      */
-    public long getBytesWritten() {
+    public long bytesWritten() {
         return bytesWritten;
     }
 
     /**
      * @return How long write take.
      */
-    public long getWriteTime() {
+    public long writeTime() {
         return writeTime;
     }
 
     /**
      * @return User write read time.
      */
-    public long getUserWriteTime() {
+    public long userWriteTime() {
         return userWriteTime;
     }
 
     /**
      * @return Calculated uniformity.
      */
-    public double getUniformity() {
+    public double uniformity() {
         if (uniformity < 0)
             uniformity = counters.calc();
 
@@ -223,58 +213,22 @@ public class VisorIgfsProfilerEntry extends VisorDataTransferObject {
     /**
      * @return Counters for uniformity calculation.
      */
-    public VisorIgfsProfilerUniformityCounters getCounters() {
+    public VisorIgfsProfilerUniformityCounters counters() {
         return counters;
     }
 
     /**
      * @return Read speed in bytes per second or {@code -1} if speed not available.
      */
-    public long getReadSpeed() {
+    public long readSpeed() {
         return readSpeed;
     }
 
     /**
      * @return Write speed in bytes per second or {@code -1} if speed not available.
      */
-    public long getWriteSpeed() {
+    public long writeSpeed() {
         return writeSpeed;
-    }
-
-    /** {@inheritDoc} */
-    @Override protected void writeExternalData(ObjectOutput out) throws IOException {
-        U.writeString(out, path);
-        out.writeLong(ts);
-        U.writeEnum(out, mode);
-        out.writeLong(size);
-        out.writeLong(bytesRead);
-        out.writeLong(readTime);
-        out.writeLong(userReadTime);
-        out.writeLong(bytesWritten);
-        out.writeLong(writeTime);
-        out.writeLong(userWriteTime);
-        out.writeDouble(uniformity);
-        out.writeObject(counters);
-        out.writeLong(readSpeed);
-        out.writeLong(writeSpeed);
-    }
-
-    /** {@inheritDoc} */
-    @Override protected void readExternalData(byte protoVer, ObjectInput in) throws IOException, ClassNotFoundException {
-        path = U.readString(in);
-        ts = in.readLong();
-        mode = IgfsMode.fromOrdinal(in.readByte());
-        size = in.readLong();
-        bytesRead = in.readLong();
-        readTime = in.readLong();
-        userReadTime = in.readLong();
-        bytesWritten = in.readLong();
-        writeTime = in.readLong();
-        userWriteTime = in.readLong();
-        uniformity = in.readDouble();
-        counters = (VisorIgfsProfilerUniformityCounters)in.readObject();
-        readSpeed = in.readLong();
-        writeSpeed = in.readLong();
     }
 
     /** {@inheritDoc} */

@@ -19,13 +19,11 @@ package org.apache.ignite.internal.processors.cache;
 
 import java.util.Collections;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteCache;
 import org.apache.ignite.cache.CacheAtomicityMode;
 import org.apache.ignite.cache.CacheMode;
-import org.apache.ignite.cache.eviction.fifo.FifoEvictionPolicy;
 import org.apache.ignite.configuration.CacheConfiguration;
 import org.apache.ignite.configuration.IgniteConfiguration;
 import org.apache.ignite.events.CacheEvent;
@@ -70,8 +68,6 @@ public abstract class GridCacheEvictionEventAbstractTest extends GridCommonAbstr
 
         cc.setCacheMode(cacheMode());
         cc.setAtomicityMode(atomicityMode());
-        cc.setEvictionPolicy(new FifoEvictionPolicy());
-        cc.setOnheapCacheEnabled(true);
 
         c.setCacheConfiguration(cc);
 
@@ -112,12 +108,14 @@ public abstract class GridCacheEvictionEventAbstractTest extends GridCommonAbstr
             }
         }, EventType.EVT_CACHE_ENTRY_EVICTED);
 
-        IgniteCache<String, String> c = g.cache(DEFAULT_CACHE_NAME);
+        IgniteCache<String, String> c = g.cache(null);
 
         c.put("1", "val1");
 
         c.localEvict(Collections.singleton("1"));
 
-        assertTrue("Failed to wait for eviction event", latch.await(10, TimeUnit.SECONDS));
+        latch.await();
+
+        assertNotNull(oldVal.get());
     }
 }

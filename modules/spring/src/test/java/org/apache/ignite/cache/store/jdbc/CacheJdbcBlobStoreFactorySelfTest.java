@@ -92,7 +92,7 @@ public class CacheJdbcBlobStoreFactorySelfTest extends GridCommonAbstractTest {
      * @return Cache configuration with store.
      */
     private CacheConfiguration<Integer, String> cacheConfiguration() {
-        CacheConfiguration<Integer, String> cfg = new CacheConfiguration<>(DEFAULT_CACHE_NAME);
+        CacheConfiguration<Integer, String> cfg = new CacheConfiguration<>();
 
         CacheJdbcBlobStoreFactory<Integer, String> factory = new CacheJdbcBlobStoreFactory();
 

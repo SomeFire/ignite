@@ -46,7 +46,6 @@ import org.apache.ignite.IgniteException;
 import org.apache.ignite.IgniteInterruptedException;
 import org.apache.ignite.IgniteLock;
 import org.apache.ignite.IgniteLogger;
-import org.apache.ignite.internal.GridKernalContext;
 import org.apache.ignite.internal.IgnitionEx;
 import org.apache.ignite.internal.processors.cache.GridCacheContext;
 import org.apache.ignite.internal.processors.cache.IgniteInternalCache;
@@ -55,7 +54,6 @@ import org.apache.ignite.internal.util.typedef.X;
 import org.apache.ignite.internal.util.typedef.internal.CU;
 import org.apache.ignite.internal.util.typedef.internal.S;
 import org.apache.ignite.internal.util.typedef.internal.U;
-import org.apache.ignite.internal.processors.cluster.IgniteChangeGlobalStateSupport;
 import org.apache.ignite.transactions.TransactionRollbackException;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -67,7 +65,7 @@ import static org.apache.ignite.transactions.TransactionIsolation.REPEATABLE_REA
 /**
  * Cache reentrant lock implementation based on AbstractQueuedSynchronizer.
  */
-public final class GridCacheLockImpl implements GridCacheLockEx, IgniteChangeGlobalStateSupport, Externalizable {
+public final class GridCacheLockImpl implements GridCacheLockEx, Externalizable {
     /** */
     private static final long serialVersionUID = 0L;
 
@@ -90,7 +88,7 @@ public final class GridCacheLockImpl implements GridCacheLockEx, IgniteChangeGlo
     private IgniteInternalCache<GridCacheInternalKey, GridCacheLockState> lockView;
 
     /** Cache context. */
-    private GridCacheContext ctx;
+    private final GridCacheContext ctx;
 
     /** Initialization guard. */
     private final AtomicBoolean initGuard = new AtomicBoolean();
@@ -106,6 +104,9 @@ public final class GridCacheLockImpl implements GridCacheLockEx, IgniteChangeGlo
 
     /** Flag indicating that every operation on this lock should be interrupted. */
     private volatile boolean interruptAll;
+
+    /** Re-create flag. */
+    private volatile boolean reCreate;
 
     /**
      * Empty constructor required by {@link Externalizable}.
@@ -197,9 +198,6 @@ public final class GridCacheLockImpl implements GridCacheLockEx, IgniteChangeGlo
             outgoingSignals.put(condition, cnt + 1);
         }
 
-        /**
-         * @param condition Condition.
-         */
         protected void addOutgoingSignalAll(String condition) {
             outgoingSignals.put(condition, 0);
         }
@@ -332,9 +330,6 @@ public final class GridCacheLockImpl implements GridCacheLockEx, IgniteChangeGlo
             return thisNode.equals(getOwnerNode()) || thisNode.equals(newOwnerID);
         }
 
-        /**
-         * @param newOwnerThreadId New owner thread id.
-         */
         protected void setCurrentOwnerThread(long newOwnerThreadId) {
             currentOwnerThreadId = newOwnerThreadId;
         }
@@ -519,16 +514,24 @@ public final class GridCacheLockImpl implements GridCacheLockEx, IgniteChangeGlo
         /**
          * This method is used for synchronizing the reentrant lock state across all nodes.
          */
-        boolean compareAndSetGlobalState(final int expVal, final int newVal,
+        protected boolean compareAndSetGlobalState(final int expVal, final int newVal,
             final Thread newThread, final boolean bargingProhibited) {
             try {
-                return retryTopologySafe(new Callable<Boolean>() {
+                return CU.outTx(
+                    retryTopologySafe(new Callable<Boolean>() {
                         @Override public Boolean call() throws Exception {
                             try (GridNearTxLocal tx = CU.txStartInternal(ctx, lockView, PESSIMISTIC, REPEATABLE_READ)) {
                                 GridCacheLockState val = lockView.get(key);
 
                                 if (val == null)
-                                    throw new IgniteCheckedException("Failed to find reentrant lock with given name: " + name);
+                                    if (reCreate) {
+                                        val = new GridCacheLockState(0, ctx.nodeId(), 0, failoverSafe, fair);
+
+                                        lockView.put(key, val);
+                                    }
+                                    else
+                                        throw new IgniteCheckedException("Failed to find reentrant lock with " +
+                                            "the given name: " + name);
 
                                 final long newThreadID = newThread.getId();
 
@@ -589,7 +592,9 @@ public final class GridCacheLockImpl implements GridCacheLockEx, IgniteChangeGlo
                                 throw e;
                             }
                         }
-                    });
+                    }),
+                    ctx
+                );
             }
             catch (IgniteCheckedException e) {
                 throw U.convertException(e);
@@ -601,11 +606,12 @@ public final class GridCacheLockImpl implements GridCacheLockEx, IgniteChangeGlo
          *
          * @param cancelled true if acquire attempt is cancelled, false if acquire attempt should be registered.
          */
-        boolean synchronizeQueue(final boolean cancelled, final Thread thread) {
+        protected boolean synchronizeQueue(final boolean cancelled, final Thread thread) {
             final AtomicBoolean interrupted = new AtomicBoolean(false);
 
             try {
-                return retryTopologySafe(new Callable<Boolean>() {
+                return CU.outTx(
+                    retryTopologySafe(new Callable<Boolean>() {
                         @Override public Boolean call() throws Exception {
                             try (GridNearTxLocal tx = CU.txStartInternal(ctx, lockView, PESSIMISTIC, REPEATABLE_READ)) {
                                 GridCacheLockState val = lockView.get(key);
@@ -678,7 +684,9 @@ public final class GridCacheLockImpl implements GridCacheLockEx, IgniteChangeGlo
                                 throw e;
                             }
                         }
-                    });
+                    }),
+                    ctx
+                );
             }
             catch (IgniteCheckedException e) {
                 throw U.convertException(e);
@@ -694,14 +702,13 @@ public final class GridCacheLockImpl implements GridCacheLockEx, IgniteChangeGlo
          * Sets the global state across all nodes after releasing the reentrant lock.
          *
          * @param newVal New state.
-         * @param lastCond Id of the condition await is called.
+         * @param lastCondition Id of the condition await is called.
          * @param outgoingSignals Map containing signal calls on this node since the last acquisition of the lock.
          */
-        protected boolean setGlobalState(final int newVal,
-            @Nullable final String lastCond,
-            final Map<String, Integer> outgoingSignals) {
+        protected boolean setGlobalState(final int newVal, @Nullable final String lastCondition, final Map<String, Integer> outgoingSignals) {
             try {
-                return retryTopologySafe(new Callable<Boolean>() {
+                return CU.outTx(
+                    retryTopologySafe(new Callable<Boolean>() {
                         @Override public Boolean call() throws Exception {
                             try (GridNearTxLocal tx = CU.txStartInternal(ctx, lockView, PESSIMISTIC, REPEATABLE_READ)) {
                                 GridCacheLockState val = lockView.get(key);
@@ -721,9 +728,9 @@ public final class GridCacheLockImpl implements GridCacheLockEx, IgniteChangeGlo
 
                                 // If this lock is fair, remove this node from queue.
                                 if (val.isFair() && newVal == 0) {
-                                    UUID rmvdNode = val.getNodes().removeFirst();
+                                    UUID removedNode = val.getNodes().removeFirst();
 
-                                    assert(thisNode.equals(rmvdNode));
+                                    assert(thisNode.equals(removedNode));
                                 }
 
                                 // Get global condition queue.
@@ -742,8 +749,9 @@ public final class GridCacheLockImpl implements GridCacheLockEx, IgniteChangeGlo
 
                                         if (list != null && !list.isEmpty()) {
                                             // Check if signalAll was called.
-                                            if (cnt == 0)
+                                            if (cnt == 0) {
                                                 cnt = list.size();
+                                            }
 
                                             // Remove from global condition queue.
                                             for (int i = 0; i < cnt; i++) {
@@ -777,20 +785,20 @@ public final class GridCacheLockImpl implements GridCacheLockEx, IgniteChangeGlo
 
                                 // Check if this release is called after condition.await() call;
                                 // If true, add this node to the global waiting queue.
-                                if (lastCond != null) {
+                                if (lastCondition != null) {
                                     LinkedList<UUID> queue;
 
                                     //noinspection IfMayBeConditional
-                                    if (!condMap.containsKey(lastCond))
+                                    if (!condMap.containsKey(lastCondition))
                                         // New condition object.
                                         queue = new LinkedList<>();
                                     else
                                         // Existing condition object.
-                                        queue = condMap.get(lastCond);
+                                        queue = condMap.get(lastCondition);
 
                                     queue.add(thisNode);
 
-                                    condMap.put(lastCond, queue);
+                                    condMap.put(lastCondition, queue);
                                 }
 
                                 val.setConditionMap(condMap);
@@ -814,14 +822,16 @@ public final class GridCacheLockImpl implements GridCacheLockEx, IgniteChangeGlo
                                 throw e;
                             }
                         }
-                    });
+                    }),
+                    ctx
+                );
             }
             catch (IgniteCheckedException e) {
                 throw U.convertException(e);
             }
         }
 
-        synchronized boolean checkIncomingSignals(GridCacheLockState state) {
+        protected synchronized boolean checkIncomingSignals(GridCacheLockState state) {
             if (state.getSignals() == null)
                 return false;
 
@@ -870,16 +880,16 @@ public final class GridCacheLockImpl implements GridCacheLockEx, IgniteChangeGlo
             private final String name;
 
             /** */
-            private final AbstractQueuedSynchronizer.ConditionObject obj;
+            private final AbstractQueuedSynchronizer.ConditionObject object;
 
             /**
              * @param name Condition name.
-             * @param obj Condition object.
+             * @param object Condition object.
              */
-            protected IgniteConditionObject(String name, ConditionObject obj) {
+            protected IgniteConditionObject(String name, ConditionObject object) {
                 this.name = name;
 
-                this.obj = obj;
+                this.object = object;
             }
 
             /**
@@ -901,7 +911,7 @@ public final class GridCacheLockImpl implements GridCacheLockEx, IgniteChangeGlo
 
                     lastCondition = name;
 
-                    obj.await();
+                    object.await();
 
                     sync.validate(true);
                 }
@@ -923,7 +933,7 @@ public final class GridCacheLockImpl implements GridCacheLockEx, IgniteChangeGlo
 
                     lastCondition = name;
 
-                    obj.awaitUninterruptibly();
+                    object.awaitUninterruptibly();
 
                     sync.validate(false);
                 }
@@ -942,7 +952,7 @@ public final class GridCacheLockImpl implements GridCacheLockEx, IgniteChangeGlo
 
                     lastCondition = name;
 
-                    long result =  obj.awaitNanos(nanosTimeout);
+                    long result =  object.awaitNanos(nanosTimeout);
 
                     sync.validate(true);
 
@@ -966,7 +976,7 @@ public final class GridCacheLockImpl implements GridCacheLockEx, IgniteChangeGlo
 
                     lastCondition = name;
 
-                    boolean result = obj.await(time, unit);
+                    boolean result = object.await(time, unit);
 
                     sync.validate(true);
 
@@ -990,7 +1000,7 @@ public final class GridCacheLockImpl implements GridCacheLockEx, IgniteChangeGlo
 
                     lastCondition = name;
 
-                    boolean result = obj.awaitUntil(deadline);
+                    boolean result = object.awaitUntil(deadline);
 
                     sync.validate(true);
 
@@ -1047,12 +1057,14 @@ public final class GridCacheLockImpl implements GridCacheLockEx, IgniteChangeGlo
      * @param key Reentrant lock key.
      * @param lockView Reentrant lock projection.
      * @param ctx Cache context.
+     * @param reCreate If {@code true} reentrant lock will be re-created in case it is not in cache.
      */
     @SuppressWarnings("unchecked")
     public GridCacheLockImpl(String name,
         GridCacheInternalKey key,
         IgniteInternalCache<GridCacheInternalKey, GridCacheLockState> lockView,
-        GridCacheContext ctx) {
+        GridCacheContext ctx,
+        boolean reCreate) {
         assert name != null;
         assert key != null;
         assert ctx != null;
@@ -1062,6 +1074,7 @@ public final class GridCacheLockImpl implements GridCacheLockEx, IgniteChangeGlo
         this.key = key;
         this.lockView = lockView;
         this.ctx = ctx;
+        this.reCreate = reCreate;
 
         log = ctx.logger(getClass());
     }
@@ -1072,7 +1085,8 @@ public final class GridCacheLockImpl implements GridCacheLockEx, IgniteChangeGlo
     private void initializeReentrantLock() throws IgniteCheckedException {
         if (initGuard.compareAndSet(false, true)) {
             try {
-                sync = retryTopologySafe(new Callable<Sync>() {
+                sync = CU.outTx(
+                    retryTopologySafe(new Callable<Sync>() {
                         @Override public Sync call() throws Exception {
                             try (GridNearTxLocal tx = CU.txStartInternal(ctx, lockView, PESSIMISTIC, REPEATABLE_READ)) {
                                 GridCacheLockState val = lockView.get(key);
@@ -1089,7 +1103,9 @@ public final class GridCacheLockImpl implements GridCacheLockEx, IgniteChangeGlo
                                 return new Sync(val);
                             }
                         }
-                    });
+                    }),
+                    ctx
+                );
 
                 if (log.isDebugEnabled())
                     log.debug("Initialized internal sync structure: " + sync);
@@ -1120,7 +1136,7 @@ public final class GridCacheLockImpl implements GridCacheLockEx, IgniteChangeGlo
                 return;
 
             // Check if update came from this node.
-            boolean loc = sync.isLockedLocally(val.getId());
+            boolean local = sync.isLockedLocally(val.getId());
 
             // Process any incoming signals.
             boolean incomingSignals = sync.checkIncomingSignals(val);
@@ -1135,7 +1151,7 @@ public final class GridCacheLockImpl implements GridCacheLockEx, IgniteChangeGlo
             sync.setCurrentOwnerThread(val.getThreadId());
 
             // Check if any threads waiting on this node need to be notified.
-            if ((incomingSignals || sync.getPermits() == 0) && !loc) {
+            if ((incomingSignals || sync.getPermits() == 0) && !local) {
                 // Try to notify any waiting threads.
                 sync.release(0);
             }
@@ -1153,8 +1169,9 @@ public final class GridCacheLockImpl implements GridCacheLockEx, IgniteChangeGlo
             if (nodeId.equals(sync.getOwnerNode())) {
                 sync.setBroken(true);
 
-                if (!sync.failoverSafe)
+                if (!sync.failoverSafe) {
                     sync.interruptAll();
+                }
             }
 
             // Try to notify any waiting threads.
@@ -1468,17 +1485,6 @@ public final class GridCacheLockImpl implements GridCacheLockEx, IgniteChangeGlo
 
     /** {@inheritDoc} */
     @Override public void needCheckNotRemoved() {
-
-    }
-
-    /** {@inheritDoc} */
-    @Override public void onActivate(GridKernalContext kctx) throws IgniteCheckedException {
-        this.lockView = kctx.cache().atomicsCache();
-        this.ctx = lockView.context();
-    }
-
-    /** {@inheritDoc} */
-    @Override public void onDeActivate(GridKernalContext kctx) throws IgniteCheckedException {
 
     }
 

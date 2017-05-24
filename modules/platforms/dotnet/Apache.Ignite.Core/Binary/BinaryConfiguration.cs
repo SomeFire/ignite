@@ -35,9 +35,9 @@ namespace Apache.Ignite.Core.Binary
         public const bool DefaultCompactFooter = true;
 
         /// <summary>
-        /// Default <see cref="KeepDeserialized"/> setting.
+        /// Default <see cref="DefaultKeepDeserialized"/> setting.
         /// </summary>
-        public const bool DefaultKeepDeserialized = true;
+        public const bool DefaultDefaultKeepDeserialized = true;
 
         /** Footer setting. */
         private bool? _compactFooter;
@@ -47,7 +47,7 @@ namespace Apache.Ignite.Core.Binary
         /// </summary>
         public BinaryConfiguration()
         {
-            KeepDeserialized = DefaultKeepDeserialized;
+            DefaultKeepDeserialized = DefaultDefaultKeepDeserialized;
         }
 
         /// <summary>
@@ -58,10 +58,10 @@ namespace Apache.Ignite.Core.Binary
         {
             IgniteArgumentCheck.NotNull(cfg, "cfg");
 
-            IdMapper = cfg.IdMapper;
-            NameMapper = cfg.NameMapper;
-            KeepDeserialized = cfg.KeepDeserialized;
-            Serializer = cfg.Serializer;
+            DefaultIdMapper = cfg.DefaultIdMapper;
+            DefaultNameMapper = cfg.DefaultNameMapper;
+            DefaultKeepDeserialized = cfg.DefaultKeepDeserialized;
+            DefaultSerializer = cfg.DefaultSerializer;
 
             TypeConfigurations = cfg.TypeConfigurations == null
                 ? null
@@ -99,23 +99,23 @@ namespace Apache.Ignite.Core.Binary
         /// <summary>
         /// Default name mapper.
         /// </summary>
-        public IBinaryNameMapper NameMapper { get; set; }
+        public IBinaryNameMapper DefaultNameMapper { get; set; }
 
         /// <summary>
         /// Default ID mapper.
         /// </summary>
-        public IBinaryIdMapper IdMapper { get; set; }
+        public IBinaryIdMapper DefaultIdMapper { get; set; }
 
         /// <summary>
         /// Default serializer.
         /// </summary>
-        public IBinarySerializer Serializer { get; set; }
+        public IBinarySerializer DefaultSerializer { get; set; }
 
         /// <summary>
         /// Default keep deserialized flag.
         /// </summary>
-        [DefaultValue(DefaultKeepDeserialized)]
-        public bool KeepDeserialized { get; set; }
+        [DefaultValue(DefaultDefaultKeepDeserialized)]
+        public bool DefaultKeepDeserialized { get; set; }
 
         /// <summary>
         /// Gets or sets a value indicating whether to write footers in compact form.

@@ -18,6 +18,7 @@
 namespace Apache.Ignite.Core.Tests
 {
     using System;
+    using System.Collections.Generic;
     using System.Threading;
     using Apache.Ignite.Core.Binary;
     using Apache.Ignite.Core.Cache;
@@ -41,9 +42,21 @@ namespace Apache.Ignite.Core.Tests
         [TestFixtureSetUp]
         public void TestFixtureSetUp()
         {
-            var grid = Ignition.Start(TestUtils.GetTestConfiguration());
+            TestUtils.KillProcesses();
 
-            _cache = grid.CreateCache<object, object>("cache");
+            var grid = Ignition.Start(new IgniteConfiguration
+            {
+                SpringConfigUrl = "config\\compute\\compute-standalone.xml",
+                JvmClasspath = TestUtils.CreateTestClasspath(),
+                JvmOptions = TestUtils.TestJavaOptions(),
+                BinaryConfiguration = new BinaryConfiguration
+                {
+                    TypeConfigurations =
+                        new List<BinaryTypeConfiguration> { new BinaryTypeConfiguration(typeof(Binarizable)) }
+                }
+            });
+
+            _cache = grid.GetCache<object, object>(null);
 
             _compute = grid.GetCompute();
         }
@@ -55,6 +68,7 @@ namespace Apache.Ignite.Core.Tests
         public void TestFixtureTearDown()
         {
             Ignition.StopAll(true);
+            TestUtils.KillProcesses();
         }
 
 

@@ -70,11 +70,4 @@ final class BinaryMetadataHolder implements Serializable {
     int acceptedVersion() {
         return acceptedVer;
     }
-
-    /** {@inheritDoc} */
-    @Override public String toString() {
-        return "[typeId=" + metadata.typeId() +
-            ", pendingVer=" + pendingVer +
-            ", acceptedVer=" + acceptedVer + "]";
-    }
 }

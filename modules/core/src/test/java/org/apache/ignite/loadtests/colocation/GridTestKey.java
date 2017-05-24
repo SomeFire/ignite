@@ -28,12 +28,7 @@ import org.apache.ignite.cache.affinity.AffinityKeyMapped;
  * Accenture key.
  */
 public class GridTestKey implements Externalizable {
-    /** */
     private long id;
-
-    /** */
-    @AffinityKeyMapped
-    private int affKey;
 
     /**
      * Empty constructor required for {@link Externalizable}.
@@ -42,33 +37,19 @@ public class GridTestKey implements Externalizable {
         // No-op.
     }
 
-    /**
-     * @param id ID.
-     */
-    GridTestKey(long id) {
+    public GridTestKey(long id) {
         this.id = id;
-
-        affKey = affinityKey(id);
     }
 
-    /**
-     * @return ID.
-     */
     public long getId() {
         return id;
     }
 
-    /**
-     * @return Affinity key.
-     */
+    @AffinityKeyMapped
     public int affinityKey() {
-        return affKey;
+        return affinityKey(id);
     }
 
-    /**
-     * @param id ID.
-     * @return Affinity key.
-     */
     public static int affinityKey(long id) {
         return (int)(id % GridTestConstants.MOD_COUNT);
     }
@@ -95,7 +76,6 @@ public class GridTestKey implements Externalizable {
         out.writeLong(id);
     }
 
-    /** {@inheritDoc} */
     @Override public boolean equals(Object o) {
         if (this == o)
             return true;
@@ -105,12 +85,10 @@ public class GridTestKey implements Externalizable {
         return id == key.id;
     }
 
-    /** {@inheritDoc} */
     @Override public int hashCode() {
         return (int)(id ^ (id >>> 32));
     }
 
-    /** {@inheritDoc} */
     @Override public String toString() {
         return "AccentureKey [id=" + id + ']';
     }

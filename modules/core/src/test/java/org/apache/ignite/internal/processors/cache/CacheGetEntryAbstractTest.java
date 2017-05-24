@@ -99,7 +99,7 @@ public abstract class CacheGetEntryAbstractTest extends GridCacheAbstractSelfTes
      * @throws Exception If failed.
      */
     public void testNear() throws Exception {
-        CacheConfiguration cfg = new CacheConfiguration(DEFAULT_CACHE_NAME);
+        CacheConfiguration cfg = new CacheConfiguration();
 
         cfg.setWriteSynchronizationMode(FULL_SYNC);
         cfg.setCacheMode(PARTITIONED);
@@ -114,7 +114,7 @@ public abstract class CacheGetEntryAbstractTest extends GridCacheAbstractSelfTes
      * @throws Exception If failed.
      */
     public void testNearTransactional() throws Exception {
-        CacheConfiguration cfg = new CacheConfiguration(DEFAULT_CACHE_NAME);
+        CacheConfiguration cfg = new CacheConfiguration();
 
         cfg.setWriteSynchronizationMode(FULL_SYNC);
         cfg.setCacheMode(PARTITIONED);
@@ -129,7 +129,7 @@ public abstract class CacheGetEntryAbstractTest extends GridCacheAbstractSelfTes
      * @throws Exception If failed.
      */
     public void testPartitioned() throws Exception {
-        CacheConfiguration cfg = new CacheConfiguration(DEFAULT_CACHE_NAME);
+        CacheConfiguration cfg = new CacheConfiguration();
 
         cfg.setWriteSynchronizationMode(FULL_SYNC);
         cfg.setCacheMode(PARTITIONED);
@@ -143,7 +143,7 @@ public abstract class CacheGetEntryAbstractTest extends GridCacheAbstractSelfTes
      * @throws Exception If failed.
      */
     public void testPartitionedTransactional() throws Exception {
-        CacheConfiguration cfg = new CacheConfiguration(DEFAULT_CACHE_NAME);
+        CacheConfiguration cfg = new CacheConfiguration();
 
         cfg.setWriteSynchronizationMode(FULL_SYNC);
         cfg.setCacheMode(PARTITIONED);
@@ -157,7 +157,7 @@ public abstract class CacheGetEntryAbstractTest extends GridCacheAbstractSelfTes
      * @throws Exception If failed.
      */
     public void testLocal() throws Exception {
-        CacheConfiguration cfg = new CacheConfiguration(DEFAULT_CACHE_NAME);
+        CacheConfiguration cfg = new CacheConfiguration();
 
         cfg.setWriteSynchronizationMode(FULL_SYNC);
         cfg.setCacheMode(LOCAL);
@@ -171,9 +171,7 @@ public abstract class CacheGetEntryAbstractTest extends GridCacheAbstractSelfTes
      * @throws Exception If failed.
      */
     public void testLocalTransactional() throws Exception {
-        // TODO: fails since d13520e9a05bd9e9b987529472d6317951b72f96, need to review changes.
-
-        CacheConfiguration cfg = new CacheConfiguration(DEFAULT_CACHE_NAME);
+        CacheConfiguration cfg = new CacheConfiguration();
 
         cfg.setWriteSynchronizationMode(FULL_SYNC);
         cfg.setCacheMode(LOCAL);
@@ -187,7 +185,7 @@ public abstract class CacheGetEntryAbstractTest extends GridCacheAbstractSelfTes
      * @throws Exception If failed.
      */
     public void testReplicated() throws Exception {
-        CacheConfiguration cfg = new CacheConfiguration(DEFAULT_CACHE_NAME);
+        CacheConfiguration cfg = new CacheConfiguration();
 
         cfg.setWriteSynchronizationMode(FULL_SYNC);
         cfg.setCacheMode(REPLICATED);
@@ -201,7 +199,7 @@ public abstract class CacheGetEntryAbstractTest extends GridCacheAbstractSelfTes
      * @throws Exception If failed.
      */
     public void testReplicatedTransactional() throws Exception {
-        CacheConfiguration cfg = new CacheConfiguration(DEFAULT_CACHE_NAME);
+        CacheConfiguration cfg = new CacheConfiguration();
 
         cfg.setWriteSynchronizationMode(FULL_SYNC);
         cfg.setCacheMode(REPLICATED);
@@ -504,10 +502,8 @@ public abstract class CacheGetEntryAbstractTest extends GridCacheAbstractSelfTes
 
             CacheObjectContext cacheObjCtx = cacheAdapter.context().cacheObjectContext();
 
-            GridCacheEntryEx mapEntry = cacheAdapter.entryEx(cacheObjects.toCacheKeyObject(
-                cacheObjCtx, cacheAdapter.context(), e.getKey(), true));
-
-            mapEntry.unswap();
+            GridCacheMapEntry mapEntry = cacheAdapter.map().getEntry(cacheObjects.toCacheKeyObject(
+                cacheObjCtx, null, e.getKey(), true));
 
             assertNotNull("No entry for key: " + e.getKey(), mapEntry);
             assertEquals(mapEntry.version(), e.version());

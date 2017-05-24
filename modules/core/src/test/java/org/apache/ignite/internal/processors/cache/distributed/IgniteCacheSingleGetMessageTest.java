@@ -300,7 +300,7 @@ public class IgniteCacheSingleGetMessageTest extends GridCommonAbstractTest {
         CacheAtomicityMode atomicityMode,
         CacheWriteSynchronizationMode syncMode,
         int backups) {
-        CacheConfiguration<Integer, Integer> ccfg = new CacheConfiguration<>(DEFAULT_CACHE_NAME);
+        CacheConfiguration<Integer, Integer> ccfg = new CacheConfiguration<>();
 
         ccfg.setCacheMode(cacheMode);
         ccfg.setAtomicityMode(atomicityMode);

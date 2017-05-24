@@ -36,6 +36,7 @@ import org.apache.ignite.cluster.ClusterNode;
 import org.apache.ignite.configuration.IgniteConfiguration;
 import org.apache.ignite.internal.ClusterMetricsSnapshot;
 import org.apache.ignite.internal.IgniteNodeAttributes;
+import org.apache.ignite.internal.processors.cache.CacheMetricsSnapshot;
 import org.apache.ignite.internal.util.lang.GridMetadataAwareAdapter;
 import org.apache.ignite.internal.util.tostring.GridToStringExclude;
 import org.apache.ignite.internal.util.tostring.GridToStringInclude;
@@ -46,14 +47,13 @@ import org.apache.ignite.internal.util.typedef.internal.U;
 import org.apache.ignite.lang.IgnitePredicate;
 import org.apache.ignite.lang.IgniteProductVersion;
 import org.apache.ignite.spi.discovery.DiscoveryMetricsProvider;
-import org.apache.ignite.spi.discovery.tcp.TcpDiscoverySpi;
 import org.jetbrains.annotations.Nullable;
 
 import static org.apache.ignite.internal.IgniteNodeAttributes.ATTR_DAEMON;
 import static org.apache.ignite.internal.IgniteNodeAttributes.ATTR_NODE_CONSISTENT_ID;
 
 /**
- * Node for {@link TcpDiscoverySpi}.
+ * Node for {@link org.apache.ignite.spi.discovery.tcp.TcpDiscoverySpi}.
  * <p>
  * <strong>This class is not intended for public use</strong> and has been made
  * <tt>public</tt> due to certain limitations of Java technology.
@@ -102,7 +102,7 @@ public class TcpDiscoveryNode extends GridMetadataAwareAdapter implements Cluste
     /** Node order in the topology (internal). */
     private volatile long intOrder;
 
-    /** The most recent time when metrics update message was received from the node. */
+    /** The most recent time when heartbeat message was received from the node. */
     @GridToStringExclude
     private volatile long lastUpdateTime = U.currentTimeMillis();
 
@@ -123,9 +123,9 @@ public class TcpDiscoveryNode extends GridMetadataAwareAdapter implements Cluste
     /** Version. */
     private IgniteProductVersion ver;
 
-    /** Alive check time (used by clients). */
+    /** Alive check (used by clients). */
     @GridToStringExclude
-    private transient long aliveCheckTime;
+    private transient int aliveCheck;
 
     /** Client router node ID. */
     @GridToStringExclude
@@ -133,7 +133,7 @@ public class TcpDiscoveryNode extends GridMetadataAwareAdapter implements Cluste
 
     /** */
     @GridToStringExclude
-    private transient volatile InetSocketAddress lastSuccessfulAddr;
+    private volatile transient InetSocketAddress lastSuccessfulAddr;
 
     /** Cache client initialization flag. */
     @GridToStringExclude
@@ -291,8 +291,9 @@ public class TcpDiscoveryNode extends GridMetadataAwareAdapter implements Cluste
      * Gets collections of cache metrics for this node. Note that node cache metrics are constantly updated
      * and provide up to date information about caches.
      * <p>
-     * Cache metrics are updated with some delay which is directly related to metrics update
-     * frequency. For example, by default the update will happen every {@code 2} seconds.
+     * Cache metrics are updated with some delay which is directly related to heartbeat
+     * frequency. For example, when used with default
+     * {@link org.apache.ignite.spi.discovery.tcp.TcpDiscoverySpi} the update will happen every {@code 2} seconds.
      *
      * @return Runtime metrics snapshots for this node.
      */
@@ -413,7 +414,7 @@ public class TcpDiscoveryNode extends GridMetadataAwareAdapter implements Cluste
     /**
      * Gets node last update time.
      *
-     * @return Time of the last metrics update.
+     * @return Time of the last heartbeat.
      */
     public long lastUpdateTime() {
         return lastUpdateTime;
@@ -472,25 +473,23 @@ public class TcpDiscoveryNode extends GridMetadataAwareAdapter implements Cluste
     }
 
     /**
-     * Test alive check time value.
+     * Decrements alive check value and returns new one.
      *
-     * @return {@code True} if client alive, {@code False} otherwise.
+     * @return Alive check value.
      */
-    public boolean isClientAlive() {
-        assert isClient() : this;
+    public int decrementAliveCheck() {
+        assert isClient();
 
-        return (aliveCheckTime - U.currentTimeMillis()) >= 0;
+        return --aliveCheck;
     }
 
     /**
-     * Set client alive time.
-     *
-     * @param aliveTime Alive time interval.
+     * @param aliveCheck Alive check value.
      */
-    public void clientAliveTime(long aliveTime) {
-        assert isClient() : this;
+    public void aliveCheck(int aliveCheck) {
+        assert isClient();
 
-        this.aliveCheckTime = U.currentTimeMillis() + aliveTime;
+        this.aliveCheck = aliveCheck;
     }
 
     /**
@@ -519,9 +518,8 @@ public class TcpDiscoveryNode extends GridMetadataAwareAdapter implements Cluste
      * @return Copy of local node for client reconnect request.
      */
     public TcpDiscoveryNode clientReconnectNode(Map<String, Object> nodeAttrs) {
-        TcpDiscoveryNode node = new TcpDiscoveryNode(
-            id, addrs, hostNames, discPort, metricsProvider, ver, null
-        );
+        TcpDiscoveryNode node = new TcpDiscoveryNode(id, addrs, hostNames, discPort, metricsProvider, ver,
+            null);
 
         node.attrs = Collections.unmodifiableMap(new HashMap<>(nodeAttrs));
         node.clientRouterNodeId = clientRouterNodeId;
@@ -624,7 +622,7 @@ public class TcpDiscoveryNode extends GridMetadataAwareAdapter implements Cluste
 
         for (int i = 0; i < size; i++) {
             int id = in.readInt();
-            CacheMetrics m = (CacheMetrics)in.readObject();
+            CacheMetricsSnapshot m = (CacheMetricsSnapshot) in.readObject();
 
             cacheMetrics.put(id, m);
         }

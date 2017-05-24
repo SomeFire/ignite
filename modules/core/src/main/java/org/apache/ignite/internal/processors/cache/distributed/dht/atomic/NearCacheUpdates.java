@@ -315,7 +315,7 @@ public class NearCacheUpdates implements Message {
 
     /** {@inheritDoc} */
     @Override public short directType() {
-        return -51;
+        return -48;
     }
 
     /** {@inheritDoc} */

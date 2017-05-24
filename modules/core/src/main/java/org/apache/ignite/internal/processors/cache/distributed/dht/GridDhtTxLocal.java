@@ -399,7 +399,7 @@ public class GridDhtTxLocal extends GridDhtTxLocalAdapter implements GridCacheMa
                     addEntry(msgId, e);
             }
 
-            userPrepare(null);
+            userPrepare();
 
             // Make sure to add future before calling prepare on it.
             cctx.mvcc().addFuture(fut);

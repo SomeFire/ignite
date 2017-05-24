@@ -50,6 +50,7 @@ import org.apache.ignite.lang.IgnitePredicate;
 import org.apache.ignite.testframework.GridTestUtils;
 import org.apache.ignite.transactions.Transaction;
 
+import static org.apache.ignite.cache.CacheAtomicWriteOrderMode.PRIMARY;
 import static org.apache.ignite.cache.CacheWriteSynchronizationMode.FULL_SYNC;
 import static org.apache.ignite.events.EventType.EVT_CACHE_OBJECT_LOCKED;
 import static org.apache.ignite.events.EventType.EVT_CACHE_OBJECT_UNLOCKED;
@@ -73,9 +74,9 @@ public class GridCacheNearOnlyMultiNodeFullApiSelfTest extends GridCachePartitio
         for (int i = 0; i < gridCount(); i++) {
             if (ignite(i).configuration().isClientMode()) {
                 if (clientHasNearCache())
-                    ignite(i).createNearCache(DEFAULT_CACHE_NAME, new NearCacheConfiguration<>());
+                    ignite(i).createNearCache(null, new NearCacheConfiguration<>());
                 else
-                    ignite(i).cache(DEFAULT_CACHE_NAME);
+                    ignite(i).cache(null);
 
                 break;
             }
@@ -93,7 +94,7 @@ public class GridCacheNearOnlyMultiNodeFullApiSelfTest extends GridCachePartitio
     @Override protected IgniteConfiguration getConfiguration(String igniteInstanceName) throws Exception {
         IgniteConfiguration cfg = super.getConfiguration(igniteInstanceName);
 
-        if (cnt.getAndIncrement() == 0 || (cnt.get() > gridCount() && cnt.get() % gridCount() == 0)) {
+        if (cnt.getAndIncrement() == 0) {
             info("Use grid '" + igniteInstanceName + "' as near-only.");
 
             cfg.setClientMode(true);
@@ -109,6 +110,7 @@ public class GridCacheNearOnlyMultiNodeFullApiSelfTest extends GridCachePartitio
         CacheConfiguration cfg = super.cacheConfiguration(igniteInstanceName);
 
         cfg.setWriteSynchronizationMode(FULL_SYNC);
+        cfg.setAtomicWriteOrderMode(PRIMARY);
 
         return cfg;
     }
@@ -206,11 +208,9 @@ public class GridCacheNearOnlyMultiNodeFullApiSelfTest extends GridCachePartitio
     }
 
     /**
-     * TODO GG-11133.
-
      * @throws Exception If failed.
      */
-    public void _testReaderTtlTx() throws Exception {
+    public void testReaderTtlTx() throws Exception {
         // IgniteProcessProxy#transactions is not implemented.
         if (isMultiJvm())
             return;
@@ -219,11 +219,9 @@ public class GridCacheNearOnlyMultiNodeFullApiSelfTest extends GridCachePartitio
     }
 
     /**
-     * TODO GG-11133.
-
      * @throws Exception If failed.
      */
-    public void _testReaderTtlNoTx() throws Exception {
+    public void testReaderTtlNoTx() throws Exception {
         checkReaderTtl(false);
     }
 
@@ -289,7 +287,7 @@ public class GridCacheNearOnlyMultiNodeFullApiSelfTest extends GridCachePartitio
 
             IgnitePair<Long> entryTtl = null;
 
-            if (grid(i).affinity(DEFAULT_CACHE_NAME).isPrimaryOrBackup(grid(i).localNode(), key))
+            if (grid(i).affinity(null).isPrimaryOrBackup(grid(i).localNode(), key))
                 entryTtl = entryTtl(jcache(i), key);
             else if (i == nearIdx)
                 entryTtl = nearEntryTtl(jcache(i), key);
@@ -322,7 +320,7 @@ public class GridCacheNearOnlyMultiNodeFullApiSelfTest extends GridCachePartitio
         for (int i = 0; i < gridCount(); i++) {
             IgnitePair<Long> entryTtl = null;
 
-            if (grid(i).affinity(DEFAULT_CACHE_NAME).isPrimaryOrBackup(grid(i).localNode(), key))
+            if (grid(i).affinity(null).isPrimaryOrBackup(grid(i).localNode(), key))
                 entryTtl = entryTtl(jcache(i), key);
             else if (i == nearIdx)
                 entryTtl = nearEntryTtl(jcache(i), key);
@@ -352,7 +350,7 @@ public class GridCacheNearOnlyMultiNodeFullApiSelfTest extends GridCachePartitio
         for (int i = 0; i < gridCount(); i++) {
             IgnitePair<Long> entryTtl = null;
 
-            if (grid(i).affinity(DEFAULT_CACHE_NAME).isPrimaryOrBackup(grid(i).localNode(), key))
+            if (grid(i).affinity(null).isPrimaryOrBackup(grid(i).localNode(), key))
                 entryTtl = entryTtl(jcache(i), key);
             else if (i == nearIdx)
                 entryTtl = nearEntryTtl(jcache(i), key);

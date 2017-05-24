@@ -73,7 +73,7 @@ public class GridCacheStopSelfTest extends GridCommonAbstractTest {
 
         cfg.setDiscoverySpi(disc);
 
-        CacheConfiguration ccfg  = new CacheConfiguration(DEFAULT_CACHE_NAME);
+        CacheConfiguration ccfg  = new CacheConfiguration();
 
         ccfg.setCacheMode(replicated ? REPLICATED : PARTITIONED);
 
@@ -81,6 +81,8 @@ public class GridCacheStopSelfTest extends GridCommonAbstractTest {
             ccfg.setBackups(1);
 
         ccfg.setAtomicityMode(atomic ? ATOMIC : TRANSACTIONAL);
+
+        ccfg.setSwapEnabled(true);
 
         cfg.setCacheConfiguration(ccfg);
 
@@ -153,7 +155,7 @@ public class GridCacheStopSelfTest extends GridCommonAbstractTest {
 
                         IgniteKernal node = (IgniteKernal)ignite(idx % 3 + 1);
 
-                        IgniteCache<Integer, Integer> cache = node.cache(DEFAULT_CACHE_NAME);
+                        IgniteCache<Integer, Integer> cache = node.cache(null);
 
                         while (true) {
                             try {
@@ -173,7 +175,7 @@ public class GridCacheStopSelfTest extends GridCommonAbstractTest {
                     @Override public Void call() throws Exception {
                         IgniteKernal node = (IgniteKernal)ignite(0);
 
-                        IgniteCache<Integer, Integer> cache = node.cache(DEFAULT_CACHE_NAME);
+                        IgniteCache<Integer, Integer> cache = node.cache(null);
 
                         while (!fut1.isDone()) {
                             try {
@@ -253,7 +255,7 @@ public class GridCacheStopSelfTest extends GridCommonAbstractTest {
 
             final CountDownLatch readyLatch = new CountDownLatch(PUT_THREADS);
 
-            final IgniteCache<Integer, Integer> cache = grid(0).cache(DEFAULT_CACHE_NAME);
+            final IgniteCache<Integer, Integer> cache = grid(0).cache(null);
 
             assertNotNull(cache);
 

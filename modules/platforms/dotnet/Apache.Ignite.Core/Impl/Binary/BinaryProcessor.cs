@@ -17,6 +17,7 @@
 
 namespace Apache.Ignite.Core.Impl.Binary
 {
+    using System;
     using System.Collections.Generic;
     using System.Diagnostics;
     using Apache.Ignite.Core.Binary;
@@ -160,17 +161,17 @@ namespace Apache.Ignite.Core.Impl.Binary
         /// Registers the type.
         /// </summary>
         /// <param name="id">The identifier.</param>
-        /// <param name="typeName">The type name.</param>
+        /// <param name="type">The type.</param>
         /// <returns>True if registration succeeded; otherwise, false.</returns>
-        public bool RegisterType(int id, string typeName)
+        public bool RegisterType(int id, Type type)
         {
-            Debug.Assert(typeName != null);
+            Debug.Assert(type != null);
             Debug.Assert(id != BinaryUtils.TypeUnregistered);
 
             return DoOutOp((int) Op.RegisterType, w =>
             {
                 w.WriteInt(id);
-                w.WriteString(typeName);
+                w.WriteString(type.AssemblyQualifiedName);
             }) == True;
         }
 
@@ -179,9 +180,12 @@ namespace Apache.Ignite.Core.Impl.Binary
         /// </summary>
         /// <param name="id">The identifier.</param>
         /// <returns>Type or null.</returns>
-        public string GetTypeName(int id)
+        public Type GetType(int id)
         {
-            return DoOutInOp((int) Op.GetType, w => w.WriteInt(id), r => Marshaller.StartUnmarshal(r).ReadString());
+            var typeName = DoOutInOp((int) Op.GetType, w => w.WriteInt(id),
+                r => Marshaller.StartUnmarshal(r).ReadString());
+
+            return new TypeResolver().ResolveType(typeName);
         }
     }
 }

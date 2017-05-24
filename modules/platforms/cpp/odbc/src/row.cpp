@@ -74,13 +74,13 @@ namespace ignite
             return true;
         }
 
-        SqlResult::Type Row::ReadColumnToBuffer(uint16_t columnIdx, app::ApplicationDataBuffer& dataBuf)
+        SqlResult Row::ReadColumnToBuffer(uint16_t columnIdx, app::ApplicationDataBuffer& dataBuf)
         {
             using namespace ignite::impl::binary;
             using namespace ignite::impl::interop;
 
             if (!EnsureColumnDiscovered(columnIdx))
-                return SqlResult::AI_ERROR;
+                return SQL_RESULT_ERROR;
 
             Column& column = GetColumn(columnIdx);
 

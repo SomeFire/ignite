@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-export default [() => {
+export default ['duration', [() => {
     /**
      * @param {Number} t Time in ms.
      */
@@ -38,4 +38,4 @@ export default [() => {
 
         return a(d, 'd') + a(h, 'h') + a(m, 'm') + a(s, 's') + (t < cm ? ms + 'ms' : '');
     };
-}];
+}]];

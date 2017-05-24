@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.
@@ -62,6 +62,19 @@ namespace Apache.Ignite.Core.Impl.Binary
             _name = typeName;
         }
 
+        /// <summary>
+        /// Constructor.
+        /// </summary>
+        /// <param name="cfg">Configuration.</param>
+        /// <param name="name">Type name.</param>
+        public BinarySurrogateTypeDescriptor(BinaryConfiguration cfg, string name)
+        {
+            _cfg = cfg;
+            _name = name;
+
+            _id = BinaryUtils.TypeId(name, cfg.DefaultNameMapper, cfg.DefaultIdMapper);
+        }
+
         /** <inheritDoc /> */
         public Type Type
         {
@@ -89,25 +102,25 @@ namespace Apache.Ignite.Core.Impl.Binary
         /** <inheritDoc /> */
         public bool KeepDeserialized
         {
-            get { return _cfg.KeepDeserialized; }
+            get { return _cfg.DefaultKeepDeserialized; }
         }
 
         /** <inheritDoc /> */
         public IBinaryNameMapper NameMapper
         {
-            get { return _cfg.NameMapper; }
+            get { return _cfg.DefaultNameMapper; }
         }
 
         /** <inheritDoc /> */
         public IBinaryIdMapper IdMapper
         {
-            get { return _cfg.IdMapper; }
+            get { return _cfg.DefaultIdMapper; }
         }
 
         /** <inheritDoc /> */
         public IBinarySerializerInternal Serializer
         {
-            get { return new UserSerializerProxy(_cfg.Serializer); }
+            get { return new UserSerializerProxy(_cfg.DefaultSerializer); }
         }
 
         /** <inheritDoc /> */
@@ -120,6 +133,12 @@ namespace Apache.Ignite.Core.Impl.Binary
         public bool IsEnum
         {
             get { return false; }
+        }
+
+        /** <inheritdoc/> */
+        public IBinaryEqualityComparer EqualityComparer
+        {
+            get { return null; }
         }
 
         /** <inheritDoc /> */

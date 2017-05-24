@@ -332,9 +332,9 @@ public class GridNearTxRemote extends GridDistributedTxRemoteAdapter {
             try {
                 cached.unswap();
 
-                CacheObject val = cached.peek(null);
+                CacheObject val = cached.peek(true, false, false, null);
 
-                if (val == null && cached.evictInternal(xidVer, null, false)) {
+                if (val == null && cached.evictInternal(false, xidVer, null)) {
                     evicted.add(entry.txKey());
 
                     return false;
@@ -393,9 +393,9 @@ public class GridNearTxRemote extends GridDistributedTxRemoteAdapter {
             else {
                 cached.unswap();
 
-                CacheObject peek = cached.peek(null);
+                CacheObject peek = cached.peek(true, false, false, null);
 
-                if (peek == null && cached.evictInternal(xidVer, null, false)) {
+                if (peek == null && cached.evictInternal(false, xidVer, null)) {
                     cached.context().cache().removeIfObsolete(key.key());
 
                     evicted.add(key);

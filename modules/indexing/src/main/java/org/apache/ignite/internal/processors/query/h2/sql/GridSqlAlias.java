@@ -18,8 +18,6 @@
 package org.apache.ignite.internal.processors.query.h2.sql;
 
 import java.util.ArrayList;
-import org.apache.ignite.internal.util.typedef.F;
-import org.apache.ignite.internal.util.typedef.internal.SB;
 import org.h2.command.Parser;
 
 /**
@@ -50,8 +48,6 @@ public class GridSqlAlias extends GridSqlElement {
 
         addChild(expr);
 
-        assert !F.isEmpty(alias): alias;
-
         this.useAs = useAs;
         this.alias = alias;
     }
@@ -71,21 +67,7 @@ public class GridSqlAlias extends GridSqlElement {
 
     /** {@inheritDoc} */
     @Override public String getSQL() {
-        SB b = new SB();
-
-        GridSqlAst child = child(0);
-
-        boolean tbl = child instanceof GridSqlTable;
-
-        b.a(tbl ? ((GridSqlTable)child).getBeforeAliasSql() : child.getSQL());
-
-        b.a(useAs ? " AS " : " ");
-        b.a(Parser.quoteIdentifier(alias));
-
-        if (tbl)
-            b.a(((GridSqlTable)child).getAfterAliasSQL());
-
-        return b.toString();
+        return child(0).getSQL() + (useAs ? " AS " : " ") + Parser.quoteIdentifier(alias);
     }
 
     /**

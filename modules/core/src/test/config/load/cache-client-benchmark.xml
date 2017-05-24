@@ -39,6 +39,8 @@
                     <property name="swapEnabled" value="false"/>
 
                     <property name="writeSynchronizationMode" value="FULL_ASYNC"/>
+
+                    <property name="startSize" value="400000"/>
                 </bean>
             </list>
         </property>

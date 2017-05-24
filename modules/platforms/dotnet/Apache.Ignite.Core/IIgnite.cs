@@ -252,8 +252,7 @@ namespace Apache.Ignite.Core
         IgniteConfiguration GetConfiguration();
 
         /// <summary>
-        /// Starts a near cache on local client node if cache with specified was previously started.
-        /// This method does not work on server nodes.
+        /// Starts a near cache on local node if cache with specified was previously started.
         /// </summary>
         /// <param name="name">The name.</param>
         /// <param name="configuration">The configuration.</param>
@@ -318,24 +317,5 @@ namespace Apache.Ignite.Core
         /// <exception cref="PluginNotFoundException">When plugin with specified name has not been found.</exception>
         /// <returns>Plugin instance.</returns>
         T GetPlugin<T>(string name) where T : class;
-
-        /// <summary>
-        /// Clears partitions' lost state and moves caches to a normal mode.
-        /// </summary>
-        /// <param name="cacheNames">Names of caches to reset partitions for.</param>
-        void ResetLostPartitions(IEnumerable<string> cacheNames);
-
-        /// <summary>
-        /// Clears partitions' lost state and moves caches to a normal mode.
-        /// </summary>
-        /// <param name="cacheNames">Names of caches to reset partitions for.</param>
-        void ResetLostPartitions(params string[] cacheNames);
-
-        /// <summary>
-        /// Gets a collection of memory metrics, one for each <see cref="MemoryConfiguration.MemoryPolicies"/>.
-        /// <para />
-        /// Memory metrics should be enabled with <see cref="MemoryPolicyConfiguration.MetricsEnabled"/>.
-        /// </summary>
-        ICollection<IMemoryMetrics> GetMemoryMetrics();
     }
 }

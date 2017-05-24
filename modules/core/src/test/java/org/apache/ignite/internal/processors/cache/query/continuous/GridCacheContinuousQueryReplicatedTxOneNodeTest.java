@@ -114,7 +114,7 @@ public class GridCacheContinuousQueryReplicatedTxOneNodeTest extends GridCommonA
      */
     private void doTest(boolean loc) throws Exception {
         try {
-            IgniteCache<String, Integer> cache = startGrid(0).cache(DEFAULT_CACHE_NAME);
+            IgniteCache<String, Integer> cache = startGrid(0).cache(null);
 
             ContinuousQuery<String, Integer> qry = new ContinuousQuery<>();
 
@@ -122,7 +122,8 @@ public class GridCacheContinuousQueryReplicatedTxOneNodeTest extends GridCommonA
             final CountDownLatch latch = new CountDownLatch(10);
 
             qry.setLocalListener(new CacheEntryUpdatedListener<String, Integer>() {
-                @Override public void onUpdated(Iterable<CacheEntryEvent<? extends String, ? extends Integer>> evts)
+                @Override
+                public void onUpdated(Iterable<CacheEntryEvent<? extends String, ? extends Integer>> evts)
                         throws CacheEntryListenerException {
                     for (CacheEntryEvent<? extends String, ? extends Integer> evt : evts) {
                         cnt.incrementAndGet();
@@ -154,7 +155,7 @@ public class GridCacheContinuousQueryReplicatedTxOneNodeTest extends GridCommonA
      */
     private void doTestOneNode(boolean loc) throws Exception {
         try {
-            IgniteCache<String, Integer> cache = startGrid(0).cache(DEFAULT_CACHE_NAME);
+            IgniteCache<String, Integer> cache = startGrid(0).cache(null);
 
             ContinuousQuery<String, Integer> qry = new ContinuousQuery<>();
 

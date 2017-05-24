@@ -29,11 +29,19 @@ import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.fasterxml.jackson.databind.ser.DefaultSerializerProvider;
 import com.fasterxml.jackson.databind.ser.SerializerFactory;
 import java.io.IOException;
+import java.lang.reflect.Method;
 import java.sql.SQLException;
 import java.text.DateFormat;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.HashMap;
 import java.util.Locale;
-import org.apache.ignite.internal.processors.cache.query.GridCacheSqlIndexMetadata;
-import org.apache.ignite.internal.processors.cache.query.GridCacheSqlMetadata;
+import java.util.Map;
+import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
+import org.apache.ignite.internal.LessNamingBean;
+import org.apache.ignite.internal.visor.cache.VisorCache;
 import org.apache.ignite.internal.visor.util.VisorExceptionWrapper;
 import org.apache.ignite.lang.IgniteBiTuple;
 import org.apache.ignite.lang.IgniteUuid;
@@ -55,8 +63,7 @@ public class GridJettyObjectMapper extends ObjectMapper {
         module.addSerializer(Throwable.class, THROWABLE_SERIALIZER);
         module.addSerializer(IgniteBiTuple.class, IGNITE_TUPLE_SERIALIZER);
         module.addSerializer(IgniteUuid.class, IGNITE_UUID_SERIALIZER);
-        module.addSerializer(GridCacheSqlMetadata.class, IGNITE_SQL_METADATA_SERIALIZER);
-        module.addSerializer(GridCacheSqlIndexMetadata.class, IGNITE_SQL_INDEX_METADATA_SERIALIZER);
+        module.addSerializer(LessNamingBean.class, LESS_NAMING_SERIALIZER);
 
         registerModule(module);
     }
@@ -74,6 +81,14 @@ public class GridJettyObjectMapper extends ObjectMapper {
         /** {@inheritDoc} */
         @Override public void serialize(Object val, JsonGenerator gen, SerializerProvider ser) throws IOException {
             gen.writeNull();
+        }
+    };
+
+    /** Custom {@code null} string serializer. */
+    private static final JsonSerializer<Object> NULL_STRING_VALUE_SERIALIZER = new JsonSerializer<Object>() {
+        /** {@inheritDoc} */
+        @Override public void serialize(Object val, JsonGenerator gen, SerializerProvider ser) throws IOException {
+            gen.writeString("");
         }
     };
 
@@ -100,7 +115,7 @@ public class GridJettyObjectMapper extends ObjectMapper {
         }
 
         /** {@inheritDoc} */
-        @Override public DefaultSerializerProvider createInstance(SerializationConfig cfg, SerializerFactory jsf) {
+        public DefaultSerializerProvider createInstance(SerializationConfig cfg, SerializerFactory jsf) {
             return new CustomSerializerProvider(this, cfg, jsf);
         }
 
@@ -112,6 +127,9 @@ public class GridJettyObjectMapper extends ObjectMapper {
 
         /** {@inheritDoc} */
         @Override public JsonSerializer<Object> findNullValueSerializer(BeanProperty prop) throws JsonMappingException {
+            if (prop.getType().getRawClass() == String.class)
+                return NULL_STRING_VALUE_SERIALIZER;
+
             return NULL_VALUE_SERIALIZER;
         }
     }
@@ -168,35 +186,89 @@ public class GridJettyObjectMapper extends ObjectMapper {
         }
     };
 
-    /** Custom serializer for {@link GridCacheSqlMetadata} */
-    private static final JsonSerializer<GridCacheSqlMetadata> IGNITE_SQL_METADATA_SERIALIZER = new JsonSerializer<GridCacheSqlMetadata>() {
+    /**
+     * Custom serializer for Visor classes with non JavaBeans getters.
+     */
+    private static final JsonSerializer<Object> LESS_NAMING_SERIALIZER = new JsonSerializer<Object>() {
+        /** Methods to exclude. */
+        private final Collection<String> exclMtds = Arrays.asList("toString", "hashCode", "clone", "getClass");
+
+        /** */
+        private final Map<Class<?>, Collection<Method>> clsCache = new HashMap<>();
+
+        /** */
+        private final ReadWriteLock rwLock = new ReentrantReadWriteLock();
+
         /** {@inheritDoc} */
-        @Override public void serialize(GridCacheSqlMetadata m, JsonGenerator gen, SerializerProvider ser) throws IOException {
-            gen.writeStartObject();
+        @Override public void serialize(Object bean, JsonGenerator gen, SerializerProvider ser) throws IOException {
+            if (bean != null) {
+                gen.writeStartObject();
 
-            gen.writeStringField("cacheName", m.cacheName());
-            gen.writeObjectField("types", m.types());
-            gen.writeObjectField("keyClasses", m.keyClasses());
-            gen.writeObjectField("valClasses", m.valClasses());
-            gen.writeObjectField("fields", m.fields());
-            gen.writeObjectField("indexes", m.indexes());
+                Class<?> cls = bean.getClass();
 
-            gen.writeEndObject();
-        }
-    };
+                Collection<Method> methods;
 
-    /** Custom serializer for {@link GridCacheSqlIndexMetadata} */
-    private static final JsonSerializer<GridCacheSqlIndexMetadata> IGNITE_SQL_INDEX_METADATA_SERIALIZER = new JsonSerializer<GridCacheSqlIndexMetadata>() {
-        /** {@inheritDoc} */
-        @Override public void serialize(GridCacheSqlIndexMetadata idx, JsonGenerator gen, SerializerProvider ser) throws IOException {
-            gen.writeStartObject();
+                // Get descriptor from cache.
+                rwLock.readLock().lock();
 
-            gen.writeStringField("name", idx.name());
-            gen.writeObjectField("fields", idx.fields());
-            gen.writeObjectField("descendings", idx.descendings());
-            gen.writeBooleanField("unique", idx.unique());
+                try {
+                    methods = clsCache.get(cls);
+                }
+                finally {
+                    rwLock.readLock().unlock();
+                }
 
-            gen.writeEndObject();
+                // If missing in cache - build descriptor
+                if (methods == null) {
+                    Method[] publicMtds = cls.getMethods();
+
+                    methods = new ArrayList<>(publicMtds.length);
+
+                    for (Method mtd : publicMtds) {
+                        Class retType = mtd.getReturnType();
+
+                        String mtdName = mtd.getName();
+
+                        if (mtd.getParameterTypes().length != 0 ||
+                            retType == void.class || retType == cls ||
+                            exclMtds.contains(mtdName) ||
+                            (VisorCache.class.isAssignableFrom(retType) && "history".equals(mtdName)))
+                            continue;
+
+                        mtd.setAccessible(true);
+
+                        methods.add(mtd);
+                    }
+
+                    // Allow multiple puts for the same class - they will simply override.
+                    rwLock.writeLock().lock();
+
+                    try {
+                        clsCache.put(cls, methods);
+                    }
+                    finally {
+                        rwLock.writeLock().unlock();
+                    }
+                }
+
+                // Extract fields values using descriptor and build JSONObject.
+                for (Method mtd : methods) {
+                    try {
+                        Object prop = mtd.invoke(bean);
+
+                        if (prop != null)
+                            gen.writeObjectField(mtd.getName(), prop);
+                    }
+                    catch (IOException ioe) {
+                        throw ioe;
+                    }
+                    catch (Exception e) {
+                        throw new IOException(e);
+                    }
+                }
+
+                gen.writeEndObject();
+            }
         }
     };
 }

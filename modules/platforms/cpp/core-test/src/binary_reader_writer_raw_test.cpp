@@ -221,7 +221,7 @@ void CheckRawReadsRestricted(BinaryRawReader& reader)
     BOOST_CHECK_EXCEPTION((reader.ReadMap<int8_t, int8_t>()), IgniteError, IsBinaryError);
 }
 
-void CheckRawCollectionEmpty(CollectionType::Type* colType)
+void CheckRawCollectionEmpty(CollectionType* colType)
 {
     InteropUnpooledMemory mem(1024);
 
@@ -253,7 +253,7 @@ void CheckRawCollectionEmpty(CollectionType::Type* colType)
     if (colType)
         BOOST_REQUIRE(colReader.GetType() == *colType);
     else
-        BOOST_REQUIRE(colReader.GetType() == CollectionType::UNDEFINED);
+        BOOST_REQUIRE(colReader.GetType() == IGNITE_COLLECTION_UNDEFINED);
 
     BOOST_REQUIRE(colReader.GetSize() == 0);
     BOOST_REQUIRE(!colReader.HasNext());
@@ -264,7 +264,7 @@ void CheckRawCollectionEmpty(CollectionType::Type* colType)
     BOOST_REQUIRE(rawReader.ReadInt8() == 1);
 }
 
-void CheckRawCollection(CollectionType::Type* colType)
+void CheckRawCollection(CollectionType* colType)
 {
     BinaryInner writeVal1 = BinaryInner(1);
     BinaryInner writeVal2 = BinaryInner(0);
@@ -306,7 +306,7 @@ void CheckRawCollection(CollectionType::Type* colType)
     if (colType)
         BOOST_REQUIRE(colReader.GetType() == *colType);
     else
-        BOOST_REQUIRE(colReader.GetType() == CollectionType::UNDEFINED);
+        BOOST_REQUIRE(colReader.GetType() == IGNITE_COLLECTION_UNDEFINED);
 
     BOOST_REQUIRE(colReader.GetSize() == 3);
     BOOST_REQUIRE(!colReader.IsNull());
@@ -327,7 +327,7 @@ void CheckRawCollection(CollectionType::Type* colType)
     BOOST_REQUIRE(rawReader.ReadInt8() == 1);
 }
 
-void CheckRawCollectionIterators(CollectionType::Type* colType)
+void CheckRawCollectionIterators(CollectionType* colType)
 {
     typedef std::vector<BinaryInner> BinaryInnerVector;
     
@@ -361,7 +361,7 @@ void CheckRawCollectionIterators(CollectionType::Type* colType)
     if (colType)
         BOOST_REQUIRE(rawReader.ReadCollectionType() == *colType);
     else
-        BOOST_REQUIRE(rawReader.ReadCollectionType() == CollectionType::UNDEFINED);
+        BOOST_REQUIRE(rawReader.ReadCollectionType() == IGNITE_COLLECTION_UNDEFINED);
 
     BinaryInnerVector readValues(collectionSize);
     
@@ -376,7 +376,7 @@ void CheckRawCollectionIterators(CollectionType::Type* colType)
     BOOST_REQUIRE(rawReader.ReadInt8() == 1);
 }
 
-void CheckRawMapEmpty(MapType::Type* mapType)
+void CheckRawMapEmpty(MapType* mapType)
 {
     InteropUnpooledMemory mem(1024);
 
@@ -408,7 +408,7 @@ void CheckRawMapEmpty(MapType::Type* mapType)
     if (mapType)
         BOOST_REQUIRE(mapReader.GetType() == *mapType);
     else
-        BOOST_REQUIRE(mapReader.GetType() == MapType::UNDEFINED);
+        BOOST_REQUIRE(mapReader.GetType() == IGNITE_MAP_UNDEFINED);
 
     BOOST_REQUIRE(mapReader.GetSize() == 0);
     BOOST_REQUIRE(!mapReader.HasNext());
@@ -421,7 +421,7 @@ void CheckRawMapEmpty(MapType::Type* mapType)
     BOOST_REQUIRE(rawReader.ReadInt8() == 1);
 }
 
-void CheckRawMap(MapType::Type* mapType)
+void CheckRawMap(MapType* mapType)
 {
     BinaryInner writeVal1 = BinaryInner(1);
     BinaryInner writeVal2 = BinaryInner(0);
@@ -463,7 +463,7 @@ void CheckRawMap(MapType::Type* mapType)
     if (mapType)
         BOOST_REQUIRE(mapReader.GetType() == *mapType);
     else
-        BOOST_REQUIRE(mapReader.GetType() == MapType::UNDEFINED);
+        BOOST_REQUIRE(mapReader.GetType() == IGNITE_MAP_UNDEFINED);
 
     BOOST_REQUIRE(mapReader.GetSize() == 3);
     BOOST_REQUIRE(!mapReader.IsNull());
@@ -1157,7 +1157,7 @@ BOOST_AUTO_TEST_CASE(TestCollectionNull)
 
     BinaryCollectionReader<BinaryInner> colReader = rawReader.ReadCollection<BinaryInner>();
 
-    BOOST_REQUIRE(colReader.GetType() == CollectionType::UNDEFINED);
+    BOOST_REQUIRE(colReader.GetType() == IGNITE_COLLECTION_UNDEFINED);
     BOOST_REQUIRE(colReader.GetSize() == -1);
     BOOST_REQUIRE(!colReader.HasNext());
     BOOST_REQUIRE(colReader.IsNull()); 
@@ -1174,7 +1174,7 @@ BOOST_AUTO_TEST_CASE(TestCollectionEmpty)
 
 BOOST_AUTO_TEST_CASE(TestCollectionEmptyTyped)
 {
-    CollectionType::Type typ = CollectionType::LINKED_HASH_SET;
+    CollectionType typ = IGNITE_COLLECTION_LINKED_HASH_SET;
 
     CheckRawCollectionEmpty(&typ);
 }
@@ -1186,7 +1186,7 @@ BOOST_AUTO_TEST_CASE(TestCollection)
 
 BOOST_AUTO_TEST_CASE(TestCollectionTyped)
 {
-    CollectionType::Type typ = CollectionType::LINKED_HASH_SET;
+    CollectionType typ = IGNITE_COLLECTION_LINKED_HASH_SET;
 
     CheckRawCollection(&typ);
 }
@@ -1198,7 +1198,7 @@ BOOST_AUTO_TEST_CASE(TestCollectionIterators)
 
 BOOST_AUTO_TEST_CASE(TestCollectionIteratorsTyped)
 {
-    CollectionType::Type typ = CollectionType::LINKED_HASH_SET;
+    CollectionType typ = IGNITE_COLLECTION_LINKED_HASH_SET;
 
     CheckRawCollectionIterators(&typ);
 }
@@ -1222,7 +1222,7 @@ BOOST_AUTO_TEST_CASE(TestMapNull)
 
     BinaryMapReader<int8_t, BinaryInner> mapReader = rawReader.ReadMap<int8_t, BinaryInner>();
 
-    BOOST_REQUIRE(mapReader.GetType() == MapType::UNDEFINED);
+    BOOST_REQUIRE(mapReader.GetType() == IGNITE_MAP_UNDEFINED);
     BOOST_REQUIRE(mapReader.GetSize() == -1);
     BOOST_REQUIRE(!mapReader.HasNext());
     BOOST_REQUIRE(mapReader.IsNull());
@@ -1241,7 +1241,7 @@ BOOST_AUTO_TEST_CASE(TestMapEmpty)
 
 BOOST_AUTO_TEST_CASE(TestMapEmptyTyped)
 {
-    MapType::Type typ = MapType::LINKED_HASH_MAP;
+    MapType typ = IGNITE_MAP_LINKED_HASH_MAP;
 
     CheckRawMapEmpty(&typ);
 }
@@ -1253,7 +1253,7 @@ BOOST_AUTO_TEST_CASE(TestMap)
 
 BOOST_AUTO_TEST_CASE(TestMapTyped)
 {
-    MapType::Type typ = MapType::LINKED_HASH_MAP;
+    MapType typ = IGNITE_MAP_LINKED_HASH_MAP;
 
     CheckRawMap(&typ);
 }

@@ -70,23 +70,21 @@ public class MissingMappingResponseMessage implements Message {
 
         switch (writer.state()) {
             case 0:
-                if (!writer.writeString("clsName", clsName))
-                    return false;
-
-                writer.incrementState();
-
-            case 1:
                 if (!writer.writeByte("platformId", platformId))
                     return false;
 
                 writer.incrementState();
-
-            case 2:
+            case 1:
                 if (!writer.writeInt("typeId", typeId))
                     return false;
 
                 writer.incrementState();
 
+            case 2:
+                if (!writer.writeString("clsName", clsName))
+                    return false;
+
+                writer.incrementState();
         }
 
         return true;
@@ -101,14 +99,6 @@ public class MissingMappingResponseMessage implements Message {
 
         switch (reader.state()) {
             case 0:
-                clsName = reader.readString("clsName");
-
-                if (!reader.isLastRead())
-                    return false;
-
-                reader.incrementState();
-
-            case 1:
                 platformId = reader.readByte("platformId");
 
                 if (!reader.isLastRead())
@@ -116,7 +106,7 @@ public class MissingMappingResponseMessage implements Message {
 
                 reader.incrementState();
 
-            case 2:
+            case 1:
                 typeId = reader.readInt("typeId");
 
                 if (!reader.isLastRead())
@@ -124,6 +114,13 @@ public class MissingMappingResponseMessage implements Message {
 
                 reader.incrementState();
 
+            case 2:
+                clsName = reader.readString("clsName");
+
+                if (!reader.isLastRead())
+                    return false;
+
+                reader.incrementState();
         }
 
         return reader.afterMessageRead(MissingMappingResponseMessage.class);

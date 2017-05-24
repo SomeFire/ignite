@@ -33,6 +33,7 @@ import org.apache.ignite.spi.discovery.tcp.ipfinder.vm.TcpDiscoveryVmIpFinder;
 import org.apache.ignite.testframework.GridTestUtils;
 import org.apache.ignite.testframework.junits.common.GridCommonAbstractTest;
 
+import static org.apache.ignite.cache.CacheAtomicWriteOrderMode.PRIMARY;
 import static org.apache.ignite.cache.CacheAtomicityMode.TRANSACTIONAL;
 import static org.apache.ignite.cache.CacheMode.PARTITIONED;
 import static org.apache.ignite.cache.CacheRebalanceMode.SYNC;
@@ -59,6 +60,7 @@ public class GridCacheNearEvictionSelfTest extends GridCommonAbstractTest {
         cc.setBackups(1);
         cc.setRebalanceMode(SYNC);
         cc.setAtomicityMode(atomicityMode());
+        cc.setAtomicWriteOrderMode(PRIMARY);
 
         NearCacheConfiguration nearCfg = new NearCacheConfiguration();
 
@@ -89,7 +91,7 @@ public class GridCacheNearEvictionSelfTest extends GridCommonAbstractTest {
         startGridsMultiThreaded(gridCnt);
 
         try {
-            IgniteCache<Integer, String> c = grid(0).cache(DEFAULT_CACHE_NAME);
+            IgniteCache<Integer, String> c = grid(0).cache(null);
 
             int cnt = 100;
 
@@ -119,7 +121,7 @@ public class GridCacheNearEvictionSelfTest extends GridCommonAbstractTest {
                 private Ignite ignite;
 
                 @Override public Object call() throws Exception {
-                    IgniteCache<Integer, String> c = ignite.cache(DEFAULT_CACHE_NAME);
+                    IgniteCache<Integer, String> c = ignite.cache(null);
 
                     for (int i = 0; i < cnt; i++)
                         c.put(i, Integer.toString(i));
@@ -152,7 +154,7 @@ public class GridCacheNearEvictionSelfTest extends GridCommonAbstractTest {
                 private Ignite ignite;
 
                 @Override public Object call() throws Exception {
-                    IgniteCache<Integer, String> c = ignite.cache(DEFAULT_CACHE_NAME);
+                    IgniteCache<Integer, String> c = ignite.cache(null);
 
                     for (int i = 0; i < cnt; i++)
                         c.put(i, Integer.toString(i));

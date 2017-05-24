@@ -53,11 +53,8 @@ public class JavaStandaloneIgniteRDDSelfTest extends GridCommonAbstractTest {
     /** Keys count. */
     private static final int KEYS_CNT = 10000;
 
-    /** Entity cache name. */
-    private static final String ENTITY_CACHE_NAME = "entity";
-
-    /** Entity all types fields types name. */
-    private static final String ENTITY_ALL_TYPES_CACHE_NAME = "entityAllTypes";
+    /** Cache name. */
+    private static final String PARTITIONED_CACHE_NAME = "partitioned";
 
     /** Ip finder. */
     private static final TcpDiscoveryIpFinder IP_FINDER = new TcpDiscoveryVmIpFinder(true);
@@ -102,8 +99,7 @@ public class JavaStandaloneIgniteRDDSelfTest extends GridCommonAbstractTest {
 
     /** {@inheritDoc} */
     @Override protected void beforeTest() throws Exception {
-        Ignition.ignite("grid-0").cache(ENTITY_CACHE_NAME).clear();
-        Ignition.ignite("grid-0").cache(ENTITY_ALL_TYPES_CACHE_NAME).clear();
+        Ignition.ignite("grid-0").cache(PARTITIONED_CACHE_NAME).removeAll();
     }
 
     /** {@inheritDoc} */
@@ -132,12 +128,12 @@ public class JavaStandaloneIgniteRDDSelfTest extends GridCommonAbstractTest {
         try {
             JavaIgniteContext<String, String> ic = new JavaIgniteContext<>(sc, new IgniteConfigProvider());
 
-            ic.fromCache(ENTITY_CACHE_NAME)
+            ic.fromCache(PARTITIONED_CACHE_NAME)
                 .savePairs(sc.parallelize(F.range(0, KEYS_CNT), 2).mapToPair(TO_PAIR_F));
 
             Ignite ignite = Ignition.ignite("grid-0");
 
-            IgniteCache<String, String> cache = ignite.cache(ENTITY_CACHE_NAME);
+            IgniteCache<String, String> cache = ignite.cache(PARTITIONED_CACHE_NAME);
 
             for (int i = 0; i < KEYS_CNT; i++) {
                 String val = cache.get(String.valueOf(i));
@@ -162,12 +158,12 @@ public class JavaStandaloneIgniteRDDSelfTest extends GridCommonAbstractTest {
 
             Ignite ignite = Ignition.ignite("grid-0");
 
-            IgniteCache<String, Integer> cache = ignite.cache(ENTITY_CACHE_NAME);
+            IgniteCache<String, Integer> cache = ignite.cache(PARTITIONED_CACHE_NAME);
 
             for (int i = 0; i < KEYS_CNT; i++)
                 cache.put(String.valueOf(i), i);
 
-            JavaRDD<Integer> values = ic.fromCache(ENTITY_CACHE_NAME).map(STR_INT_PAIR_TO_INT_F);
+            JavaRDD<Integer> values = ic.fromCache(PARTITIONED_CACHE_NAME).map(STR_INT_PAIR_TO_INT_F);
 
             int sum = values.fold(0, SUM_F);
 
@@ -189,7 +185,7 @@ public class JavaStandaloneIgniteRDDSelfTest extends GridCommonAbstractTest {
         try {
             JavaIgniteContext<String, Entity> ic = new JavaIgniteContext<>(sc, new IgniteConfigProvider());
 
-            JavaIgniteRDD<String, Entity> cache = ic.fromCache(ENTITY_CACHE_NAME);
+            JavaIgniteRDD<String, Entity> cache = ic.fromCache(PARTITIONED_CACHE_NAME);
 
             cache.savePairs(sc.parallelize(F.range(0, 1001), 2).mapToPair(INT_TO_ENTITY_F));
 
@@ -216,7 +212,7 @@ public class JavaStandaloneIgniteRDDSelfTest extends GridCommonAbstractTest {
         try {
             JavaIgniteContext<String, Entity> ic = new JavaIgniteContext<>(sc, new IgniteConfigProvider());
 
-            JavaIgniteRDD<String, Entity> cache = ic.fromCache(ENTITY_CACHE_NAME);
+            JavaIgniteRDD<String, Entity> cache = ic.fromCache(PARTITIONED_CACHE_NAME);
 
             cache.savePairs(sc.parallelize(F.range(0, 1001), 2).mapToPair(INT_TO_ENTITY_F));
 
@@ -263,7 +259,7 @@ public class JavaStandaloneIgniteRDDSelfTest extends GridCommonAbstractTest {
         try {
             JavaIgniteContext<String, EntityTestAllTypeFields> ic = new JavaIgniteContext<>(sc, new IgniteConfigProvider());
 
-            JavaIgniteRDD<String, EntityTestAllTypeFields> cache = ic.fromCache(ENTITY_ALL_TYPES_CACHE_NAME);
+            JavaIgniteRDD<String, EntityTestAllTypeFields> cache = ic.fromCache(PARTITIONED_CACHE_NAME);
 
             cache.savePairs(sc.parallelize(F.range(0, cnt), 2).mapToPair(INT_TO_ENTITY_ALL_FIELDS_F));
 
@@ -305,7 +301,6 @@ public class JavaStandaloneIgniteRDDSelfTest extends GridCommonAbstractTest {
     /**
      * @param igniteInstanceName Ignite instance name.
      * @param client Client.
-     * @return Cache configuration.
      */
     private static IgniteConfiguration getConfiguration(String igniteInstanceName, boolean client) throws Exception {
         IgniteConfiguration cfg = new IgniteConfiguration();
@@ -316,9 +311,7 @@ public class JavaStandaloneIgniteRDDSelfTest extends GridCommonAbstractTest {
 
         cfg.setDiscoverySpi(discoSpi);
 
-        cfg.setCacheConfiguration(
-            cacheConfiguration(ENTITY_CACHE_NAME, String.class, Entity.class),
-            cacheConfiguration(ENTITY_ALL_TYPES_CACHE_NAME, String.class, EntityTestAllTypeFields.class));
+        cfg.setCacheConfiguration(cacheConfiguration());
 
         cfg.setClientMode(client);
 
@@ -328,19 +321,17 @@ public class JavaStandaloneIgniteRDDSelfTest extends GridCommonAbstractTest {
     }
 
     /**
-     * @param name Name.
-     * @param clsK Class k.
-     * @param clsV Class v.
-     * @return cache Configuration.
+     * Creates cache configuration.
      */
-    private static CacheConfiguration<Object, Object> cacheConfiguration(String name, Class<?> clsK, Class<?> clsV) {
-        CacheConfiguration<Object, Object> ccfg = new CacheConfiguration<>(DEFAULT_CACHE_NAME);
+    private static CacheConfiguration<Object, Object> cacheConfiguration() {
+        CacheConfiguration<Object, Object> ccfg = new CacheConfiguration<>();
 
         ccfg.setBackups(1);
 
-        ccfg.setName(name);
+        ccfg.setName(PARTITIONED_CACHE_NAME);
 
-        ccfg.setIndexedTypes(clsK, clsV);
+        ccfg.setIndexedTypes(String.class, Entity.class,
+            String.class, EntityTestAllTypeFields.class);
 
         return ccfg;
     }

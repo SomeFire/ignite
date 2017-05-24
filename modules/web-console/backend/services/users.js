@@ -21,21 +21,21 @@
 
 module.exports = {
     implements: 'services/users',
-    inject: ['require(lodash)', 'errors', 'settings', 'mongo', 'services/spaces', 'services/mails', 'services/activities', 'agents-handler']
+    inject: ['require(lodash)', 'mongo', 'settings', 'services/spaces', 'services/mails', 'services/activities', 'agent-manager', 'errors']
 };
 
 /**
  * @param _
  * @param mongo
- * @param errors
  * @param settings
  * @param {SpacesService} spacesService
  * @param {MailsService} mailsService
  * @param {ActivitiesService} activitiesService
- * @param {AgentsHandler} agentHnd
+ * @param agentMgr
+ * @param errors
  * @returns {UsersService}
  */
-module.exports.factory = (_, errors, settings, mongo, spacesService, mailsService, activitiesService, agentHnd) => {
+module.exports.factory = (_, mongo, settings, spacesService, mailsService, activitiesService, agentMgr, errors) => {
     const _randomString = () => {
         const possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
         const possibleLen = possible.length;
@@ -132,7 +132,7 @@ module.exports.factory = (_, errors, settings, mongo, spacesService, mailsServic
                 })
                 .then((user) => {
                     if (changed.token && user.token !== changed.token)
-                        agentHnd.onTokenReset(user);
+                        agentMgr.close(user._id, user.token);
 
                     _.extend(user, changed);
 

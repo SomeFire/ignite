@@ -21,6 +21,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.ignite.IgniteException;
+import org.apache.ignite.cache.CacheAtomicWriteOrderMode;
 import org.apache.ignite.cache.affinity.Affinity;
 import org.apache.ignite.cluster.ClusterNode;
 import org.apache.ignite.configuration.CacheConfiguration;
@@ -39,6 +40,8 @@ import org.apache.ignite.spi.discovery.tcp.ipfinder.TcpDiscoveryIpFinder;
 import org.apache.ignite.spi.discovery.tcp.ipfinder.vm.TcpDiscoveryVmIpFinder;
 import org.apache.ignite.testframework.junits.common.GridCommonAbstractTest;
 
+import static org.apache.ignite.cache.CacheAtomicWriteOrderMode.CLOCK;
+import static org.apache.ignite.cache.CacheAtomicWriteOrderMode.PRIMARY;
 import static org.apache.ignite.cache.CacheMode.PARTITIONED;
 import static org.apache.ignite.cache.CacheWriteSynchronizationMode.FULL_SYNC;
 
@@ -55,6 +58,9 @@ public class GridCacheAtomicMessageCountSelfTest extends GridCommonAbstractTest 
     /** Client mode flag. */
     private boolean client;
 
+    /** Write sync mode. */
+    private CacheAtomicWriteOrderMode writeOrderMode;
+
     /** {@inheritDoc} */
     @Override protected IgniteConfiguration getConfiguration(String igniteInstanceName) throws Exception {
         IgniteConfiguration cfg = super.getConfiguration(igniteInstanceName);
@@ -66,11 +72,12 @@ public class GridCacheAtomicMessageCountSelfTest extends GridCommonAbstractTest 
 
         cfg.setDiscoverySpi(discoSpi);
 
-        CacheConfiguration cCfg = new CacheConfiguration(DEFAULT_CACHE_NAME);
+        CacheConfiguration cCfg = new CacheConfiguration();
 
         cCfg.setCacheMode(PARTITIONED);
         cCfg.setBackups(1);
         cCfg.setWriteSynchronizationMode(FULL_SYNC);
+        cCfg.setAtomicWriteOrderMode(writeOrderMode);
 
         if (idx == 0 && client)
             cfg.setClientMode(true);
@@ -87,28 +94,31 @@ public class GridCacheAtomicMessageCountSelfTest extends GridCommonAbstractTest 
     /**
      * @throws Exception If failed.
      */
-    public void testPartitioned() throws Exception {
-        checkMessages(false);
+    public void testPartitionedPrimary() throws Exception {
+        checkMessages(false, PRIMARY);
     }
 
     /**
      * @throws Exception If failed.
      */
-    public void testClient() throws Exception {
-        checkMessages(true);
+    public void testClientPrimary() throws Exception {
+        checkMessages(true, PRIMARY);
     }
 
     /**
      * @param clientMode Client mode flag.
+     * @param orderMode Write ordering mode.
      * @throws Exception If failed.
      */
-    protected void checkMessages(boolean clientMode) throws Exception {
+    protected void checkMessages(boolean clientMode,
+        CacheAtomicWriteOrderMode orderMode) throws Exception {
 
         client = clientMode;
+        writeOrderMode = orderMode;
 
         startGrids(4);
 
-        ignite(0).cache(DEFAULT_CACHE_NAME);
+        ignite(0).cache(null);
 
         try {
             awaitPartitionMapExchange();
@@ -129,12 +139,20 @@ public class GridCacheAtomicMessageCountSelfTest extends GridCommonAbstractTest 
             for (int i = 0; i < putCnt; i++) {
                 ClusterNode locNode = grid(0).localNode();
 
-                Affinity<Object> affinity = ignite(0).affinity(DEFAULT_CACHE_NAME);
+                Affinity<Object> affinity = ignite(0).affinity(null);
 
-                if (affinity.isPrimary(locNode, i))
-                    expDhtCnt++;
-                else
-                    expNearSingleCnt++;
+                if (writeOrderMode == CLOCK) {
+                    if (affinity.isPrimary(locNode, i) || affinity.isBackup(locNode, i))
+                        expNearCnt++;
+                    else
+                        expNearCnt += 2;
+                }
+                else {
+                    if (affinity.isPrimary(locNode, i))
+                        expDhtCnt++;
+                    else
+                        expNearSingleCnt++;
+                }
 
                 jcache(0).put(i, i);
             }
@@ -143,13 +161,23 @@ public class GridCacheAtomicMessageCountSelfTest extends GridCommonAbstractTest 
             assertEquals(expNearSingleCnt, commSpi.messageCount(GridNearAtomicSingleUpdateRequest.class));
             assertEquals(expDhtCnt, commSpi.messageCount(GridDhtAtomicSingleUpdateRequest.class));
 
-            for (int i = 1; i < 4; i++) {
-                commSpi = (TestCommunicationSpi)grid(i).configuration().getCommunicationSpi();
+            if (writeOrderMode == CLOCK) {
+                for (int i = 1; i < 4; i++) {
+                    commSpi = (TestCommunicationSpi)grid(i).configuration().getCommunicationSpi();
 
-                assertEquals(0, commSpi.messageCount(GridNearAtomicSingleUpdateRequest.class));
-                assertEquals(0, commSpi.messageCount(GridNearAtomicFullUpdateRequest.class));
+                    assertEquals(0, commSpi.messageCount(GridNearAtomicSingleUpdateRequest.class));
+                    assertEquals(0, commSpi.messageCount(GridNearAtomicFullUpdateRequest.class));
+                    assertEquals(0, commSpi.messageCount(GridDhtAtomicSingleUpdateRequest.class));
+                }
             }
+            else {
+                for (int i = 1; i < 4; i++) {
+                    commSpi = (TestCommunicationSpi)grid(i).configuration().getCommunicationSpi();
 
+                    assertEquals(0, commSpi.messageCount(GridNearAtomicSingleUpdateRequest.class));
+                    assertEquals(0, commSpi.messageCount(GridNearAtomicFullUpdateRequest.class));
+                }
+            }
         }
         finally {
             stopAllGrids();

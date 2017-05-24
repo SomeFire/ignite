@@ -20,6 +20,7 @@ package org.apache.ignite.internal.processors.cache;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import org.apache.ignite.cache.CacheAtomicWriteOrderMode;
 import org.apache.ignite.cache.CacheAtomicityMode;
 import org.apache.ignite.cache.CacheMode;
 import org.apache.ignite.configuration.NearCacheConfiguration;
@@ -46,6 +47,11 @@ public class IgniteExchangeFutureHistoryTest extends IgniteCacheAbstractTest {
     }
 
     /** {@inheritDoc} */
+    @Override protected CacheAtomicWriteOrderMode atomicWriteOrderMode() {
+        return CacheAtomicWriteOrderMode.PRIMARY;
+    }
+
+    /** {@inheritDoc} */
     @Override protected NearCacheConfiguration nearConfiguration() {
         return null;
     }
@@ -56,7 +62,7 @@ public class IgniteExchangeFutureHistoryTest extends IgniteCacheAbstractTest {
      * @throws Exception If failed.
      */
     public void testExchangeFutures() throws Exception {
-        GridCachePartitionExchangeManager mgr = ((IgniteKernal)grid(0)).internalCache(DEFAULT_CACHE_NAME).context().shared().exchange();
+        GridCachePartitionExchangeManager mgr = ((IgniteKernal)grid(0)).internalCache().context().shared().exchange();
 
         for (int i = 1; i <= 10; i++) {
             startGrid(i);

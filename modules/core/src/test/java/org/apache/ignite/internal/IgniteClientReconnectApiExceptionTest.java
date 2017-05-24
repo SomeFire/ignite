@@ -64,7 +64,7 @@ public class IgniteClientReconnectApiExceptionTest extends IgniteClientReconnect
     @Override protected IgniteConfiguration getConfiguration(String igniteInstanceName) throws Exception {
         IgniteConfiguration cfg = super.getConfiguration(igniteInstanceName);
 
-        cfg.setCacheConfiguration(new CacheConfiguration(DEFAULT_CACHE_NAME));
+        cfg.setCacheConfiguration(new CacheConfiguration());
 
         return cfg;
     }
@@ -219,7 +219,7 @@ public class IgniteClientReconnectApiExceptionTest extends IgniteClientReconnect
 
         final Ignite client = startGrid(serverCount());
 
-        final IgniteCache<Object, Object> dfltCache = client.cache(DEFAULT_CACHE_NAME);
+        final IgniteCache<Object, Object> dfltCache = client.cache(null);
 
         assertNotNull(dfltCache);
 
@@ -425,7 +425,7 @@ public class IgniteClientReconnectApiExceptionTest extends IgniteClientReconnect
                         boolean failed = false;
 
                         try {
-                            client.cache(DEFAULT_CACHE_NAME);
+                            client.cache(null);
                         }
                         catch (IgniteClientDisconnectedException e) {
                             failed = true;
@@ -435,7 +435,7 @@ public class IgniteClientReconnectApiExceptionTest extends IgniteClientReconnect
 
                         assertTrue(failed);
 
-                        return client.cache(DEFAULT_CACHE_NAME);
+                        return client.cache(null);
                     }
                 },
                 new C1<Object, Boolean>() {
@@ -459,7 +459,7 @@ public class IgniteClientReconnectApiExceptionTest extends IgniteClientReconnect
                         boolean failed = false;
 
                         try {
-                            client.dataStreamer(DEFAULT_CACHE_NAME);
+                            client.dataStreamer(null);
                         }
                         catch (IgniteClientDisconnectedException e) {
                             failed = true;
@@ -469,7 +469,7 @@ public class IgniteClientReconnectApiExceptionTest extends IgniteClientReconnect
 
                         assertTrue(failed);
 
-                        return client.dataStreamer(DEFAULT_CACHE_NAME);
+                        return client.dataStreamer(null);
                     }
                 },
                 new C1<Object, Boolean>() {
@@ -480,7 +480,7 @@ public class IgniteClientReconnectApiExceptionTest extends IgniteClientReconnect
 
                         streamer.close();
 
-                        assertEquals(2, client.cache(DEFAULT_CACHE_NAME).get(2));
+                        assertEquals(2, client.cache(null).get(2));
 
                         return true;
                     }
@@ -535,7 +535,7 @@ public class IgniteClientReconnectApiExceptionTest extends IgniteClientReconnect
 
         final Ignite client = startGrid(serverCount());
 
-        final IgniteCache<Object, Object> dfltCache = client.cache(DEFAULT_CACHE_NAME);
+        final IgniteCache<Object, Object> dfltCache = client.cache(null);
 
         final CountDownLatch recvLatch = new CountDownLatch(1);
 
@@ -766,7 +766,7 @@ public class IgniteClientReconnectApiExceptionTest extends IgniteClientReconnect
     @SuppressWarnings("unchecked")
     private void doTestIgniteOperationOnDisconnect(Ignite client, final List<T2<Callable, C1<Object, Boolean>>> ops)
         throws Exception {
-        assertNotNull(client.cache(DEFAULT_CACHE_NAME));
+        assertNotNull(client.cache(null));
 
         final TestTcpDiscoverySpi clientSpi = spi(client);
 

@@ -29,11 +29,6 @@ import java.util.Collection;
  */
 public interface GridQueryIndexDescriptor {
     /**
-     * @return Name.
-     */
-    public String name();
-
-    /**
      * Gets all fields to be indexed.
      *
      * @return Fields to be indexed.
@@ -54,11 +49,4 @@ public interface GridQueryIndexDescriptor {
      * @return Type.
      */
     public QueryIndexType type();
-
-    /**
-     * Gets inline size for SORTED index.
-     *
-     * @return Inline size.
-     */
-    public int inlineSize();
 }

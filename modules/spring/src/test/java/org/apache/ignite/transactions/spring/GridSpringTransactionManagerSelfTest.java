@@ -25,14 +25,10 @@ import org.apache.ignite.spi.discovery.tcp.TcpDiscoverySpi;
 import org.apache.ignite.spi.discovery.tcp.ipfinder.TcpDiscoveryIpFinder;
 import org.apache.ignite.spi.discovery.tcp.ipfinder.vm.TcpDiscoveryVmIpFinder;
 import org.apache.ignite.testframework.junits.common.GridCommonAbstractTest;
-import org.apache.ignite.transactions.Transaction;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.support.GenericXmlApplicationContext;
 import org.springframework.transaction.IllegalTransactionStateException;
 import org.springframework.transaction.InvalidIsolationLevelException;
-import org.springframework.transaction.TransactionStatus;
-import org.springframework.transaction.support.TransactionCallback;
-import org.springframework.transaction.support.TransactionTemplate;
 
 /**
  * Spring transaction test.
@@ -47,11 +43,14 @@ public class GridSpringTransactionManagerSelfTest extends GridCommonAbstractTest
     /** */
     private GridSpringTransactionService service;
 
-    /** {@inheritDoc} */
-    @Override protected IgniteConfiguration getConfiguration(String igniteInstanceName) throws Exception {
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    protected IgniteConfiguration getConfiguration(String igniteInstanceName) throws Exception {
         IgniteConfiguration cfg = super.getConfiguration(igniteInstanceName);
 
-        CacheConfiguration cache = new CacheConfiguration(DEFAULT_CACHE_NAME);
+        CacheConfiguration cache = new CacheConfiguration();
 
         cache.setName(CACHE_NAME);
         cache.setAtomicityMode(CacheAtomicityMode.TRANSACTIONAL);
@@ -67,30 +66,45 @@ public class GridSpringTransactionManagerSelfTest extends GridCommonAbstractTest
         return cfg;
     }
 
-    /** {@inheritDoc} */
-    @Override public String getTestIgniteInstanceName() {
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public String getTestIgniteInstanceName() {
         return "testGrid";
     }
 
-    /** {@inheritDoc} */
-    @Override protected void beforeTestsStarted() throws Exception {
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    protected void beforeTestsStarted() throws Exception {
         startGrid();
     }
 
-    /** {@inheritDoc} */
-    @Override protected void afterTestsStopped() throws Exception {
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    protected void afterTestsStopped() throws Exception {
         stopAllGrids();
     }
 
-    /** {@inheritDoc} */
-    @Override protected void beforeTest() throws Exception {
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    protected void beforeTest() throws Exception {
         ApplicationContext applicationContext = new GenericXmlApplicationContext("config/spring-transactions.xml");
 
         service = (GridSpringTransactionService)applicationContext.getBean("gridSpringTransactionService");
     }
 
-    /** {@inheritDoc} */
-    @Override protected void afterTest() throws Exception {
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    protected void afterTest() throws Exception {
         grid().cache(CACHE_NAME).removeAll();
     }
 
@@ -144,47 +158,6 @@ public class GridSpringTransactionManagerSelfTest extends GridCommonAbstractTest
         }
         catch (InvalidIsolationLevelException e) {
             assertEquals("Ignite does not support READ_UNCOMMITTED isolation level.", e.getMessage());
-        }
-
-        assertEquals(0, c.size());
-    }
-
-    /**
-     * @throws Exception If test failed.
-     */
-    public void testDoSetRollbackOnlyInExistingTransaction() throws Exception {
-        final IgniteCache<Integer, String> c = grid().cache(CACHE_NAME);
-
-        SpringTransactionManager mngr = new SpringTransactionManager();
-        mngr.setIgniteInstanceName(grid().name());
-        mngr.afterPropertiesSet();
-
-        TransactionTemplate txTmpl = new TransactionTemplate(mngr);
-
-        try {
-            txTmpl.execute(new TransactionCallback<Object>() {
-                @Override public Object doInTransaction(TransactionStatus status) {
-                    c.put(1, "1");
-
-                    Transaction tx = grid().transactions().tx();
-
-                    assertFalse(tx.isRollbackOnly());
-
-                    try {
-                        service.putWithError(c, 1_000);
-                    }
-                    catch (Exception ignored) {
-                        // No-op.
-                    }
-
-                    assertTrue(tx.isRollbackOnly());
-
-                    return null;
-                }
-            });
-        }
-        catch (Exception ignored) {
-            // No-op.
         }
 
         assertEquals(0, c.size());

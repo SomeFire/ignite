@@ -19,7 +19,6 @@ package org.apache.ignite.internal.processors.cache.distributed;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.Objects;
 import java.util.TreeMap;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ThreadLocalRandom;
@@ -51,7 +50,6 @@ import org.apache.ignite.testframework.GridTestUtils;
 import org.apache.ignite.testframework.junits.common.GridCommonAbstractTest;
 import org.apache.ignite.transactions.Transaction;
 import org.apache.ignite.transactions.TransactionOptimisticException;
-import org.jetbrains.annotations.NotNull;
 
 import static org.apache.ignite.cache.CacheAtomicityMode.TRANSACTIONAL;
 import static org.apache.ignite.cache.CacheWriteSynchronizationMode.FULL_ASYNC;
@@ -196,7 +194,7 @@ public class IgniteTxCacheWriteSynchronizationModesMultithreadedTest extends Gri
         boolean restart) throws Exception {
         final Ignite ignite = ignite(0);
 
-        createCache(ignite, cacheConfiguration(DEFAULT_CACHE_NAME, syncMode, backups, store), nearCache);
+        createCache(ignite, cacheConfiguration(null, syncMode, backups, store), nearCache);
 
         final AtomicBoolean stop = new AtomicBoolean();
 
@@ -304,7 +302,7 @@ public class IgniteTxCacheWriteSynchronizationModesMultithreadedTest extends Gri
         finally {
             stop.set(true);
 
-            ignite.destroyCache(DEFAULT_CACHE_NAME);
+            ignite.destroyCache(null);
 
             if (restartFut != null)
                 restartFut.get();
@@ -315,7 +313,7 @@ public class IgniteTxCacheWriteSynchronizationModesMultithreadedTest extends Gri
      * @param c Test iteration closure.
      * @throws Exception If failed.
      */
-    private void commitMultithreaded(final IgniteBiInClosure<Ignite, IgniteCache<Integer, Integer>> c) throws Exception {
+    public void commitMultithreaded(final IgniteBiInClosure<Ignite, IgniteCache<Integer, Integer>> c) throws Exception {
         final long stopTime = System.currentTimeMillis() + 10_000;
 
         GridTestUtils.runMultiThreaded(new IgniteInClosure<Integer>() {
@@ -326,14 +324,14 @@ public class IgniteTxCacheWriteSynchronizationModesMultithreadedTest extends Gri
 
                 Ignite ignite = ignite(nodeIdx);
 
-                IgniteCache<Integer, Integer> cache = ignite.cache(DEFAULT_CACHE_NAME);
+                IgniteCache<Integer, Integer> cache = ignite.cache(null);
 
                 while (System.currentTimeMillis() < stopTime)
                     c.apply(ignite, cache);
             }
         }, NODES * 3, "tx-thread");
 
-        final IgniteCache<Integer, Integer> cache = ignite(0).cache(DEFAULT_CACHE_NAME);
+        final IgniteCache<Integer, Integer> cache = ignite(0).cache(null);
 
         for (int key = 0; key < MULTITHREADED_TEST_KEYS; key++) {
             final Integer key0 = key;
@@ -343,9 +341,9 @@ public class IgniteTxCacheWriteSynchronizationModesMultithreadedTest extends Gri
                     final Integer val = cache.get(key0);
 
                     for (int i = 1; i < NODES; i++) {
-                        IgniteCache<Integer, Integer> cache = ignite(i).cache(DEFAULT_CACHE_NAME);
+                        IgniteCache<Integer, Integer> cache = ignite(i).cache(null);
 
-                        if (!Objects.equals(val, cache.get(key0)))
+                        if (!val.equals(cache.get(key0)))
                             return false;
                     }
                     return true;
@@ -379,11 +377,11 @@ public class IgniteTxCacheWriteSynchronizationModesMultithreadedTest extends Gri
      * @param store If {@code true} configures cache store.
      * @return Cache configuration.
      */
-    private CacheConfiguration<Object, Object> cacheConfiguration(@NotNull String name,
+    private CacheConfiguration<Object, Object> cacheConfiguration(String name,
         CacheWriteSynchronizationMode syncMode,
         int backups,
         boolean store) {
-        CacheConfiguration<Object, Object> ccfg = new CacheConfiguration<>(DEFAULT_CACHE_NAME);
+        CacheConfiguration<Object, Object> ccfg = new CacheConfiguration<>();
 
         ccfg.setName(name);
         ccfg.setAtomicityMode(TRANSACTIONAL);

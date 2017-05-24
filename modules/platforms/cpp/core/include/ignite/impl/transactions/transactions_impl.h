@@ -72,7 +72,7 @@ namespace ignite
                  * @param err Error.
                  * @return Resulting state.
                  */
-                TransactionState::Type TxCommit(int64_t id, IgniteError& err);
+                TransactionState TxCommit(int64_t id, IgniteError& err);
 
                 /**
                  * Rollback Transaction.
@@ -81,7 +81,7 @@ namespace ignite
                  * @param err Error.
                  * @return Resulting state.
                  */
-                TransactionState::Type TxRollback(int64_t id, IgniteError& err);
+                TransactionState TxRollback(int64_t id, IgniteError& err);
 
                 /**
                  * Close Transaction.
@@ -90,7 +90,7 @@ namespace ignite
                  * @param err Error.
                  * @return Resulting state.
                  */
-                TransactionState::Type TxClose(int64_t id, IgniteError& err);
+                TransactionState TxClose(int64_t id, IgniteError& err);
 
                 /**
                  * Make transaction into rollback-only.
@@ -110,7 +110,7 @@ namespace ignite
                  * @param id Transaction ID.
                  * @return Resulting state.
                  */
-                TransactionState::Type TxState(int64_t id, IgniteError& err);
+                TransactionState TxState(int64_t id, IgniteError& err);
 
                 /**
                  * Get metrics.
@@ -127,7 +127,7 @@ namespace ignite
                  * @param state Integer constant state.
                  * @return TransactionState constant.
                  */
-                TransactionState::Type ToTransactionState(int state);
+                TransactionState ToTransactionState(int state);
 
                 IGNITE_NO_COPY_ASSIGNMENT(TransactionsImpl)
             };

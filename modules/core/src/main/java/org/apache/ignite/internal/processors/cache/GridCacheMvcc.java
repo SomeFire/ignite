@@ -57,19 +57,26 @@ public final class GridCacheMvcc {
     /** */
     private static final Comparator<GridCacheVersion> SER_VER_COMPARATOR = new Comparator<GridCacheVersion>() {
         @Override public int compare(GridCacheVersion ver1, GridCacheVersion ver2) {
-            int nodeOrder1 = ver1.nodeOrder();
-            int nodeOrder2 = ver2.nodeOrder();
+            long time1 = ver1.globalTime();
+            long time2 = ver2.globalTime();
 
-            if (nodeOrder1 == nodeOrder2) {
-                long order1 = ver1.order();
-                long order2 = ver2.order();
+            if (time1 == time2) {
+                int nodeOrder1 = ver1.nodeOrder();
+                int nodeOrder2 = ver2.nodeOrder();
 
-                assert order1 != order2;
+                if (nodeOrder1 == nodeOrder2) {
+                    long order1 = ver1.order();
+                    long order2 = ver2.order();
 
-                return order1 > order2 ? 1 : -1;
+                    assert order1 != order2;
+
+                    return order1 > order2 ? 1 : -1;
+                }
+                else
+                    return nodeOrder1 > nodeOrder2 ? 1 : -1;
             }
             else
-                return nodeOrder1 > nodeOrder2 ? 1 : -1;
+                return time1 > time2 ? 1 : -1;
         }
     };
 

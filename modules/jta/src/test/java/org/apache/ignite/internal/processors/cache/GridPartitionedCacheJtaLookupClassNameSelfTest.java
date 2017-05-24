@@ -44,7 +44,7 @@ public class GridPartitionedCacheJtaLookupClassNameSelfTest extends AbstractCach
     public void testUncompatibleTmLookup() {
         final IgniteEx ignite = grid(0);
 
-        final CacheConfiguration cacheCfg = new CacheConfiguration(DEFAULT_CACHE_NAME);
+        final CacheConfiguration cacheCfg = new CacheConfiguration();
 
         cacheCfg.setName("Foo");
         cacheCfg.setAtomicityMode(CacheAtomicityMode.TRANSACTIONAL);

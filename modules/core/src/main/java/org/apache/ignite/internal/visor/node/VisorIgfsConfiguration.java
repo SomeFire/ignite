@@ -17,25 +17,24 @@
 
 package org.apache.ignite.internal.visor.node;
 
-import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
+import java.io.Serializable;
 import java.util.ArrayList;
-import java.util.List;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.Map;
 import org.apache.ignite.configuration.FileSystemConfiguration;
 import org.apache.ignite.igfs.IgfsIpcEndpointConfiguration;
 import org.apache.ignite.igfs.IgfsMode;
-import org.apache.ignite.internal.util.typedef.F;
+import org.apache.ignite.internal.LessNamingBean;
 import org.apache.ignite.internal.util.typedef.internal.S;
-import org.apache.ignite.internal.util.typedef.internal.U;
-import org.apache.ignite.internal.visor.VisorDataTransferObject;
 import org.jetbrains.annotations.Nullable;
+
+import static org.apache.ignite.internal.visor.util.VisorTaskUtils.compactClass;
 
 /**
  * Data transfer object for IGFS configuration properties.
  */
-public class VisorIgfsConfiguration extends VisorDataTransferObject {
+public class VisorIgfsConfiguration implements Serializable, LessNamingBean {
     /** */
     private static final long serialVersionUID = 0L;
 
@@ -63,17 +62,38 @@ public class VisorIgfsConfiguration extends VisorDataTransferObject {
     /** Number of batches that can be concurrently sent to remote node. */
     private int perNodeParallelBatchCnt;
 
+    /** @deprecated Needed only for backward compatibility. */
+    private String secondaryHadoopFileSysUri;
+
+    /** @deprecated Needed only for backward compatibility. */
+    private String secondaryHadoopFileSysCfgPath;
+
+    /** @deprecated Needed only for backward compatibility. */
+    private String secondaryHadoopFileSysUserName;
+
     /** IGFS instance mode. */
     private IgfsMode dfltMode;
 
     /** Map of paths to IGFS modes. */
     private Map<String, IgfsMode> pathModes;
 
+    /** Dual mode PUT operations executor service. */
+    private String dualModePutExecutorSrvc;
+
+    /** Dual mode PUT operations executor service shutdown flag. */
+    private boolean dualModePutExecutorSrvcShutdown;
+
+    /** Maximum amount of data in pending puts. */
+    private long dualModeMaxPendingPutsSize;
+
     /** Maximum range length. */
     private long maxTaskRangeLen;
 
     /** Fragmentizer concurrent files. */
     private int fragmentizerConcurrentFiles;
+
+    /** Fragmentizer local writes ratio. */
+    private float fragmentizerLocWritesRatio;
 
     /** Fragmentizer enabled flag. */
     private boolean fragmentizerEnabled;
@@ -90,61 +110,57 @@ public class VisorIgfsConfiguration extends VisorDataTransferObject {
     /** IPC endpoint enabled flag. */
     private boolean ipcEndpointEnabled;
 
+    /** Maximum space. */
+    private long maxSpace;
+
     /** Management port. */
     private int mgmtPort;
 
     /** Amount of sequential block reads before prefetch is triggered. */
     private int seqReadsBeforePrefetch;
 
-    /** Metadata co-location flag. */
-    private boolean colocateMeta;
-
-    /** Relaxed consistency flag. */
-    private boolean relaxedConsistency;
-
-    /** Update file length on flush flag. */
-    private boolean updateFileLenOnFlush;
+    /** Trash purge await timeout. */
+    private long trashPurgeTimeout;
 
     /**
-     * Default constructor.
-     */
-    public VisorIgfsConfiguration() {
-        // No-op.
-    }
-
-    /**
-     * Create data transfer object for IGFS configuration properties.
      * @param igfs IGFS configuration.
+     * @return Data transfer object for IGFS configuration properties.
      */
-    public VisorIgfsConfiguration(FileSystemConfiguration igfs) {
-        name = igfs.getName();
-        metaCacheName = igfs.getMetaCacheConfiguration().getName();
-        dataCacheName = igfs.getDataCacheConfiguration().getName();
-        blockSize = igfs.getBlockSize();
-        prefetchBlocks = igfs.getPrefetchBlocks();
-        streamBufSize = igfs.getBufferSize();
-        perNodeBatchSize = igfs.getPerNodeBatchSize();
-        perNodeParallelBatchCnt = igfs.getPerNodeParallelBatchCount();
+    public static VisorIgfsConfiguration from(FileSystemConfiguration igfs) {
+        VisorIgfsConfiguration cfg = new VisorIgfsConfiguration();
 
-        dfltMode = igfs.getDefaultMode();
-        pathModes = igfs.getPathModes();
-        maxTaskRangeLen = igfs.getMaximumTaskRangeLength();
-        fragmentizerConcurrentFiles = igfs.getFragmentizerConcurrentFiles();
-        fragmentizerEnabled = igfs.isFragmentizerEnabled();
-        fragmentizerThrottlingBlockLen = igfs.getFragmentizerThrottlingBlockLength();
-        fragmentizerThrottlingDelay = igfs.getFragmentizerThrottlingDelay();
+        cfg.name = igfs.getName();
+        cfg.metaCacheName = igfs.getMetaCacheConfiguration().getName();
+        cfg.dataCacheName = igfs.getDataCacheConfiguration().getName();
+        cfg.blockSize = igfs.getBlockSize();
+        cfg.prefetchBlocks = igfs.getPrefetchBlocks();
+        cfg.streamBufSize = igfs.getBufferSize();
+        cfg.perNodeBatchSize = igfs.getPerNodeBatchSize();
+        cfg.perNodeParallelBatchCnt = igfs.getPerNodeParallelBatchCount();
+
+        cfg.dfltMode = igfs.getDefaultMode();
+        cfg.pathModes = igfs.getPathModes();
+        cfg.dualModePutExecutorSrvc = compactClass(igfs.getDualModePutExecutorService());
+        cfg.dualModePutExecutorSrvcShutdown = igfs.getDualModePutExecutorServiceShutdown();
+        cfg.dualModeMaxPendingPutsSize = igfs.getDualModeMaxPendingPutsSize();
+        cfg.maxTaskRangeLen = igfs.getMaximumTaskRangeLength();
+        cfg.fragmentizerConcurrentFiles = igfs.getFragmentizerConcurrentFiles();
+        cfg.fragmentizerLocWritesRatio = igfs.getFragmentizerLocalWritesRatio();
+        cfg.fragmentizerEnabled = igfs.isFragmentizerEnabled();
+        cfg.fragmentizerThrottlingBlockLen = igfs.getFragmentizerThrottlingBlockLength();
+        cfg.fragmentizerThrottlingDelay = igfs.getFragmentizerThrottlingDelay();
 
         IgfsIpcEndpointConfiguration endpointCfg = igfs.getIpcEndpointConfiguration();
 
-        ipcEndpointCfg = endpointCfg != null ? endpointCfg.toString() : null;
+        cfg.ipcEndpointCfg = endpointCfg != null ? endpointCfg.toString() : null;
 
-        ipcEndpointEnabled = igfs.isIpcEndpointEnabled();
-        mgmtPort = igfs.getManagementPort();
-        seqReadsBeforePrefetch = igfs.getSequentialReadsBeforePrefetch();
+        cfg.ipcEndpointEnabled = igfs.isIpcEndpointEnabled();
+        cfg.maxSpace = igfs.getMaxSpaceSize();
+        cfg.mgmtPort = igfs.getManagementPort();
+        cfg.seqReadsBeforePrefetch = igfs.getSequentialReadsBeforePrefetch();
+        cfg.trashPurgeTimeout = igfs.getTrashPurgeTimeout();
 
-        colocateMeta = igfs.isColocateMetadata();
-        relaxedConsistency = igfs.isRelaxedConsistency();
-        updateFileLenOnFlush = igfs.isUpdateFileLengthOnFlush();
+        return cfg;
     }
 
     /**
@@ -153,221 +169,212 @@ public class VisorIgfsConfiguration extends VisorDataTransferObject {
      * @param igfss Igfs configurations.
      * @return igfs configurations properties.
      */
-    public static List<VisorIgfsConfiguration> list(FileSystemConfiguration[] igfss) {
-        List<VisorIgfsConfiguration> res = new ArrayList<>();
+    public static Iterable<VisorIgfsConfiguration> list(FileSystemConfiguration[] igfss) {
+        if (igfss == null)
+            return Collections.emptyList();
 
-        if (!F.isEmpty(igfss)) {
-            for (FileSystemConfiguration igfs : igfss)
-                res.add(new VisorIgfsConfiguration(igfs));
-        }
+        final Collection<VisorIgfsConfiguration> cfgs = new ArrayList<>(igfss.length);
 
-        return res;
+        for (FileSystemConfiguration igfs : igfss)
+            cfgs.add(from(igfs));
+
+        return cfgs;
     }
 
     /**
      * @return IGFS instance name.
      */
-    @Nullable public String getName() {
+    @Nullable public String name() {
         return name;
     }
 
     /**
      * @return Cache name to store IGFS meta information.
      */
-    @Nullable public String getMetaCacheName() {
+    @Nullable public String metaCacheName() {
         return metaCacheName;
     }
 
     /**
      * @return Cache name to store IGFS data.
      */
-    @Nullable public String getDataCacheName() {
+    @Nullable public String dataCacheName() {
         return dataCacheName;
     }
 
     /**
      * @return File's data block size.
      */
-    public int getBlockSize() {
+    public int blockSize() {
         return blockSize;
     }
 
     /**
      * @return Number of pre-fetched blocks if specific file's chunk is requested.
      */
-    public int getPrefetchBlocks() {
+    public int prefetchBlocks() {
         return prefetchBlocks;
     }
 
     /**
      * @return Read/write buffer size for IGFS stream operations in bytes.
      */
-    public int getStreamBufferSize() {
+    public int streamBufferSize() {
         return streamBufSize;
     }
 
     /**
      * @return Number of file blocks buffered on local node before sending batch to remote node.
      */
-    public int getPerNodeBatchSize() {
+    public int perNodeBatchSize() {
         return perNodeBatchSize;
     }
 
     /**
      * @return Number of batches that can be concurrently sent to remote node.
      */
-    public int getPerNodeParallelBatchCount() {
+    public int perNodeParallelBatchCount() {
         return perNodeParallelBatchCnt;
+    }
+
+    /**
+     * @deprecated Needed only for backward compatibility.
+     */
+    @Nullable public String secondaryHadoopFileSystemUri() {
+        return secondaryHadoopFileSysUri;
+    }
+
+    /**
+     * @deprecated Needed only for backward compatibility.
+     */
+    @Nullable public String secondaryHadoopFileSystemUserName() {
+        return secondaryHadoopFileSysUserName;
+    }
+
+    /**
+     * @deprecated Needed only for backward compatibility.
+     */
+    @Nullable public String secondaryHadoopFileSystemConfigPath() {
+        return secondaryHadoopFileSysCfgPath;
     }
 
     /**
      * @return IGFS instance mode.
      */
-    public IgfsMode getDefaultMode() {
+    public IgfsMode defaultMode() {
         return dfltMode;
     }
 
     /**
      * @return Map of paths to IGFS modes.
      */
-    @Nullable public Map<String, IgfsMode> getPathModes() {
+    @Nullable public Map<String, IgfsMode> pathModes() {
         return pathModes;
+    }
+
+    /**
+     * @return Dual mode PUT operations executor service.
+     */
+    public String dualModePutExecutorService() {
+        return dualModePutExecutorSrvc;
+    }
+
+    /**
+     * @return Dual mode PUT operations executor service shutdown flag.
+     */
+    public boolean dualModePutExecutorServiceShutdown() {
+        return dualModePutExecutorSrvcShutdown;
+    }
+
+    /**
+     * @return Maximum amount of data in pending puts.
+     */
+    public long dualModeMaxPendingPutsSize() {
+        return dualModeMaxPendingPutsSize;
     }
 
     /**
      * @return Maximum range length.
      */
-    public long getMaxTaskRangeLength() {
+    public long maxTaskRangeLength() {
         return maxTaskRangeLen;
     }
 
     /**
      * @return Fragmentizer concurrent files.
      */
-    public int getFragmentizerConcurrentFiles() {
+    public int fragmentizerConcurrentFiles() {
         return fragmentizerConcurrentFiles;
+    }
+
+    /**
+     * @return Fragmentizer local writes ratio.
+     */
+    public float fragmentizerLocalWritesRatio() {
+        return fragmentizerLocWritesRatio;
     }
 
     /**
      * @return Fragmentizer enabled flag.
      */
-    public boolean isFragmentizerEnabled() {
+    public boolean fragmentizerEnabled() {
         return fragmentizerEnabled;
     }
 
     /**
      * @return Fragmentizer throttling block length.
      */
-    public long getFragmentizerThrottlingBlockLength() {
+    public long fragmentizerThrottlingBlockLength() {
         return fragmentizerThrottlingBlockLen;
     }
 
     /**
      * @return Fragmentizer throttling delay.
      */
-    public long getFragmentizerThrottlingDelay() {
+    public long fragmentizerThrottlingDelay() {
         return fragmentizerThrottlingDelay;
     }
 
     /**
      * @return IPC endpoint config to publish IGFS over.
      */
-    @Nullable public String getIpcEndpointConfiguration() {
+    @Nullable public String ipcEndpointConfiguration() {
         return ipcEndpointCfg;
     }
 
     /**
      * @return IPC endpoint enabled flag.
      */
-    public boolean isIpcEndpointEnabled() {
+    public boolean ipcEndpointEnabled() {
         return ipcEndpointEnabled;
+    }
+
+    /**
+     * @return Maximum space.
+     */
+    public long maxSpace() {
+        return maxSpace;
     }
 
     /**
      * @return Management port.
      */
-    public int getManagementPort() {
+    public int managementPort() {
         return mgmtPort;
     }
 
     /**
      * @return Amount of sequential block reads before prefetch is triggered.
      */
-    public int getSequenceReadsBeforePrefetch() {
+    public int sequenceReadsBeforePrefetch() {
         return seqReadsBeforePrefetch;
     }
 
     /**
-     * @return {@code True} if metadata co-location is enabled.
+     * @return Trash purge await timeout.
      */
-    public boolean isColocateMetadata() {
-        return colocateMeta;
-    }
-
-    /**
-     * @return {@code True} if relaxed consistency is enabled.
-     */
-    public boolean isRelaxedConsistency() {
-        return relaxedConsistency;
-    }
-
-    /**
-     * @return Whether to update file length on flush.
-     */
-    public boolean isUpdateFileLengthOnFlush() {
-        return updateFileLenOnFlush;
-    }
-
-    /** {@inheritDoc} */
-    @Override protected void writeExternalData(ObjectOutput out) throws IOException {
-        U.writeString(out, name);
-        U.writeString(out, metaCacheName);
-        U.writeString(out, dataCacheName);
-        out.writeInt(blockSize);
-        out.writeInt(prefetchBlocks);
-        out.writeInt(streamBufSize);
-        out.writeInt(perNodeBatchSize);
-        out.writeInt(perNodeParallelBatchCnt);
-        U.writeEnum(out, dfltMode);
-        U.writeMap(out, pathModes);
-        out.writeLong(maxTaskRangeLen);
-        out.writeInt(fragmentizerConcurrentFiles);
-        out.writeBoolean(fragmentizerEnabled);
-        out.writeLong(fragmentizerThrottlingBlockLen);
-        out.writeLong(fragmentizerThrottlingDelay);
-        U.writeString(out, ipcEndpointCfg);
-        out.writeBoolean(ipcEndpointEnabled);
-        out.writeInt(mgmtPort);
-        out.writeInt(seqReadsBeforePrefetch);
-        out.writeBoolean(colocateMeta);
-        out.writeBoolean(relaxedConsistency);
-        out.writeBoolean(updateFileLenOnFlush);
-    }
-
-    /** {@inheritDoc} */
-    @Override protected void readExternalData(byte protoVer, ObjectInput in) throws IOException, ClassNotFoundException {
-        name = U.readString(in);
-        metaCacheName = U.readString(in);
-        dataCacheName = U.readString(in);
-        blockSize = in.readInt();
-        prefetchBlocks = in.readInt();
-        streamBufSize = in.readInt();
-        perNodeBatchSize = in.readInt();
-        perNodeParallelBatchCnt = in.readInt();
-        dfltMode = IgfsMode.fromOrdinal(in.readByte());
-        pathModes = U.readMap(in);
-        maxTaskRangeLen = in.readLong();
-        fragmentizerConcurrentFiles = in.readInt();
-        fragmentizerEnabled = in.readBoolean();
-        fragmentizerThrottlingBlockLen = in.readLong();
-        fragmentizerThrottlingDelay = in.readLong();
-        ipcEndpointCfg = U.readString(in);
-        ipcEndpointEnabled = in.readBoolean();
-        mgmtPort = in.readInt();
-        seqReadsBeforePrefetch = in.readInt();
-        colocateMeta = in.readBoolean();
-        relaxedConsistency = in.readBoolean();
-        updateFileLenOnFlush = in.readBoolean();
+    public long trashPurgeTimeout() {
+        return trashPurgeTimeout;
     }
 
     /** {@inheritDoc} */

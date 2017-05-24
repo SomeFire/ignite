@@ -28,7 +28,6 @@ import org.apache.ignite.IgniteException;
 import org.apache.ignite.cluster.ClusterNode;
 import org.apache.ignite.configuration.CacheConfiguration;
 import org.apache.ignite.configuration.IgniteConfiguration;
-import org.apache.ignite.configuration.MemoryConfiguration;
 import org.apache.ignite.configuration.NearCacheConfiguration;
 import org.apache.ignite.internal.managers.communication.GridIoMessage;
 import org.apache.ignite.internal.processors.affinity.AffinityTopologyVersion;
@@ -69,16 +68,18 @@ public class CacheStopAndDestroySelfTest extends GridCommonAbstractTest {
     /** local cache name. */
     protected static String CACHE_NAME_LOC = "cache_local";
 
-    /** Memory configuration to be used on client nodes with local caches. */
-    private static MemoryConfiguration memCfg;
+    /** {@inheritDoc} */
+    @Override protected void beforeTest() throws Exception {
+        super.beforeTest();
+
+        startGridsMultiThreaded(gridCount());
+    }
 
     /** {@inheritDoc} */
     @Override protected void afterTest() throws Exception {
         super.afterTest();
 
         stopAllGrids();
-
-        memCfg = null;
     }
 
     /**
@@ -92,11 +93,8 @@ public class CacheStopAndDestroySelfTest extends GridCommonAbstractTest {
     @Override protected IgniteConfiguration getConfiguration(String igniteInstanceName) throws Exception {
         IgniteConfiguration iCfg = super.getConfiguration(igniteInstanceName);
 
-        if (getTestIgniteInstanceName(2).equals(igniteInstanceName)) {
+        if (getTestIgniteInstanceName(2).equals(igniteInstanceName))
             iCfg.setClientMode(true);
-
-            iCfg.setMemoryConfiguration(memCfg);
-        }
 
         ((TcpDiscoverySpi)iCfg.getDiscoverySpi()).setIpFinder(ipFinder);
         ((TcpDiscoverySpi)iCfg.getDiscoverySpi()).setForceServerMode(true);
@@ -194,8 +192,6 @@ public class CacheStopAndDestroySelfTest extends GridCommonAbstractTest {
      * @throws Exception If failed.
      */
     public void testDhtDoubleDestroy() throws Exception {
-        startGridsMultiThreaded(gridCount());
-
         dhtDestroy();
 
         dhtDestroy();
@@ -234,8 +230,6 @@ public class CacheStopAndDestroySelfTest extends GridCommonAbstractTest {
      * @throws Exception If failed.
      */
     public void testClientDoubleDestroy() throws Exception {
-        startGridsMultiThreaded(gridCount());
-
         clientDestroy();
 
         clientDestroy();
@@ -274,8 +268,6 @@ public class CacheStopAndDestroySelfTest extends GridCommonAbstractTest {
      * @throws Exception If failed.
      */
     public void testNearDoubleDestroy() throws Exception {
-        startGridsMultiThreaded(gridCount());
-
         nearDestroy();
 
         nearDestroy();
@@ -314,8 +306,6 @@ public class CacheStopAndDestroySelfTest extends GridCommonAbstractTest {
      * @throws Exception If failed.
      */
     public void testLocalDoubleDestroy() throws Exception {
-        startGridsMultiThreaded(gridCount());
-
         localDestroy();
 
         localDestroy();
@@ -349,8 +339,6 @@ public class CacheStopAndDestroySelfTest extends GridCommonAbstractTest {
      * @throws Exception If failed.
      */
     public void testDhtClose() throws Exception {
-        startGridsMultiThreaded(gridCount());
-
         IgniteCache<Integer, Integer> dhtCache0 = grid(0).getOrCreateCache(getDhtConfig());
 
         final Integer key = primaryKey(dhtCache0);
@@ -430,8 +418,6 @@ public class CacheStopAndDestroySelfTest extends GridCommonAbstractTest {
      * @throws Exception If failed.
      */
     public void testDhtCloseWithTry() throws Exception {
-        startGridsMultiThreaded(gridCount());
-
         String curVal = null;
 
         for (int i = 0; i < 3; i++) {
@@ -467,8 +453,6 @@ public class CacheStopAndDestroySelfTest extends GridCommonAbstractTest {
      * @throws Exception If failed.
      */
     public void testClientClose() throws Exception {
-        startGridsMultiThreaded(gridCount());
-
         IgniteCache<String, String> cache0 = grid(0).getOrCreateCache(getClientConfig());
 
         assert cache0.get(KEY_VAL) == null;
@@ -518,8 +502,6 @@ public class CacheStopAndDestroySelfTest extends GridCommonAbstractTest {
      * @throws Exception If failed.
      */
     public void testClientCloseWithTry() throws Exception {
-        startGridsMultiThreaded(gridCount());
-
         String curVal = null;
 
         for (int i = 0; i < 3; i++) {
@@ -558,8 +540,6 @@ public class CacheStopAndDestroySelfTest extends GridCommonAbstractTest {
      */
     public void testNearClose() throws Exception {
         fail("https://issues.apache.org/jira/browse/IGNITE-2189");
-
-        startGridsMultiThreaded(gridCount());
 
         IgniteCache<String, String> cache0 = grid(0).getOrCreateCache(getNearConfig());
 
@@ -635,8 +615,6 @@ public class CacheStopAndDestroySelfTest extends GridCommonAbstractTest {
      * @throws Exception If failed.
      */
     public void testNearCloseWithTry() throws Exception {
-        startGridsMultiThreaded(gridCount());
-
         String curVal = null;
 
         grid(0).getOrCreateCache(getNearConfig());
@@ -673,10 +651,6 @@ public class CacheStopAndDestroySelfTest extends GridCommonAbstractTest {
      * @throws Exception If failed.
      */
     public void testLocalClose() throws Exception {
-        memCfg = new MemoryConfiguration();
-
-        startGridsMultiThreaded(gridCount());
-
         grid(0).getOrCreateCache(getLocalConfig());
 
         assert grid(0).cache(CACHE_NAME_LOC).get(KEY_VAL) == null;
@@ -721,10 +695,6 @@ public class CacheStopAndDestroySelfTest extends GridCommonAbstractTest {
      * @throws Exception If failed.
      */
     public void testLocalCloseWithTry() throws Exception {
-        memCfg = new MemoryConfiguration();
-
-        startGridsMultiThreaded(gridCount());
-
         String curVal = null;
 
         for (int i = 0; i < 3; i++) {
@@ -752,9 +722,7 @@ public class CacheStopAndDestroySelfTest extends GridCommonAbstractTest {
     /**
      * Tests start -> destroy -> start -> close using CacheManager.
      */
-    public void testTckStyleCreateDestroyClose() throws Exception {
-        startGridsMultiThreaded(gridCount());
-
+    public void testTckStyleCreateDestroyClose() {
         CacheManager mgr = Caching.getCachingProvider().getCacheManager();
 
         String cacheName = "cache";

@@ -17,10 +17,6 @@
 
 package org.apache.ignite.internal.processors.igfs;
 
-import java.io.Externalizable;
-import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -32,21 +28,17 @@ import org.apache.ignite.igfs.IgfsPath;
 import org.apache.ignite.internal.util.GridBoundedConcurrentLinkedHashMap;
 import org.apache.ignite.internal.util.typedef.F;
 import org.apache.ignite.internal.util.typedef.T2;
-import org.apache.ignite.internal.util.typedef.internal.U;
 import org.jetbrains.annotations.Nullable;
 
 /**
  *
  */
-public class IgfsModeResolver implements Externalizable {
-    /** */
-    private static final long serialVersionUID = 0L;
-
+public class IgfsModeResolver {
     /** Maximum size of map with cached path modes. */
     private static final int MAX_PATH_CACHE = 1000;
 
     /** Default mode. */
-    private IgfsMode dfltMode;
+    private final IgfsMode dfltMode;
 
     /** Modes for particular paths. Ordered from longest to shortest. */
     private List<T2<IgfsPath, IgfsMode>> modes;
@@ -55,21 +47,13 @@ public class IgfsModeResolver implements Externalizable {
     private Map<IgfsPath, IgfsMode> modesCache;
 
     /** Set to store parent dual paths that have primary children. */
-    private Set<IgfsPath> dualParentsWithPrimaryChildren;
-
-    /**
-     * Empty constructor required by {@link Externalizable}.
-     */
-    public IgfsModeResolver() {
-        // No-op.
-    }
+    private final Set<IgfsPath> dualParentsWithPrimaryChildren;
 
     /**
      * Constructor
      *
      * @param dfltMode Default IGFS mode.
      * @param modes List of configured modes. The order is significant as modes are added in order of occurrence.
-     * @throws IgniteCheckedException On error.
      */
     public IgfsModeResolver(IgfsMode dfltMode, @Nullable ArrayList<T2<IgfsPath, IgfsMode>> modes)
             throws IgniteCheckedException {
@@ -77,7 +61,7 @@ public class IgfsModeResolver implements Externalizable {
 
         this.dfltMode = dfltMode;
 
-        dualParentsWithPrimaryChildren = new HashSet<>();
+        this.dualParentsWithPrimaryChildren = new HashSet<>();
 
         this.modes = IgfsUtils.preparePathModes(dfltMode, modes, dualParentsWithPrimaryChildren);
 
@@ -120,6 +104,14 @@ public class IgfsModeResolver implements Externalizable {
     }
 
     /**
+     * @return Copy of properly ordered modes prefixes
+     *  or {@code null} if no modes set.
+     */
+    @Nullable public ArrayList<T2<IgfsPath, IgfsMode>> modesOrdered() {
+        return modes != null ? new ArrayList<>(modes) : null;
+    }
+
+    /**
      * Answers if the given path has an immediate child of PRIMARY mode.
      *
      * @param path The path to query.
@@ -127,64 +119,5 @@ public class IgfsModeResolver implements Externalizable {
      */
     public boolean hasPrimaryChild(IgfsPath path) {
         return dualParentsWithPrimaryChildren.contains(path);
-    }
-
-    /** {@inheritDoc} */
-    @Override public void writeExternal(ObjectOutput out) throws IOException {
-        U.writeEnum(out, dfltMode);
-
-        if (modes != null) {
-            out.writeBoolean(true);
-            out.writeInt(modes.size());
-
-            for (T2<IgfsPath, IgfsMode> pathMode : modes) {
-                assert pathMode.getKey() != null;
-
-                pathMode.getKey().writeExternal(out);
-
-                U.writeEnum(out, pathMode.getValue());
-            }
-        }
-        else
-            out.writeBoolean(false);
-
-        if (!F.isEmpty(dualParentsWithPrimaryChildren)) {
-            out.writeBoolean(true);
-            out.writeInt(dualParentsWithPrimaryChildren.size());
-
-            for (IgfsPath p : dualParentsWithPrimaryChildren)
-                p.writeExternal(out);
-        }
-        else
-            out.writeBoolean(false);
-
-    }
-
-    /** {@inheritDoc} */
-    @Override public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-        dfltMode = IgfsMode.fromOrdinal(in.readByte());
-
-        if (in.readBoolean()) {
-            int size = in.readInt();
-
-            modes = new ArrayList<>(size);
-
-            for (int i = 0; i < size; i++) {
-                IgfsPath path = IgfsUtils.readPath(in);
-
-                modes.add(new T2<>(path, IgfsMode.fromOrdinal(in.readByte())));
-            }
-
-            modesCache = new GridBoundedConcurrentLinkedHashMap<>(MAX_PATH_CACHE);
-        }
-
-        dualParentsWithPrimaryChildren = new HashSet<>();
-
-        if (in.readBoolean()) {
-            int size = in.readInt();
-
-            for (int i = 0; i < size; i++)
-                dualParentsWithPrimaryChildren.add(IgfsUtils.readPath(in));
-        }
     }
 }

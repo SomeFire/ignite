@@ -245,25 +245,9 @@ class IgfsIpcHandler implements IgfsServerHandler {
             case WRITE_BLOCK:
                 return processStreamControlRequest(ses, cmd, msg, in);
 
-            case MODE_RESOLVER:
-                return processModeResolver();
-
             default:
                 throw new IgniteCheckedException("Unsupported IPC command: " + cmd);
         }
-    }
-
-    /**
-     * Process mode resolver request.
-     *
-     * @return Status response.
-     */
-    private IgfsMessage processModeResolver() {
-        IgfsControlResponse res = new IgfsControlResponse();
-
-        res.modeResolver(((IgfsImpl)igfs).modeResolver());
-
-        return res;
     }
 
     /**
@@ -282,8 +266,8 @@ class IgfsIpcHandler implements IgfsServerHandler {
 
         igfs.clientLogDirectory(req.logDirectory());
 
-        IgfsHandshakeResponse handshake = new IgfsHandshakeResponse(igfs.name(), igfs.groupBlockSize(),
-            igfs.globalSampling());
+        IgfsHandshakeResponse handshake = new IgfsHandshakeResponse(igfs.name(), igfs.proxyPaths(),
+            igfs.groupBlockSize(), igfs.globalSampling());
 
         res.handshake(handshake);
 
@@ -382,7 +366,7 @@ class IgfsIpcHandler implements IgfsServerHandler {
                             break;
 
                         case SET_TIMES:
-                            igfs.setTimes(req.path(), req.modificationTime(), req.accessTime());
+                            igfs.setTimes(req.path(), req.accessTime(), req.modificationTime());
 
                             res.response(true);
 

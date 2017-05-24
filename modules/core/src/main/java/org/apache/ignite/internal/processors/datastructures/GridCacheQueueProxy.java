@@ -25,12 +25,14 @@ import java.io.ObjectOutput;
 import java.io.ObjectStreamException;
 import java.util.Collection;
 import java.util.Iterator;
+import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 import org.apache.ignite.IgniteCheckedException;
 import org.apache.ignite.IgniteQueue;
 import org.apache.ignite.internal.GridKernalContext;
 import org.apache.ignite.internal.processors.cache.GridCacheContext;
 import org.apache.ignite.internal.processors.cache.GridCacheGateway;
+import org.apache.ignite.internal.util.typedef.internal.CU;
 import org.apache.ignite.internal.util.typedef.internal.U;
 import org.apache.ignite.lang.IgniteBiTuple;
 import org.apache.ignite.lang.IgniteCallable;
@@ -91,7 +93,17 @@ public class GridCacheQueueProxy<T> implements IgniteQueue<T>, Externalizable {
         gate.enter();
 
         try {
+            if (cctx.transactional())
+                return CU.outTx(new Callable<Boolean>() {
+                    @Override public Boolean call() throws Exception {
+                        return delegate.add(item);
+                    }
+                }, cctx);
+
             return delegate.add(item);
+        }
+        catch (IgniteCheckedException e) {
+            throw U.convertException(e);
         }
         finally {
             gate.leave();
@@ -103,7 +115,17 @@ public class GridCacheQueueProxy<T> implements IgniteQueue<T>, Externalizable {
         gate.enter();
 
         try {
+            if (cctx.transactional())
+                return CU.outTx(new Callable<Boolean>() {
+                    @Override public Boolean call() throws Exception {
+                        return delegate.offer(item);
+                    }
+                }, cctx);
+
             return delegate.offer(item);
+        }
+        catch (IgniteCheckedException e) {
+            throw U.convertException(e);
         }
         finally {
             gate.leave();
@@ -115,7 +137,17 @@ public class GridCacheQueueProxy<T> implements IgniteQueue<T>, Externalizable {
         gate.enter();
 
         try {
+            if (cctx.transactional())
+                return CU.outTx(new Callable<Boolean>() {
+                    @Override public Boolean call() throws Exception {
+                        return delegate.addAll(items);
+                    }
+                }, cctx);
+
             return delegate.addAll(items);
+        }
+        catch (IgniteCheckedException e) {
+            throw U.convertException(e);
         }
         finally {
             gate.leave();
@@ -128,7 +160,17 @@ public class GridCacheQueueProxy<T> implements IgniteQueue<T>, Externalizable {
         gate.enter();
 
         try {
+            if (cctx.transactional())
+                return CU.outTx(new Callable<Boolean>() {
+                    @Override public Boolean call() throws Exception {
+                        return delegate.contains(item);
+                    }
+                }, cctx);
+
             return delegate.contains(item);
+        }
+        catch (IgniteCheckedException e) {
+            throw U.convertException(e);
         }
         finally {
             gate.leave();
@@ -140,7 +182,17 @@ public class GridCacheQueueProxy<T> implements IgniteQueue<T>, Externalizable {
         gate.enter();
 
         try {
+            if (cctx.transactional())
+                return CU.outTx(new Callable<Boolean>() {
+                    @Override public Boolean call() throws Exception {
+                        return delegate.containsAll(items);
+                    }
+                }, cctx);
+
             return delegate.containsAll(items);
+        }
+        catch (IgniteCheckedException e) {
+            throw U.convertException(e);
         }
         finally {
             gate.leave();
@@ -152,7 +204,20 @@ public class GridCacheQueueProxy<T> implements IgniteQueue<T>, Externalizable {
         gate.enter();
 
         try {
-            delegate.clear();
+            if (cctx.transactional()) {
+                CU.outTx(new Callable<Void>() {
+                    @Override public Void call() throws Exception {
+                        delegate.clear();
+
+                        return null;
+                    }
+                }, cctx);
+            }
+            else
+                delegate.clear();
+        }
+        catch (IgniteCheckedException e) {
+            throw U.convertException(e);
         }
         finally {
             gate.leave();
@@ -165,7 +230,17 @@ public class GridCacheQueueProxy<T> implements IgniteQueue<T>, Externalizable {
         gate.enter();
 
         try {
+            if (cctx.transactional())
+                return CU.outTx(new Callable<Boolean>() {
+                    @Override public Boolean call() throws Exception {
+                        return delegate.remove(item);
+                    }
+                }, cctx);
+
             return delegate.remove(item);
+        }
+        catch (IgniteCheckedException e) {
+            throw U.convertException(e);
         }
         finally {
             gate.leave();
@@ -177,7 +252,17 @@ public class GridCacheQueueProxy<T> implements IgniteQueue<T>, Externalizable {
         gate.enter();
 
         try {
+            if (cctx.transactional())
+                return CU.outTx(new Callable<Boolean>() {
+                    @Override public Boolean call() throws Exception {
+                        return delegate.removeAll(items);
+                    }
+                }, cctx);
+
             return delegate.removeAll(items);
+        }
+        catch (IgniteCheckedException e) {
+            throw U.convertException(e);
         }
         finally {
             gate.leave();
@@ -189,7 +274,17 @@ public class GridCacheQueueProxy<T> implements IgniteQueue<T>, Externalizable {
         gate.enter();
 
         try {
+            if (cctx.transactional())
+                return CU.outTx(new Callable<Boolean>() {
+                    @Override public Boolean call() throws Exception {
+                        return delegate.isEmpty();
+                    }
+                }, cctx);
+
             return delegate.isEmpty();
+        }
+        catch (IgniteCheckedException e) {
+            throw U.convertException(e);
         }
         finally {
             gate.leave();
@@ -201,7 +296,17 @@ public class GridCacheQueueProxy<T> implements IgniteQueue<T>, Externalizable {
         gate.enter();
 
         try {
+            if (cctx.transactional())
+                return CU.outTx(new Callable<Iterator<T>>() {
+                    @Override public Iterator<T> call() throws Exception {
+                        return delegate.iterator();
+                    }
+                }, cctx);
+
             return delegate.iterator();
+        }
+        catch (IgniteCheckedException e) {
+            throw U.convertException(e);
         }
         finally {
             gate.leave();
@@ -213,7 +318,17 @@ public class GridCacheQueueProxy<T> implements IgniteQueue<T>, Externalizable {
         gate.enter();
 
         try {
+            if (cctx.transactional())
+                return CU.outTx(new Callable<Object[]>() {
+                    @Override public Object[] call() throws Exception {
+                        return delegate.toArray();
+                    }
+                }, cctx);
+
             return delegate.toArray();
+        }
+        catch (IgniteCheckedException e) {
+            throw U.convertException(e);
         }
         finally {
             gate.leave();
@@ -226,7 +341,17 @@ public class GridCacheQueueProxy<T> implements IgniteQueue<T>, Externalizable {
         gate.enter();
 
         try {
+            if (cctx.transactional())
+                return CU.outTx(new Callable<T1[]>() {
+                    @Override public T1[] call() throws Exception {
+                        return delegate.toArray(a);
+                    }
+                }, cctx);
+
             return delegate.toArray(a);
+        }
+        catch (IgniteCheckedException e) {
+            throw U.convertException(e);
         }
         finally {
             gate.leave();
@@ -238,7 +363,17 @@ public class GridCacheQueueProxy<T> implements IgniteQueue<T>, Externalizable {
         gate.enter();
 
         try {
+            if (cctx.transactional())
+                return CU.outTx(new Callable<Boolean>() {
+                    @Override public Boolean call() throws Exception {
+                        return delegate.retainAll(items);
+                    }
+                }, cctx);
+
             return delegate.retainAll(items);
+        }
+        catch (IgniteCheckedException e) {
+            throw U.convertException(e);
         }
         finally {
             gate.leave();
@@ -250,7 +385,17 @@ public class GridCacheQueueProxy<T> implements IgniteQueue<T>, Externalizable {
         gate.enter();
 
         try {
+            if (cctx.transactional())
+                return CU.outTx(new Callable<Integer>() {
+                    @Override public Integer call() throws Exception {
+                        return delegate.size();
+                    }
+                }, cctx);
+
             return delegate.size();
+        }
+        catch (IgniteCheckedException e) {
+            throw U.convertException(e);
         }
         finally {
             gate.leave();
@@ -262,7 +407,17 @@ public class GridCacheQueueProxy<T> implements IgniteQueue<T>, Externalizable {
         gate.enter();
 
         try {
+            if (cctx.transactional())
+                return CU.outTx(new Callable<T>() {
+                    @Override public T call() throws Exception {
+                        return delegate.poll();
+                    }
+                }, cctx);
+
             return delegate.poll();
+        }
+        catch (IgniteCheckedException e) {
+            throw U.convertException(e);
         }
         finally {
             gate.leave();
@@ -274,7 +429,17 @@ public class GridCacheQueueProxy<T> implements IgniteQueue<T>, Externalizable {
         gate.enter();
 
         try {
+            if (cctx.transactional())
+                return CU.outTx(new Callable<T>() {
+                    @Override public T call() throws Exception {
+                        return delegate.peek();
+                    }
+                }, cctx);
+
             return delegate.peek();
+        }
+        catch (IgniteCheckedException e) {
+            throw U.convertException(e);
         }
         finally {
             gate.leave();
@@ -286,7 +451,20 @@ public class GridCacheQueueProxy<T> implements IgniteQueue<T>, Externalizable {
         gate.enter();
 
         try {
-            delegate.clear(batchSize);
+            if (cctx.transactional()) {
+                CU.outTx(new Callable<Void>() {
+                    @Override public Void call() throws Exception {
+                        delegate.clear(batchSize);
+
+                        return null;
+                    }
+                }, cctx);
+            }
+            else
+                delegate.clear(batchSize);
+        }
+        catch (IgniteCheckedException e) {
+            throw U.convertException(e);
         }
         finally {
             gate.leave();
@@ -298,7 +476,17 @@ public class GridCacheQueueProxy<T> implements IgniteQueue<T>, Externalizable {
         gate.enter();
 
         try {
+            if (cctx.transactional())
+                return CU.outTx(new Callable<Integer>() {
+                    @Override public Integer call() throws Exception {
+                        return delegate.remainingCapacity();
+                    }
+                }, cctx);
+
             return delegate.remainingCapacity();
+        }
+        catch (IgniteCheckedException e) {
+            throw U.convertException(e);
         }
         finally {
             gate.leave();
@@ -310,7 +498,17 @@ public class GridCacheQueueProxy<T> implements IgniteQueue<T>, Externalizable {
         gate.enter();
 
         try {
+            if (cctx.transactional())
+                return CU.outTx(new Callable<Integer>() {
+                    @Override public Integer call() throws Exception {
+                        return delegate.drainTo(c);
+                    }
+                }, cctx);
+
             return delegate.drainTo(c);
+        }
+        catch (IgniteCheckedException e) {
+            throw U.convertException(e);
         }
         finally {
             gate.leave();
@@ -322,7 +520,17 @@ public class GridCacheQueueProxy<T> implements IgniteQueue<T>, Externalizable {
         gate.enter();
 
         try {
+            if (cctx.transactional())
+                return CU.outTx(new Callable<Integer>() {
+                    @Override public Integer call() throws Exception {
+                        return delegate.drainTo(c, maxElements);
+                    }
+                }, cctx);
+
             return delegate.drainTo(c, maxElements);
+        }
+        catch (IgniteCheckedException e) {
+            throw U.convertException(e);
         }
         finally {
             gate.leave();
@@ -334,7 +542,17 @@ public class GridCacheQueueProxy<T> implements IgniteQueue<T>, Externalizable {
         gate.enter();
 
         try {
+            if (cctx.transactional())
+                return CU.outTx(new Callable<T>() {
+                    @Override public T call() throws Exception {
+                        return delegate.remove();
+                    }
+                }, cctx);
+
             return delegate.remove();
+        }
+        catch (IgniteCheckedException e) {
+            throw U.convertException(e);
         }
         finally {
             gate.leave();
@@ -346,7 +564,17 @@ public class GridCacheQueueProxy<T> implements IgniteQueue<T>, Externalizable {
         gate.enter();
 
         try {
+            if (cctx.transactional())
+                return CU.outTx(new Callable<T>() {
+                    @Override public T call() throws Exception {
+                        return delegate.element();
+                    }
+                }, cctx);
+
             return delegate.element();
+        }
+        catch (IgniteCheckedException e) {
+            throw U.convertException(e);
         }
         finally {
             gate.leave();
@@ -358,7 +586,20 @@ public class GridCacheQueueProxy<T> implements IgniteQueue<T>, Externalizable {
         gate.enter();
 
         try {
-            delegate.put(item);
+            if (cctx.transactional()) {
+                CU.outTx(new Callable<Void>() {
+                    @Override public Void call() throws Exception {
+                        delegate.put(item);
+
+                        return null;
+                    }
+                }, cctx);
+            }
+            else
+                delegate.put(item);
+        }
+        catch (IgniteCheckedException e) {
+            throw U.convertException(e);
         }
         finally {
             gate.leave();
@@ -370,7 +611,17 @@ public class GridCacheQueueProxy<T> implements IgniteQueue<T>, Externalizable {
         gate.enter();
 
         try {
+            if (cctx.transactional())
+                return CU.outTx(new Callable<Boolean>() {
+                    @Override public Boolean call() throws Exception {
+                        return delegate.offer(item, timeout, unit);
+                    }
+                }, cctx);
+
             return delegate.offer(item, timeout, unit);
+        }
+        catch (IgniteCheckedException e) {
+            throw U.convertException(e);
         }
         finally {
             gate.leave();
@@ -382,7 +633,17 @@ public class GridCacheQueueProxy<T> implements IgniteQueue<T>, Externalizable {
         gate.enter();
 
         try {
+            if (cctx.transactional())
+                return CU.outTx(new Callable<T>() {
+                    @Override public T call() throws Exception {
+                        return delegate.take();
+                    }
+                }, cctx);
+
             return delegate.take();
+        }
+        catch (IgniteCheckedException e) {
+            throw U.convertException(e);
         }
         finally {
             gate.leave();
@@ -394,7 +655,17 @@ public class GridCacheQueueProxy<T> implements IgniteQueue<T>, Externalizable {
         gate.enter();
 
         try {
+            if (cctx.transactional())
+                return CU.outTx(new Callable<T>() {
+                    @Override public T call() throws Exception {
+                        return delegate.poll(timeout, unit);
+                    }
+                }, cctx);
+
             return delegate.poll(timeout, unit);
+        }
+        catch (IgniteCheckedException e) {
+            throw U.convertException(e);
         }
         finally {
             gate.leave();
@@ -406,7 +677,20 @@ public class GridCacheQueueProxy<T> implements IgniteQueue<T>, Externalizable {
         gate.enter();
 
         try {
-            delegate.close();
+            if (cctx.transactional()) {
+                CU.outTx(new Callable<Void>() {
+                    @Override public Void call() throws Exception {
+                        delegate.close();
+
+                        return null;
+                    }
+                }, cctx);
+            }
+            else
+                delegate.close();
+        }
+        catch (IgniteCheckedException e) {
+            throw U.convertException(e);
         }
         finally {
             gate.leave();

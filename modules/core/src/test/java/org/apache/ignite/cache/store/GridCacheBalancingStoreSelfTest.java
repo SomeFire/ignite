@@ -128,7 +128,7 @@ public class GridCacheBalancingStoreSelfTest extends GridCommonAbstractTest {
      * @throws Exception If failed.
      */
     public void testConcurrentLoad() throws Exception {
-        CacheConfiguration cfg = new CacheConfiguration(DEFAULT_CACHE_NAME);
+        CacheConfiguration cfg = new CacheConfiguration();
 
         assertEquals(CacheStoreBalancingWrapper.DFLT_LOAD_ALL_THRESHOLD, cfg.getStoreConcurrentLoadAllThreshold());
 
@@ -139,7 +139,7 @@ public class GridCacheBalancingStoreSelfTest extends GridCommonAbstractTest {
      * @throws Exception If failed.
      */
     public void testConcurrentLoadCustomThreshold() throws Exception {
-        CacheConfiguration cfg = new CacheConfiguration(DEFAULT_CACHE_NAME);
+        CacheConfiguration cfg = new CacheConfiguration();
 
         cfg.setStoreConcurrentLoadAllThreshold(15);
 
@@ -180,7 +180,7 @@ public class GridCacheBalancingStoreSelfTest extends GridCommonAbstractTest {
      * @throws Exception If failed.
      */
     public void testConcurrentLoadAll() throws Exception {
-        CacheConfiguration cfg = new CacheConfiguration(DEFAULT_CACHE_NAME);
+        CacheConfiguration cfg = new CacheConfiguration();
 
         assertEquals(CacheStoreBalancingWrapper.DFLT_LOAD_ALL_THRESHOLD, cfg.getStoreConcurrentLoadAllThreshold());
 
@@ -191,7 +191,7 @@ public class GridCacheBalancingStoreSelfTest extends GridCommonAbstractTest {
      * @throws Exception If failed.
      */
     public void testConcurrentLoadAllCustomThreshold() throws Exception {
-        CacheConfiguration cfg = new CacheConfiguration(DEFAULT_CACHE_NAME);
+        CacheConfiguration cfg = new CacheConfiguration();
 
         cfg.setStoreConcurrentLoadAllThreshold(15);
 
@@ -342,7 +342,9 @@ public class GridCacheBalancingStoreSelfTest extends GridCommonAbstractTest {
                 cnts[i] = new AtomicInteger();
         }
 
-        /** {@inheritDoc} */
+        /**
+         * {@inheritDoc}
+         */
         @Override public Integer load(Integer key) {
             try {
                 U.sleep(500);
@@ -356,12 +358,16 @@ public class GridCacheBalancingStoreSelfTest extends GridCommonAbstractTest {
             return key;
         }
 
-        /** {@inheritDoc} */
+        /**
+         * {@inheritDoc}
+         */
         @Override public void loadCache(IgniteBiInClosure<Integer, Integer> clo, @Nullable Object... args) {
             // No-op.
         }
 
-        /** {@inheritDoc} */
+        /**
+         * {@inheritDoc}
+         */
         @Override public Map<Integer, Integer> loadAll(Iterable<? extends Integer> keys) {
             try {
                 U.sleep(500);
@@ -381,27 +387,37 @@ public class GridCacheBalancingStoreSelfTest extends GridCommonAbstractTest {
             return loaded;
         }
 
-        /** {@inheritDoc} */
+        /**
+         * {@inheritDoc}
+         */
         @Override public void write(Cache.Entry<? extends Integer, ? extends Integer> entry) {
             // No-op.
         }
 
-        /** {@inheritDoc} */
+        /**
+         * {@inheritDoc}
+         */
         @Override public void writeAll(Collection<Cache.Entry<? extends Integer, ? extends Integer>> entries) {
             // No-op.
         }
 
-        /** {@inheritDoc} */
+        /**
+         * {@inheritDoc}
+         */
         @Override public void delete(Object key) {
             // No-op.
         }
 
-        /** {@inheritDoc} */
+        /**
+         * {@inheritDoc}
+         */
         @Override public void deleteAll(Collection<?> keys) {
             // No-op.
         }
 
-        /** {@inheritDoc} */
+        /**
+         * {@inheritDoc}
+         */
         @Override public void sessionEnd(boolean commit) {
             // No-op.
         }

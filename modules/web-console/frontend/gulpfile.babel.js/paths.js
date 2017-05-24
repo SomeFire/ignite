@@ -33,21 +33,18 @@ const appModulePaths = [
     igniteModulesDir + '/**/app/modules/**/*.pug',
     igniteModulesDir + '/**/*.pug',
     igniteModulesDir + '/**/*.tpl.pug',
-    igniteModulesDir + '/**/app/**/*.js',
     igniteModulesDir + '/**/app/**/*.css',
     igniteModulesDir + '/**/app/**/*.scss',
     igniteModulesDir + '/**/app/data/*.json'
 ];
 
 const resourcePaths = [
-    './public/**/*.svg',
     './public/**/*.png',
     './public/*.ico'
 ];
 
 const resourceModulePaths = [
     igniteModulesDir + '/**/images/*.png',
-    igniteModulesDir + '/**/images/*.svg',
     igniteModulesDir + '/*.ico'
 ];
 

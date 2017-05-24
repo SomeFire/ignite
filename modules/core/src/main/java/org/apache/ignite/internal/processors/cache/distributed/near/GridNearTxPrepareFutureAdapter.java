@@ -24,7 +24,6 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
 import javax.cache.expiry.ExpiryPolicy;
 import org.apache.ignite.IgniteLogger;
-import org.apache.ignite.internal.processors.cache.GridCacheCompoundFuture;
 import org.apache.ignite.internal.processors.cache.GridCacheContext;
 import org.apache.ignite.internal.processors.cache.GridCacheEntryRemovedException;
 import org.apache.ignite.internal.processors.cache.GridCacheMvccFuture;
@@ -36,6 +35,7 @@ import org.apache.ignite.internal.processors.cache.transactions.IgniteInternalTx
 import org.apache.ignite.internal.processors.cache.transactions.IgniteTxEntry;
 import org.apache.ignite.internal.processors.cache.transactions.IgniteTxKey;
 import org.apache.ignite.internal.processors.cache.version.GridCacheVersion;
+import org.apache.ignite.internal.util.future.GridCompoundFuture;
 import org.apache.ignite.internal.util.tostring.GridToStringExclude;
 import org.apache.ignite.internal.util.tostring.GridToStringInclude;
 import org.apache.ignite.internal.util.typedef.internal.CU;
@@ -49,7 +49,7 @@ import static org.apache.ignite.internal.processors.cache.GridCacheOperation.NOO
  * Common code for tx prepare in optimistic and pessimistic modes.
  */
 public abstract class GridNearTxPrepareFutureAdapter extends
-    GridCacheCompoundFuture<GridNearTxPrepareResponse, IgniteInternalTx> implements GridCacheMvccFuture<IgniteInternalTx> {
+    GridCompoundFuture<GridNearTxPrepareResponse, IgniteInternalTx> implements GridCacheMvccFuture<IgniteInternalTx> {
     /** Logger reference. */
     protected static final AtomicReference<IgniteLogger> logRef = new AtomicReference<>();
 
@@ -172,7 +172,7 @@ public abstract class GridNearTxPrepareFutureAdapter extends
 
             Collection<UUID> backups = entry.getValue();
 
-            if (backups.size() <= 1 && !tx.txState().hasNearCacheConfigured(cctx, tx.topologyVersion()))
+            if (backups.size() <= 1)
                 tx.onePhaseCommit(true);
         }
     }
@@ -180,12 +180,9 @@ public abstract class GridNearTxPrepareFutureAdapter extends
     /**
      * @param m Mapping.
      * @param res Response.
-     * @param updateMapping Update mapping flag.
      */
     @SuppressWarnings("ThrowableResultOfMethodCallIgnored")
-    final void onPrepareResponse(GridDistributedTxMapping m,
-        GridNearTxPrepareResponse res,
-        boolean updateMapping) {
+    final void onPrepareResponse(GridDistributedTxMapping m, GridNearTxPrepareResponse res) {
         if (res == null)
             return;
 
@@ -248,25 +245,24 @@ public abstract class GridNearTxPrepareFutureAdapter extends
         }
 
         if (!m.empty()) {
+            GridCacheVersion writeVer = res.writeVersion();
+
+            if (writeVer == null)
+                writeVer = res.dhtVersion();
+
             // This step is very important as near and DHT versions grow separately.
             cctx.versions().onReceived(nodeId, res.dhtVersion());
 
-            if (updateMapping && m.hasNearCacheEntries()) {
-                GridCacheVersion writeVer = res.writeVersion();
+            // Register DHT version.
+            m.dhtVersion(res.dhtVersion(), writeVer);
 
-                if (writeVer == null)
-                    writeVer = res.dhtVersion();
+            GridDistributedTxMapping map = tx.mappings().get(nodeId);
 
-                // Register DHT version.
-                m.dhtVersion(res.dhtVersion(), writeVer);
+            if (map != null)
+                map.dhtVersion(res.dhtVersion(), writeVer);
 
-                GridDistributedTxMapping map = tx.mappings().get(nodeId);
-
-                if (map != null)
-                    map.dhtVersion(res.dhtVersion(), writeVer);
-
+            if (m.near())
                 tx.readyNearLocks(m, res.pending(), res.committedVersions(), res.rolledbackVersions());
-            }
         }
     }
 }

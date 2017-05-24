@@ -20,6 +20,7 @@ package org.apache.ignite.internal.processors.cache.query.continuous;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import org.apache.ignite.cache.CacheAtomicityMode;
+import org.apache.ignite.cache.CacheMemoryMode;
 import org.apache.ignite.cache.CacheMode;
 import org.apache.ignite.cache.CacheWriteSynchronizationMode;
 import org.apache.ignite.cache.store.CacheStoreAdapter;
@@ -36,9 +37,10 @@ public class CacheKeepBinaryIterationStoreEnabledTest extends CacheKeepBinaryIte
     @Override protected CacheConfiguration<Object, Object> cacheConfiguration(
         CacheMode cacheMode,
         int backups,
-        CacheAtomicityMode atomicityMode) {
+        CacheAtomicityMode atomicityMode,
+        CacheMemoryMode memoryMode) {
         CacheConfiguration<Object, Object> ccfg =
-            super.cacheConfiguration(cacheMode, backups, atomicityMode);
+            super.cacheConfiguration(cacheMode, backups, atomicityMode, memoryMode);
 
         ccfg.setWriteSynchronizationMode(CacheWriteSynchronizationMode.FULL_SYNC);
 

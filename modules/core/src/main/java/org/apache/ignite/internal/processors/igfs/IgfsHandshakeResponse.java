@@ -33,6 +33,9 @@ public class IgfsHandshakeResponse implements Externalizable {
     /** IGFS name. */
     private String igfsName;
 
+    /** SECONDARY paths. */
+    private IgfsPaths paths;
+
     /** Server block size. */
     private long blockSize;
 
@@ -49,10 +52,14 @@ public class IgfsHandshakeResponse implements Externalizable {
     /**
      * Constructor.
      *
+     * @param paths Secondary paths.
      * @param blockSize Server default block size.
      */
-    public IgfsHandshakeResponse(String igfsName, long blockSize, Boolean sampling) {
+    public IgfsHandshakeResponse(String igfsName, IgfsPaths paths, long blockSize, Boolean sampling) {
+        assert paths != null;
+
         this.igfsName = igfsName;
+        this.paths = paths;
         this.blockSize = blockSize;
         this.sampling = sampling;
     }
@@ -62,6 +69,13 @@ public class IgfsHandshakeResponse implements Externalizable {
      */
     public String igfsName() {
         return igfsName;
+    }
+
+    /**
+     * @return SECONDARY paths configured on server.
+     */
+    public IgfsPaths secondaryPaths() {
+        return paths;
     }
 
     /**
@@ -82,6 +96,8 @@ public class IgfsHandshakeResponse implements Externalizable {
     @Override public void writeExternal(ObjectOutput out) throws IOException {
         U.writeString(out, igfsName);
 
+        paths.writeExternal(out);
+
         out.writeLong(blockSize);
 
         if (sampling != null) {
@@ -95,6 +111,10 @@ public class IgfsHandshakeResponse implements Externalizable {
     /** {@inheritDoc} */
     @Override public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
         igfsName = U.readString(in);
+
+        paths = new IgfsPaths();
+
+        paths.readExternal(in);
 
         blockSize = in.readLong();
 

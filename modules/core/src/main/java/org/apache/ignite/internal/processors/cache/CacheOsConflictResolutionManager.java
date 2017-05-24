@@ -38,7 +38,7 @@ public class CacheOsConflictResolutionManager<K ,V> implements CacheConflictReso
     }
 
     /** {@inheritDoc} */
-    @Override public void stop(boolean cancel, boolean destroy) {
+    @Override public void stop(boolean cancel) {
         // No-op.
     }
 

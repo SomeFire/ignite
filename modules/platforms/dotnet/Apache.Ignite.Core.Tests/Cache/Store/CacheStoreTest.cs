@@ -23,7 +23,9 @@ namespace Apache.Ignite.Core.Tests.Cache.Store
     using System.Linq;
     using Apache.Ignite.Core.Binary;
     using Apache.Ignite.Core.Cache;
+    using Apache.Ignite.Core.Cache.Configuration;
     using Apache.Ignite.Core.Cache.Store;
+    using Apache.Ignite.Core.Common;
     using Apache.Ignite.Core.Impl;
     using NUnit.Framework;
 
@@ -50,11 +52,16 @@ namespace Apache.Ignite.Core.Tests.Cache.Store
         [TestFixtureSetUp]
         public virtual void BeforeTests()
         {
-            Ignition.Start(new IgniteConfiguration(TestUtils.GetTestConfiguration())
+            var cfg = new IgniteConfiguration
             {
                 IgniteInstanceName = GridName,
+                JvmClasspath = TestUtils.CreateTestClasspath(),
+                JvmOptions = TestUtils.TestJavaOptions(),
                 SpringConfigUrl = "config\\native-client-test-cache-store.xml",
-            });
+                BinaryConfiguration = new BinaryConfiguration(typeof (Key), typeof (Value))
+            };
+
+            Ignition.Start(cfg);
         }
 
         /// <summary>
@@ -149,7 +156,7 @@ namespace Apache.Ignite.Core.Tests.Cache.Store
 
             Assert.NotNull(meta);
 
-            Assert.AreEqual("Apache.Ignite.Core.Tests.Cache.Store.Value", meta.TypeName);
+            Assert.AreEqual("Value", meta.TypeName);
         }
 
         /// <summary>
@@ -193,10 +200,9 @@ namespace Apache.Ignite.Core.Tests.Cache.Store
 
             Assert.AreEqual(1, map.Count);
 
-            // TODO: IGNITE-4535
-            //cache.LocalEvict(new[] { 1 });
+            cache.LocalEvict(new[] { 1 });
 
-            //Assert.AreEqual(0, cache.GetSize(CachePeekMode.All));
+            Assert.AreEqual(0, cache.GetSize());
 
             Assert.AreEqual("val", cache.Get(1));
 
@@ -213,9 +219,8 @@ namespace Apache.Ignite.Core.Tests.Cache.Store
             CacheTestStore.ThrowError = true;
             CheckCustomStoreError(Assert.Throws<CacheStoreException>(() => cache.Put(-2, "fail")).InnerException);
 
-            // TODO: IGNITE-4535
-            //cache.LocalEvict(new[] {1});
-            //CheckCustomStoreError(Assert.Throws<CacheStoreException>(() => cache.Get(1)).InnerException);
+            cache.LocalEvict(new[] {1});
+            CheckCustomStoreError(Assert.Throws<CacheStoreException>(() => cache.Get(1)).InnerException);
 
             CacheTestStore.ThrowError = false;
 
@@ -255,10 +260,9 @@ namespace Apache.Ignite.Core.Tests.Cache.Store
 
             Assert.AreEqual(1, v.GetField<int>("_idx"));
 
-            // TODO: IGNITE-4535
-            //cache.LocalEvict(new[] { 1 });
+            cache.LocalEvict(new[] { 1 });
 
-            //Assert.AreEqual(0, cache.GetSize());
+            Assert.AreEqual(0, cache.GetSize());
 
             Assert.AreEqual(1, cache.Get(1).Index);
 
@@ -283,10 +287,9 @@ namespace Apache.Ignite.Core.Tests.Cache.Store
 
             Assert.AreEqual(1, v.Index);
 
-            // TODO: IGNITE-4535
-            //cache.LocalEvict(new[] { 1 });
+            cache.LocalEvict(new[] { 1 });
 
-            //Assert.AreEqual(0, cache.GetSize());
+            Assert.AreEqual(0, cache.GetSize());
 
             Assert.AreEqual(1, cache.Get(1).Index);
 
@@ -689,5 +692,13 @@ namespace Apache.Ignite.Core.Tests.Cache.Store
         {
             throw new Exception("Expected exception in ExceptionalEntryFilter");
         }
+    }
+
+    /// <summary>
+    /// Filter that can't be serialized.
+    /// </summary>
+    public class InvalidCacheEntryFilter : CacheEntryFilter
+    {
+        // No-op.
     }
 }

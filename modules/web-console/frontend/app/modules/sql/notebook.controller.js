@@ -38,7 +38,7 @@ export default ['$scope', '$modal', '$state', 'IgniteMessages', 'IgniteNotebook'
         Notebook.read()
             .then((notebooks) => {
                 scope.$watchCollection(() => notebooks, (changed) => {
-                    if (_.isEmpty(changed))
+                    if (!changed.length)
                         return scope.notebooks = [];
 
                     scope.notebooks = [

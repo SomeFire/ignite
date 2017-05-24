@@ -29,7 +29,7 @@ namespace ignite
             SpecialColumnsQuery::SpecialColumnsQuery(diagnostic::Diagnosable& diag,
                 int16_t type, const std::string& catalog, const std::string& schema,
                 const std::string& table, int16_t scope, int16_t nullable) :
-                Query(diag, QueryType::SPECIAL_COLUMNS),
+                Query(diag, SPECIAL_COLUMNS),
                 type(type),
                 catalog(catalog),
                 schema(schema),
@@ -64,11 +64,11 @@ namespace ignite
                 // No-op.
             }
 
-            SqlResult::Type SpecialColumnsQuery::Execute()
+            SqlResult SpecialColumnsQuery::Execute()
             {
                 executed = true;
 
-                return SqlResult::AI_SUCCESS;
+                return SQL_RESULT_SUCCESS;
             }
 
             const meta::ColumnMetaVector& SpecialColumnsQuery::GetMeta() const
@@ -76,35 +76,35 @@ namespace ignite
                 return columnsMeta;
             }
 
-            SqlResult::Type SpecialColumnsQuery::FetchNextRow(app::ColumnBindingMap & columnBindings)
+            SqlResult SpecialColumnsQuery::FetchNextRow(app::ColumnBindingMap & columnBindings)
             {
                 if (!executed)
                 {
-                    diag.AddStatusRecord(SqlState::SHY010_SEQUENCE_ERROR, "Query was not executed.");
+                    diag.AddStatusRecord(SQL_STATE_HY010_SEQUENCE_ERROR, "Query was not executed.");
 
-                    return SqlResult::AI_ERROR;
+                    return SQL_RESULT_ERROR;
                 }
 
-                return SqlResult::AI_NO_DATA;
+                return SQL_RESULT_NO_DATA;
             }
 
-            SqlResult::Type SpecialColumnsQuery::GetColumn(uint16_t columnIdx, app::ApplicationDataBuffer& buffer)
+            SqlResult SpecialColumnsQuery::GetColumn(uint16_t columnIdx, app::ApplicationDataBuffer& buffer)
             {
                 if (!executed)
                 {
-                    diag.AddStatusRecord(SqlState::SHY010_SEQUENCE_ERROR, "Query was not executed.");
+                    diag.AddStatusRecord(SQL_STATE_HY010_SEQUENCE_ERROR, "Query was not executed.");
 
-                    return SqlResult::AI_ERROR;
+                    return SQL_RESULT_ERROR;
                 }
 
-                return SqlResult::AI_NO_DATA;
+                return SQL_RESULT_NO_DATA;
             }
 
-            SqlResult::Type SpecialColumnsQuery::Close()
+            SqlResult SpecialColumnsQuery::Close()
             {
                 executed = false;
 
-                return SqlResult::AI_SUCCESS;
+                return SQL_RESULT_SUCCESS;
             }
 
             bool SpecialColumnsQuery::DataAvailable() const

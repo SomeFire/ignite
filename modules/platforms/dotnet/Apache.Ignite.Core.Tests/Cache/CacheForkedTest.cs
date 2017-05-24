@@ -48,12 +48,14 @@ namespace Apache.Ignite.Core.Tests.Cache
                 "-J-DIGNITE_QUIET=false"
                 );
 
-            _grid = Ignition.Start(new IgniteConfiguration(TestUtils.GetTestConfiguration())
+            _grid = Ignition.Start(new IgniteConfiguration
             {
+                JvmClasspath = TestUtils.CreateTestClasspath(),
+                JvmOptions = TestUtils.TestJavaOptions(),
                 SpringConfigUrl = springConfigUrl
             });
 
-            Assert.IsTrue(_grid.WaitTopology(2));
+            Assert.IsTrue(_grid.WaitTopology(2, 30000));
         }
 
         /// <summary>
@@ -73,7 +75,7 @@ namespace Apache.Ignite.Core.Tests.Cache
         [Test]
         public void TestClearCache()
         {
-            _grid.GetCache<object, object>("default").Clear();
+            _grid.GetCache<object, object>(null).Clear();
         }
     }
 }

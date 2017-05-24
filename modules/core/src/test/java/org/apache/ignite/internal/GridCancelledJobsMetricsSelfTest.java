@@ -72,7 +72,7 @@ public class GridCancelledJobsMetricsSelfTest extends GridCommonAbstractTest {
 
         assert discoSpi instanceof TcpDiscoverySpi;
 
-        cfg.setMetricsUpdateFrequency(500);
+        ((TcpDiscoverySpi)discoSpi).setHeartbeatFrequency(500);
 
         return cfg;
     }

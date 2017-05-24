@@ -22,6 +22,7 @@ import org.apache.ignite.IgniteCache;
 import org.apache.ignite.configuration.CacheConfiguration;
 import org.apache.ignite.configuration.IgniteConfiguration;
 import org.apache.ignite.configuration.NearCacheConfiguration;
+import org.apache.ignite.marshaller.optimized.OptimizedMarshaller;
 import org.apache.ignite.spi.discovery.tcp.TcpDiscoverySpi;
 import org.apache.ignite.spi.discovery.tcp.ipfinder.TcpDiscoveryIpFinder;
 import org.apache.ignite.spi.discovery.tcp.ipfinder.vm.TcpDiscoveryVmIpFinder;
@@ -44,7 +45,7 @@ public class GridCacheNearTxForceKeyTest extends GridCommonAbstractTest {
 
         ((TcpDiscoverySpi)cfg.getDiscoverySpi()).setIpFinder(IP_FINDER);
 
-        CacheConfiguration ccfg = new CacheConfiguration(DEFAULT_CACHE_NAME);
+        CacheConfiguration ccfg = new CacheConfiguration();
 
         ccfg.setAtomicityMode(TRANSACTIONAL);
         ccfg.setWriteSynchronizationMode(FULL_SYNC);
@@ -66,24 +67,17 @@ public class GridCacheNearTxForceKeyTest extends GridCommonAbstractTest {
     public void testNearTx() throws Exception {
         Ignite ignite0 = startGrid(0);
 
-        IgniteCache<Integer, Integer> cache = ignite0.cache(DEFAULT_CACHE_NAME);
+        IgniteCache<Integer, Integer> cache = ignite0.cache(null);
 
         Ignite ignite1 = startGrid(1);
 
-        awaitPartitionMapExchange();
-
         // This key should become primary for ignite1.
-        final Integer key = primaryKey(ignite1.cache(DEFAULT_CACHE_NAME));
+        final Integer key = ignite0.configuration().getMarshaller() instanceof OptimizedMarshaller ? 2 : 7;
 
         assertNull(cache.getAndPut(key, key));
 
-        assertTrue(ignite0.affinity(DEFAULT_CACHE_NAME).isPrimary(ignite1.cluster().localNode(), key));
-    }
+        awaitPartitionMapExchange();
 
-    /** {@inheritDoc} */
-    @Override protected void afterTestsStopped() throws Exception {
-        super.afterTestsStopped();
-
-        stopAllGrids();
+        assertTrue(ignite0.affinity(null).isPrimary(ignite1.cluster().localNode(), key));
     }
 }

@@ -20,7 +20,6 @@ package org.apache.ignite.yardstick;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ThreadLocalRandom;
 import org.apache.ignite.Ignite;
-import org.apache.ignite.IgniteLogger;
 import org.apache.ignite.IgniteState;
 import org.apache.ignite.Ignition;
 import org.apache.ignite.events.Event;
@@ -62,11 +61,6 @@ public abstract class IgniteAbstractBenchmark extends BenchmarkDriverAdapter {
             node = new IgniteNode(args.isClientOnly() && !args.isNearCache(), Ignition.ignite());
 
         waitForNodes();
-
-        IgniteLogger log = ignite().log();
-
-        if (log.isInfoEnabled())
-            log.info("Benchmark arguments: " + args);
     }
 
     /**
@@ -155,7 +149,7 @@ public abstract class IgniteAbstractBenchmark extends BenchmarkDriverAdapter {
      * @param max Key range.
      * @return Next key.
      */
-    public static int nextRandom(int max) {
+    protected int nextRandom(int max) {
         return ThreadLocalRandom.current().nextInt(max);
     }
 

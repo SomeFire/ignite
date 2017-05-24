@@ -59,7 +59,7 @@ public class BinaryTxCacheLocalEntriesSelfTest extends GridCacheAbstractSelfTest
      * @throws Exception If failed.
      */
     public void testLocalEntries() throws Exception {
-        IgniteCache<Integer, BinaryObject> cache = grid(0).cache(DEFAULT_CACHE_NAME).withKeepBinary();
+        IgniteCache<Integer, BinaryObject> cache = grid(0).cache(null).withKeepBinary();
 
         final int ENTRY_CNT = 10;
 

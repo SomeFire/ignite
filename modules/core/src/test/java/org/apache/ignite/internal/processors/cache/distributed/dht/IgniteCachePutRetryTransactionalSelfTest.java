@@ -36,6 +36,7 @@ import org.apache.ignite.internal.IgniteInternalFuture;
 import org.apache.ignite.internal.util.typedef.internal.U;
 
 import static org.apache.ignite.cache.CacheAtomicityMode.TRANSACTIONAL;
+import static org.apache.ignite.testframework.GridTestUtils.TestMemoryMode;
 import static org.apache.ignite.testframework.GridTestUtils.runAsync;
 import static org.apache.ignite.testframework.GridTestUtils.runMultiThreadedAsync;
 
@@ -92,45 +93,52 @@ public class IgniteCachePutRetryTransactionalSelfTest extends IgniteCachePutRetr
      * @throws Exception If failed.
      */
     public void testExplicitTransactionRetriesSingleValue() throws Exception {
-        checkRetry(Test.TX_PUT, false, false);
+        checkRetry(Test.TX_PUT, TestMemoryMode.HEAP, false);
     }
 
     /**
      * @throws Exception If failed.
      */
     public void testExplicitTransactionRetriesSingleValueStoreEnabled() throws Exception {
-        checkRetry(Test.TX_PUT, false, true);
+        checkRetry(Test.TX_PUT, TestMemoryMode.HEAP, true);
     }
 
     /**
      * @throws Exception If failed.
      */
     public void testExplicitTransactionRetries() throws Exception {
-        explicitTransactionRetries(false, false);
+        explicitTransactionRetries(TestMemoryMode.HEAP, false);
+    }
+
+    /**
+     * @throws Exception If failed.
+     */
+    public void testExplicitTransactionRetriesSingleOperation() throws Exception {
+        explicitTransactionRetries(TestMemoryMode.HEAP, false);
     }
 
     /**
      * @throws Exception If failed.
      */
     public void testExplicitTransactionRetriesStoreEnabled() throws Exception {
-        explicitTransactionRetries(false, true);
+        explicitTransactionRetries(TestMemoryMode.HEAP, true);
     }
 
     /**
      * @throws Exception If failed.
      */
-    public void testExplicitTransactionRetriesEvictionEnabled() throws Exception {
-        explicitTransactionRetries(true, false);
+    public void testExplicitTransactionRetriesOffheapSwap() throws Exception {
+        explicitTransactionRetries(TestMemoryMode.OFFHEAP_EVICT_SWAP, false);
     }
 
     /**
-     * @param evict If {@code true} uses cache with eviction policy.
+     * @param memMode Memory mode.
      * @param store If {@code true} uses cache with store.
      * @throws Exception If failed.
      */
     @SuppressWarnings("unchecked")
-    public void explicitTransactionRetries(boolean evict, boolean store) throws Exception {
-        ignite(0).createCache(cacheConfiguration(evict, store));
+    public void explicitTransactionRetries(TestMemoryMode memMode, boolean store) throws Exception {
+        ignite(0).createCache(cacheConfiguration(memMode, store));
 
         final AtomicInteger idx = new AtomicInteger();
         int threads = 8;
@@ -143,7 +151,7 @@ public class IgniteCachePutRetryTransactionalSelfTest extends IgniteCachePutRetr
                 int base = th * FACTOR;
 
                 Ignite ignite = ignite(0);
-                final IgniteCache<Object, Object> cache = ignite.cache(DEFAULT_CACHE_NAME);
+                final IgniteCache<Object, Object> cache = ignite.cache(null);
 
                 try {
                     for (int i = 0; i < FACTOR; i++) {
@@ -179,7 +187,7 @@ public class IgniteCachePutRetryTransactionalSelfTest extends IgniteCachePutRetr
 
         // Verify contents of the cache.
         for (int g = 0; g < GRID_CNT; g++) {
-            IgniteCache<Object, Object> cache = ignite(g).cache(DEFAULT_CACHE_NAME);
+            IgniteCache<Object, Object> cache = ignite(g).cache(null);
 
             for (int th = 0; th < threads; th++) {
                 int base = th * FACTOR;
@@ -203,7 +211,7 @@ public class IgniteCachePutRetryTransactionalSelfTest extends IgniteCachePutRetr
      * @throws Exception If failed.
      */
     public void testOriginatingNodeFailureForcesOnePhaseCommitDataCleanup() throws Exception {
-        ignite(0).createCache(cacheConfiguration(false, false));
+        ignite(0).createCache(cacheConfiguration(TestMemoryMode.HEAP, false));
 
         final AtomicBoolean finished = new AtomicBoolean();
 
@@ -234,7 +242,7 @@ public class IgniteCachePutRetryTransactionalSelfTest extends IgniteCachePutRetr
 
                 while (!finished.get()) {
                     try {
-                        IgniteCache<Integer, Integer> cache = ignite(0).cache(DEFAULT_CACHE_NAME);
+                        IgniteCache<Integer, Integer> cache = ignite(0).cache(null);
 
                         Integer val = ++iter;
 
@@ -260,7 +268,7 @@ public class IgniteCachePutRetryTransactionalSelfTest extends IgniteCachePutRetr
             fut2.get();
         }
 
-        checkOnePhaseCommitReturnValuesCleaned(GRID_CNT);
+        checkOnePhaseCommitReturnValuesCleaned();
     }
 
     /**

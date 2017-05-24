@@ -17,11 +17,6 @@
 
 package org.apache.ignite.spi.loadbalancing.internal;
 
-import java.io.Serializable;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.UUID;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteException;
 import org.apache.ignite.cluster.ClusterNode;
@@ -32,16 +27,21 @@ import org.apache.ignite.compute.ComputeTaskSession;
 import org.apache.ignite.compute.ComputeTaskSplitAdapter;
 import org.apache.ignite.configuration.IgniteConfiguration;
 import org.apache.ignite.internal.processors.task.GridInternal;
+import org.apache.ignite.internal.util.lang.GridTuple3;
 import org.apache.ignite.internal.visor.VisorTaskArgument;
 import org.apache.ignite.internal.visor.node.VisorNodePingTask;
-import org.apache.ignite.internal.visor.node.VisorNodePingTaskArg;
-import org.apache.ignite.internal.visor.node.VisorNodePingTaskResult;
 import org.apache.ignite.spi.IgniteSpiAdapter;
 import org.apache.ignite.spi.IgniteSpiException;
 import org.apache.ignite.spi.IgniteSpiMultipleInstancesSupport;
 import org.apache.ignite.spi.loadbalancing.LoadBalancingSpi;
 import org.apache.ignite.testframework.junits.common.GridCommonAbstractTest;
 import org.jetbrains.annotations.Nullable;
+
+import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.UUID;
 
 /**
  * Test that will start two nodes with custom load balancing SPI and execute {@link GridInternal} task on it.
@@ -93,11 +93,10 @@ public class GridInternalTasksLoadBalancingSelfTest extends GridCommonAbstractTe
         // Visor task should pass.
         UUID nid = ignite.cluster().localNode().id();
 
-        VisorNodePingTaskResult ping = ignite.compute()
-            .execute(VisorNodePingTask.class.getName(),
-                new VisorTaskArgument<>(nid, new VisorNodePingTaskArg(nid), false));
+        GridTuple3<Boolean, Long, Long> ping = ignite.compute()
+            .execute(VisorNodePingTask.class.getName(), new VisorTaskArgument<>(nid, nid, false));
 
-        assertTrue(ping.isAlive());
+        assertTrue(ping.get1());
 
         // Custom task should fail, because special test load balancer SPI returns null as balanced node.
         try {
@@ -124,11 +123,10 @@ public class GridInternalTasksLoadBalancingSelfTest extends GridCommonAbstractTe
         // Visor task should pass.
         UUID nid = ignite.cluster().localNode().id();
 
-        VisorNodePingTaskResult ping = ignite.compute()
-            .execute(VisorNodePingTask.class.getName(),
-                new VisorTaskArgument<>(nid, new VisorNodePingTaskArg(nid), false));
+        GridTuple3<Boolean, Long, Long> ping = ignite.compute()
+            .execute(VisorNodePingTask.class.getName(), new VisorTaskArgument<>(nid, nid, false));
 
-        assertTrue(ping.isAlive());
+        assertTrue(ping.get1());
 
         // Custom task should pass.
         assertEquals(TASK_RESULT, ignite.compute().execute(CustomTestTask.class.getName(), null));

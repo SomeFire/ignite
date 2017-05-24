@@ -69,13 +69,15 @@ namespace Apache.Ignite.Core.Tests
         {
             Ignition.StopAll(true);
 
-            var grid = Ignition.Start(new IgniteConfiguration(TestUtils.GetTestConfiguration())
+            var grid = Ignition.Start(new IgniteConfiguration
             {
                 SpringConfigUrl = "config\\cache-binarizables.xml",
+                JvmClasspath = TestUtils.CreateTestClasspath(),
+                JvmOptions = TestUtils.TestJavaOptions(),
                 BinaryConfiguration = binaryConfiguration
             });
 
-            _cache = grid.GetCache<int, TestGenericBinarizableBase>("default");
+            _cache = grid.GetCache<int, TestGenericBinarizableBase>(null);
         }
 
         /// <summary>

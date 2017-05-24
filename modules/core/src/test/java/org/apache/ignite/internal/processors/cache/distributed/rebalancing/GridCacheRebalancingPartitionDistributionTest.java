@@ -22,6 +22,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.apache.ignite.Ignite;
+import org.apache.ignite.cache.CacheAtomicWriteOrderMode;
 import org.apache.ignite.cache.CacheAtomicityMode;
 import org.apache.ignite.cache.CacheMode;
 import org.apache.ignite.cache.CacheRebalanceMode;
@@ -51,7 +52,8 @@ public class GridCacheRebalancingPartitionDistributionTest extends GridRollingRe
                 .setAtomicityMode(CacheAtomicityMode.TRANSACTIONAL)
                 .setCacheMode(CacheMode.PARTITIONED)
                 .setBackups(1)
-                .setAffinity(new RendezvousAffinityFunction(true /* machine-safe */, 1024))
+                .setAffinity(new RendezvousAffinityFunction(true /* machine-safe */, 271))
+                .setAtomicWriteOrderMode(CacheAtomicWriteOrderMode.CLOCK)
                 .setRebalanceMode(CacheRebalanceMode.SYNC)
                 .setWriteSynchronizationMode(CacheWriteSynchronizationMode.FULL_SYNC);
     }

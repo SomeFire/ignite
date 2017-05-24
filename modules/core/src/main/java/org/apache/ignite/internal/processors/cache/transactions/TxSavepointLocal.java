@@ -19,7 +19,6 @@ package org.apache.ignite.internal.processors.cache.transactions;
 
 import org.apache.ignite.internal.util.tostring.GridToStringInclude;
 import org.apache.ignite.internal.util.typedef.internal.U;
-
 import java.util.Collection;
 import java.util.Map;
 

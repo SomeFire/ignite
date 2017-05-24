@@ -18,7 +18,6 @@
 package org.apache.ignite.internal.processors.cache.distributed.near;
 
 import org.apache.ignite.IgniteLogger;
-import org.apache.ignite.cache.CacheWriteSynchronizationMode;
 import org.apache.ignite.internal.processors.cache.GridCacheFuture;
 import org.apache.ignite.internal.processors.cache.GridCacheSharedContext;
 import org.apache.ignite.internal.processors.cache.transactions.IgniteInternalTx;
@@ -27,17 +26,14 @@ import org.apache.ignite.internal.util.tostring.GridToStringInclude;
 import org.apache.ignite.internal.util.typedef.F;
 import org.apache.ignite.internal.util.typedef.internal.U;
 import org.apache.ignite.lang.IgniteUuid;
-
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
-
-import static org.apache.ignite.cache.CacheWriteSynchronizationMode.FULL_SYNC;
 
 /**
  *
  */
 public class GridNearTxSavepointFuture<K, V> extends GridCompoundIdentityFuture<IgniteInternalTx>
-		implements GridCacheFuture<IgniteInternalTx> {
+        implements GridCacheFuture<IgniteInternalTx> {
 
     /** */
     private static final long serialVersionUID = 0L;
@@ -65,14 +61,14 @@ public class GridNearTxSavepointFuture<K, V> extends GridCompoundIdentityFuture<
     private boolean trackable = true;
 
     /** Savepoint ID*/
-	private String name;
+    private String name;
 
     /**
      * @param cctx Context.
      * @param tx Transaction.
      * @param name Savepoint ID.
      */
-	public GridNearTxSavepointFuture(GridCacheSharedContext<K, V> cctx, GridNearTxLocal tx, String name) {
+    public GridNearTxSavepointFuture(GridCacheSharedContext<K, V> cctx, GridNearTxLocal tx, String name) {
         super(F.<IgniteInternalTx>identityReducer(tx));
 
         this.cctx = cctx;
@@ -84,59 +80,58 @@ public class GridNearTxSavepointFuture<K, V> extends GridCompoundIdentityFuture<
             msgLog = cctx.messageLogger();
             log = U.logger(cctx.kernalContext(), logRef, GridNearTxSavepointFuture.class);
         }
-		this.name = name;
-	}
+        this.name = name;
+    }
 
     /**
      * Calls creating savepoint for transaction.
      */
-	public void savepoint() {
-		tx.savepoint(name);
+    public void savepoint() {
+        tx.savepoint(name);
 
-		onDone();
-	}
+        onDone();
+    }
 
     /**
      * Calls rollback to savepoint for transaction.
      */
-	public void rollbackToSavepoint() {
-		tx.rollbackToSavepoint(name);
+    public void rollbackToSavepoint() {
+        tx.rollbackToSavepoint(name);
 
-		onDone();
-	}
+        onDone();
+    }
 
     /**
      * Calls deleting of savepoint for transaction.
      */
-	public void releaseSavepoint() {
-		tx.releaseSavepoint(name);
+    public void releaseSavepoint() {
+        tx.releaseSavepoint(name);
 
-		onDone();
-	}
+        onDone();
+    }
 
-	/** {@inheritDoc} */
-	@Override public boolean onDone(IgniteInternalTx tx0, Throwable err) {
-		if (isDone())
-			return false;
+    /** {@inheritDoc} */
+    @Override public boolean onDone(IgniteInternalTx tx0, Throwable err) {
+        if (isDone())
+            return false;
 
-		synchronized (this) {
-			if (isDone())
-				return false;
+        synchronized (this) {
+            if (isDone())
+                return false;
 
-			if (err != null)
-				tx.setRollbackOnly();
+            if (err != null)
+                tx.setRollbackOnly();
 
-			if (super.onDone(tx0, err)) {
+            if (super.onDone(tx0, err)) {
+                // Don't forget to clean up.
+                cctx.mvcc().removeFuture(futureId());
 
-				// Don't forget to clean up.
-				cctx.mvcc().removeFuture(futureId());
+                return true;
+            }
+        }
 
-				return true;
-			}
-		}
-
-		return false;
-	}
+        return false;
+    }
 
 
     /** {@inheritDoc} */

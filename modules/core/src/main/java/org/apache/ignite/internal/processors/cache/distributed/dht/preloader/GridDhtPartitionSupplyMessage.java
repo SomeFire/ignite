@@ -64,6 +64,11 @@ public class GridDhtPartitionSupplyMessage extends GridCacheMessage implements G
     @GridDirectCollection(int.class)
     private Collection<Integer> missed;
 
+    /** Partitions for which we were able to get historical iterator. */
+    @GridToStringInclude
+    @GridDirectCollection(int.class)
+    private Collection<Integer> clean;
+
     /** Entries. */
     @GridDirectMap(keyType = int.class, valueType = CacheEntryInfoCollection.class)
     private Map<Integer, CacheEntryInfoCollection> infos;
@@ -142,6 +147,25 @@ public class GridDhtPartitionSupplyMessage extends GridCacheMessage implements G
     }
 
     /**
+     * @param p Partition to clean.
+     */
+    void clean(int p) {
+        if (clean == null)
+            clean = new HashSet<>();
+
+        if (clean.add(p))
+            msgSize += 4;
+    }
+
+    /**
+     * @param p Partition to check.
+     * @return Check result.
+     */
+    boolean isClean(int p) {
+        return clean != null && clean.contains(p);
+    }
+
+    /**
      * @param p Missed partition.
      */
     void missed(int p) {
@@ -182,36 +206,10 @@ public class GridDhtPartitionSupplyMessage extends GridCacheMessage implements G
      * @param ctx Cache context.
      * @throws IgniteCheckedException If failed.
      */
-    void addEntry(int p, GridCacheEntryInfo info, GridCacheContext ctx) throws IgniteCheckedException {
-        assert info != null;
-
-        marshalInfo(info, ctx);
-
-        msgSize += info.marshalledSize(ctx);
-
-        CacheEntryInfoCollection infoCol = infos().get(p);
-
-        if (infoCol == null) {
-            msgSize += 4;
-
-            infos().put(p, infoCol = new CacheEntryInfoCollection());
-
-            infoCol.init();
-        }
-
-        infoCol.add(info);
-    }
-
-    /**
-     * @param p Partition.
-     * @param info Entry to add.
-     * @param ctx Cache context.
-     * @throws IgniteCheckedException If failed.
-     */
     void addEntry0(int p, GridCacheEntryInfo info, GridCacheContext ctx) throws IgniteCheckedException {
         assert info != null;
-        assert (info.key() != null || info.keyBytes() != null);
-        assert info.value() != null;
+        assert info.key() != null : info;
+        assert info.value() != null : info;
 
         // Need to call this method to initialize info properly.
         marshalInfo(info, ctx);
@@ -274,30 +272,36 @@ public class GridDhtPartitionSupplyMessage extends GridCacheMessage implements G
 
         switch (writer.state()) {
             case 3:
-                if (!writer.writeMap("infos", infos, MessageCollectionItemType.INT, MessageCollectionItemType.MSG))
+                if (!writer.writeCollection("clean", clean, MessageCollectionItemType.INT))
                     return false;
 
                 writer.incrementState();
 
             case 4:
-                if (!writer.writeCollection("last", last, MessageCollectionItemType.INT))
+                if (!writer.writeMap("infos", infos, MessageCollectionItemType.INT, MessageCollectionItemType.MSG))
                     return false;
 
                 writer.incrementState();
 
             case 5:
-                if (!writer.writeCollection("missed", missed, MessageCollectionItemType.INT))
+                if (!writer.writeCollection("last", last, MessageCollectionItemType.INT))
                     return false;
 
                 writer.incrementState();
 
             case 6:
-                if (!writer.writeMessage("topVer", topVer))
+                if (!writer.writeCollection("missed", missed, MessageCollectionItemType.INT))
                     return false;
 
                 writer.incrementState();
 
             case 7:
+                if (!writer.writeMessage("topVer", topVer))
+                    return false;
+
+                writer.incrementState();
+
+            case 8:
                 if (!writer.writeLong("updateSeq", updateSeq))
                     return false;
 
@@ -320,7 +324,7 @@ public class GridDhtPartitionSupplyMessage extends GridCacheMessage implements G
 
         switch (reader.state()) {
             case 3:
-                infos = reader.readMap("infos", MessageCollectionItemType.INT, MessageCollectionItemType.MSG, false);
+                clean = reader.readCollection("clean", MessageCollectionItemType.INT);
 
                 if (!reader.isLastRead())
                     return false;
@@ -328,7 +332,7 @@ public class GridDhtPartitionSupplyMessage extends GridCacheMessage implements G
                 reader.incrementState();
 
             case 4:
-                last = reader.readCollection("last", MessageCollectionItemType.INT);
+                infos = reader.readMap("infos", MessageCollectionItemType.INT, MessageCollectionItemType.MSG, false);
 
                 if (!reader.isLastRead())
                     return false;
@@ -336,7 +340,7 @@ public class GridDhtPartitionSupplyMessage extends GridCacheMessage implements G
                 reader.incrementState();
 
             case 5:
-                missed = reader.readCollection("missed", MessageCollectionItemType.INT);
+                last = reader.readCollection("last", MessageCollectionItemType.INT);
 
                 if (!reader.isLastRead())
                     return false;
@@ -344,7 +348,7 @@ public class GridDhtPartitionSupplyMessage extends GridCacheMessage implements G
                 reader.incrementState();
 
             case 6:
-                topVer = reader.readMessage("topVer");
+                missed = reader.readCollection("missed", MessageCollectionItemType.INT);
 
                 if (!reader.isLastRead())
                     return false;
@@ -352,6 +356,14 @@ public class GridDhtPartitionSupplyMessage extends GridCacheMessage implements G
                 reader.incrementState();
 
             case 7:
+                topVer = reader.readMessage("topVer");
+
+                if (!reader.isLastRead())
+                    return false;
+
+                reader.incrementState();
+
+            case 8:
                 updateSeq = reader.readLong("updateSeq");
 
                 if (!reader.isLastRead())
@@ -371,7 +383,7 @@ public class GridDhtPartitionSupplyMessage extends GridCacheMessage implements G
 
     /** {@inheritDoc} */
     @Override public byte fieldsCount() {
-        return 8;
+        return 9;
     }
 
     /** {@inheritDoc} */

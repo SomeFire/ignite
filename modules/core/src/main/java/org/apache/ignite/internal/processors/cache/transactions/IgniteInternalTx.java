@@ -634,4 +634,25 @@ public interface IgniteInternalTx {
      * @param e Commit error.
      */
     public void commitError(Throwable e);
+
+    /**
+     * Creates savepoint.
+     *
+     * @param name Savepoint ID.
+     */
+    public void savepoint(String name);
+
+    /**
+     * Rollback this transaction to previous state.
+     *
+     * @param name Savepoint ID.
+     */
+    public void rollbackToSavepoint(String name);
+
+    /**
+     * Delete savepoint if it exist. Do nothing if there is no savepoint with such name.
+     *
+     * @param name Savepoint ID.
+     */
+    public void releaseSavepoint(String name);
 }

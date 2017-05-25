@@ -110,4 +110,9 @@ public abstract class IgniteTxRemoteStateAdapter implements IgniteTxRemoteState 
     @Override public void onTxEnd(GridCacheSharedContext cctx, IgniteInternalTx tx, boolean commit) {
         assert false;
     }
+
+    /** {@inheritDoc} */
+    @Override public void rollbackToSavepoint(TxSavepoint savepoint, GridCacheSharedContext cctx, IgniteInternalTx tx) {
+        throw new UnsupportedOperationException();
+    }
 }

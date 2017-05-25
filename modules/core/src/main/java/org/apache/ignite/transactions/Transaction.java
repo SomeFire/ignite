@@ -115,6 +115,17 @@ import org.apache.ignite.lang.IgniteUuid;
  *     tx.commit();
  * }
  * </pre>
+ *
+ * <h1 class="header">Savepoints</h1>
+ * A savepoint is a special mark inside a transaction that allows all commands
+ * that are executed after it was established to be rolled back,
+ * restoring the transaction state to what it was at the time of the savepoint.
+ * <p>
+ * The {@link #savepoint(String)} method set a named transaction savepoint with a name of an identifier.
+ * <p>
+ * The {@link #rollbackToSavepoint(String)} method roll back all the changes done after a specific checkpoint establishment.
+ * <p>
+ * The {@link #releaseSavepoint(String)} method will destroy a savepoint, keeping the effects of commands executed after it was established.
  */
 public interface Transaction extends AutoCloseable, IgniteAsyncSupport {
     /**
@@ -272,4 +283,35 @@ public interface Transaction extends AutoCloseable, IgniteAsyncSupport {
      * @throws IgniteException If rollback failed.
      */
     public IgniteFuture<Void> rollbackAsync() throws IgniteException;
+
+    /**
+     * Use this method to identify a point in a transaction to which you can later roll back.
+     * <p>
+     * Savepoint names must be distinct within a given transaction.
+     * If you create a second savepoint with the same identifier as an earlier savepoint,
+     * then the earlier savepoint is erased.
+     * <p>
+     * After a savepoint has been created, you can either continue processing,
+     * commit your work, roll back the entire transaction, or roll back to the savepoint.
+     *
+     * @param name savepoint ID
+     */
+    public void savepoint(String name);
+
+    /**
+     * Rolls back just the portion of the transaction after the savepoint.
+     * <p>
+     * Erases all savepoints created after that savepoint. The named savepoint is retained,
+     * so you can roll back to the same savepoint multiple times. Prior savepoints are also retained.
+     *
+     * @param name savepoint ID
+     */
+    public void rollbackToSavepoint(String name);
+
+    /**
+     * Removes named savepoint and makes it unavailable as a rollback point.
+     *
+     * @param name
+     */
+    public void releaseSavepoint(String name);
 }

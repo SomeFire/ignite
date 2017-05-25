@@ -21,6 +21,8 @@ import java.io.Externalizable;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -146,6 +148,9 @@ public abstract class IgniteTxLocalAdapter extends IgniteTxAdapter implements Ig
 
     /** */
     protected CacheWriteSynchronizationMode syncMode;
+
+    /** List of savepoints for this transaction, which is used to retrieve previous states. */
+    protected LinkedList<TxSavepointLocal> savepoints = new LinkedList<>();
 
     /**
      * Empty constructor required for {@link Externalizable}.
@@ -1756,5 +1761,76 @@ public abstract class IgniteTxLocalAdapter extends IgniteTxAdapter implements Ig
          * @throws IgniteCheckedException If operation failed.
          */
         protected abstract IgniteInternalFuture<T> postMiss(T t) throws IgniteCheckedException;
+    }
+
+    /**
+     * Creates savepoint.
+     *
+     * @param name Savepoint ID.
+     */
+    @Override public void savepoint(String name) {
+        if (log.isDebugEnabled())
+            log.debug("Saving point \"" + name + "\" for tx: " + this);
+
+        releaseSavepoint(name, false);
+        savepoints.add(new TxSavepointLocal(name, this));
+    }
+
+    /**
+     * Returns transaction to previously saved state.
+     *
+     * @param name Savepoint ID.
+     */
+    @Override public void rollbackToSavepoint(String name) {
+        if (log.isDebugEnabled())
+            log.debug("Rolling back to savepoint \"" + name + "\" for tx: " + this);
+
+        TxSavepointLocal savepoint = releaseSavepoint(name, true);
+
+        if (savepoint == null)
+            throw new IllegalArgumentException("No such savepoint.");
+
+        txState.rollbackToSavepoint(savepoint, cctx, this);
+
+    }
+
+    /**
+     * Delete savepoint.
+     *
+     * @param name Savepoint ID.
+     */
+    @Override public void releaseSavepoint(String name) {
+        if (log.isDebugEnabled())
+            log.debug("Releasing savepoint \"" + name + "\" for tx: " + this);
+
+        releaseSavepoint(name, false);
+    }
+
+    /**
+     * Delete savepoint.
+     *
+     * @param name Savepoint ID.
+     * @param isRollback Delete savepoints after chosen or not.
+     * @return The previous value associated with ID, or null if there was no such savepoint.
+     */
+    private TxSavepointLocal releaseSavepoint(String name, boolean isRollback) {
+        boolean remove = false;
+        TxSavepointLocal checkpoint = null;
+        for (Iterator<TxSavepointLocal> i = savepoints.iterator(); i.hasNext(); ) {
+            TxSavepointLocal savepoint = i.next();
+            if (savepoint.getName().equals(name)) {
+                checkpoint = savepoint;
+                if (isRollback) remove = true;
+                else {
+                    i.remove();
+                    break;
+                }
+            }
+            else
+                if (remove) {
+                    i.remove();
+                }
+        }
+        return checkpoint;
     }
 }

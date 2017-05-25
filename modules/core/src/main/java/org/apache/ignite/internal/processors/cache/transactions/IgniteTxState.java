@@ -186,4 +186,13 @@ public interface IgniteTxState {
      * @return {@code True} if transaction is empty.
      */
     public boolean empty();
+
+    /**
+     * Takes savepoint from transaction and changes transaction entries to saved state.
+     *
+     * @param savepoint Contain snapshot of entries.
+     * @param cctx Context, where transaction processed.
+     * @param tx Transaction which state must be changed.
+     */
+    public void rollbackToSavepoint(TxSavepoint savepoint, GridCacheSharedContext cctx, IgniteInternalTx tx);
 }

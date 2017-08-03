@@ -215,7 +215,16 @@ public class StripedExecutor implements ExecutorService {
         long timeout,
         @NotNull TimeUnit unit
     ) throws InterruptedException {
-        awaitStop();
+        try {
+            awaitStop();
+        }
+        catch (IgniteInterruptedException e) {
+            InterruptedException ex = new InterruptedException();
+
+            ex.initCause(e);
+
+            throw ex;
+        }
 
         return true;
     }

@@ -29,12 +29,14 @@ import java.sql.Timestamp;
 import java.util.Date;
 import java.util.UUID;
 import org.apache.ignite.IgniteCheckedException;
+import org.apache.ignite.binary.BinaryInvalidTypeException;
 import org.apache.ignite.binary.BinaryObject;
 import org.apache.ignite.binary.BinaryObjectException;
 import org.apache.ignite.binary.BinaryType;
 import org.apache.ignite.internal.GridDirectTransient;
 import org.apache.ignite.internal.IgniteCodeGeneratingFail;
 import org.apache.ignite.internal.binary.streams.BinaryHeapInputStream;
+import org.apache.ignite.internal.managers.deployment.GridDeployment;
 import org.apache.ignite.internal.processors.cache.CacheObject;
 import org.apache.ignite.internal.processors.cache.CacheObjectAdapter;
 import org.apache.ignite.internal.processors.cache.CacheObjectContext;
@@ -791,10 +793,36 @@ public final class BinaryObjectImpl extends BinaryObjectExImpl implements Extern
      * @return Object.
      */
     private Object deserializeValue(@Nullable CacheObjectValueContext coCtx) {
-        BinaryReaderExImpl reader = reader(null, coCtx != null ?
-            coCtx.kernalContext().config().getClassLoader() : ctx.configuration().getClassLoader(), true);
+        BinaryReaderExImpl reader = null;
+        Object obj0 = null;
 
-        Object obj0 = reader.deserialize();
+        try {
+            reader = reader(null, coCtx != null ?
+                coCtx.kernalContext().config().getClassLoader() : ctx.configuration().getClassLoader(), true);
+
+            obj0 = reader.deserialize();
+        } catch (BinaryInvalidTypeException e) {
+            BinaryType type = rawType();
+
+            if (!ctx.configuration().isPeerClassLoadingEnabled() || type == null || coCtx == null) {
+                throw e;
+            }
+
+            GridDeployment deployment = coCtx.kernalContext().cache().context()
+                .gridDeploy().getDeployment(type.typeName());
+
+            if (deployment == null)
+                throw e;//TODO try to load class?
+
+            ClassLoader ldr = deployment.classLoader();
+
+            if (ldr == null)
+                throw e;//TODO msg loader wasn't found? Can't peer load class.
+
+            reader = reader(null, ldr, true);
+
+            obj0 = reader.deserialize();
+        }
 
         BinaryClassDescriptor desc = reader.descriptor();
 

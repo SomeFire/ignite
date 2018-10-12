@@ -521,7 +521,7 @@ public class GridCacheMvccManager extends GridCacheSharedManagerAdapter {
      */
     public boolean addFuture(final GridCacheFuture<?> fut, final IgniteUuid futId) {
         GridCacheFuture<?> old = futs.put(futId, fut);
-
+        log.info("mvcc.addFuture = "+futId+", fut="+fut);
         assert old == null : old;
 
         return onFutureAdded(fut);
@@ -657,7 +657,8 @@ public class GridCacheMvccManager extends GridCacheSharedManagerAdapter {
      * @param futId Future ID.
      */
     public void removeFuture(IgniteUuid futId) {
-        futs.remove(futId);
+        GridCacheFuture<?> fut = futs.remove(futId);
+        log.info("mvcc.removeFuture = "+futId + ", fut="+fut);
     }
 
     /**

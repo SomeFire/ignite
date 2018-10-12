@@ -629,18 +629,16 @@ public class GridNearTransactionalCache<K, V> extends GridNearCacheAdapter<K, V>
     /** {@inheritDoc} */
     @Override public void unlockAllForSavepoint(GridCacheVersion ver, List<KeyCacheObject> keys) {
         for (KeyCacheObject key : keys) {
-            GridDistributedCacheEntry entry = peekExx(key);
+            GridDistributedCacheEntry entry = (GridDistributedCacheEntry) entryEx(key);
 
-            if (entry != null) {
-                try {
-                    entry.removeLock(ver, false);
+            try {
+                entry.removeLock(ver, false);
 
-                    map.removeEntry(entry);
-                }
-                catch (GridCacheEntryRemovedException ignored) {
-                    if (log.isDebugEnabled())
-                        log.debug("Trying to remove lock for removed entry [entry=" + entry + ']');
-                }
+                map.removeEntry(entry);
+            }
+            catch (GridCacheEntryRemovedException ignored) {
+                if (log.isDebugEnabled())
+                    log.debug("Trying to remove lock for removed entry [entry=" + entry + ']');
             }
         }
 
@@ -651,18 +649,16 @@ public class GridNearTransactionalCache<K, V> extends GridNearCacheAdapter<K, V>
 
     public void unlockAllForSavepointOnLocalNode(GridCacheVersion ver, List<KeyCacheObject> keys) {
         for (KeyCacheObject key : keys) {
-            GridDistributedCacheEntry entry = peekExx(key);
+            GridDistributedCacheEntry entry = (GridDistributedCacheEntry) entryEx(key);
 
-            if (entry != null) {
-                try {
-                    entry.removeLock(ver, false);
+            try {
+                entry.removeLock(ver, false);
 
-                    map.removeEntry(entry);
-                }
-                catch (GridCacheEntryRemovedException ignored) {
-                    if (log.isDebugEnabled())
-                        log.debug("Trying to remove lock for removed entry [entry=" + entry + ']');
-                }
+                map.removeEntry(entry);
+            }
+            catch (GridCacheEntryRemovedException ignored) {
+                if (log.isDebugEnabled())
+                    log.debug("Trying to remove lock for removed entry [entry=" + entry + ']');
             }
         }
     }

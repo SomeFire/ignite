@@ -20,12 +20,14 @@ package org.apache.ignite.internal.processors.cache.transactions;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Callable;
+import java.util.stream.Collectors;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteCache;
 import org.apache.ignite.IgniteCheckedException;
 import org.apache.ignite.cache.CacheEntryProcessor;
 import org.apache.ignite.cache.CacheMode;
 import org.apache.ignite.cache.affinity.Affinity;
+import org.apache.ignite.cluster.ClusterNode;
 import org.apache.ignite.configuration.CacheConfiguration;
 import org.apache.ignite.configuration.NearCacheConfiguration;
 import org.apache.ignite.internal.IgniteEx;
@@ -65,9 +67,9 @@ public class TxSavepointsTransactionalCacheTest extends GridCacheAbstractSelfTes
 
     /** Transaction concurrency and isolation levels. */
     private static final TxType[] txTypes = {
-        new TxType(OPTIMISTIC, READ_COMMITTED),
-        new TxType(OPTIMISTIC, REPEATABLE_READ),
-        new TxType(OPTIMISTIC, SERIALIZABLE),
+//        new TxType(OPTIMISTIC, READ_COMMITTED),
+//        new TxType(OPTIMISTIC, REPEATABLE_READ),
+//        new TxType(OPTIMISTIC, SERIALIZABLE),
         new TxType(PESSIMISTIC, READ_COMMITTED),
         new TxType(PESSIMISTIC, REPEATABLE_READ),
         new TxType(PESSIMISTIC, SERIALIZABLE)
@@ -82,14 +84,14 @@ public class TxSavepointsTransactionalCacheTest extends GridCacheAbstractSelfTes
      * 2 can be client, so we don't use it for primaries.
      */
     private NodeCombination[] nodeCombinations = new NodeCombination[] {
-        new NodeCombination(2, 3, 1, 0),
-        new NodeCombination(2, 3, 1, 1),
+//        new NodeCombination(2, 3, 1, 0),
+//        new NodeCombination(2, 3, 1, 1),
         new NodeCombination(2, 2, 1, 0),
-        new NodeCombination(2, 2, 1, 1),
-        new NodeCombination(1, 3, 1, 0),
-        new NodeCombination(1, 3, 1, 1),
-        new NodeCombination(1, 1, 1, 0),
-        new NodeCombination(1, 1, 1, 1)
+//        new NodeCombination(2, 2, 1, 1),
+//        new NodeCombination(1, 3, 1, 0),
+//        new NodeCombination(1, 3, 1, 1),
+//        new NodeCombination(1, 1, 1, 0),
+//        new NodeCombination(1, 1, 1, 1)
     };
 
     /**
@@ -98,14 +100,14 @@ public class TxSavepointsTransactionalCacheTest extends GridCacheAbstractSelfTes
     private List<CacheConfiguration<Integer, Integer>> cacheConfigurations() {
         List<CacheConfiguration<Integer, Integer>> cfgs = new ArrayList<>();
 
-        cfgs.add(cacheConfiguration(PARTITIONED, 0, false));
+//        cfgs.add(cacheConfiguration(PARTITIONED, 0, false));
         cfgs.add(cacheConfiguration(PARTITIONED, 0, true));
-        cfgs.add(cacheConfiguration(PARTITIONED, 1, false));
-        cfgs.add(cacheConfiguration(PARTITIONED, 1, true));
-        cfgs.add(cacheConfiguration(REPLICATED, 0, false));
-        cfgs.add(cacheConfiguration(REPLICATED, 0, true));
-        cfgs.add(cacheConfiguration(LOCAL, 0, false));
-        cfgs.add(cacheConfiguration(LOCAL, 0, true));
+//        cfgs.add(cacheConfiguration(PARTITIONED, 1, false));
+//        cfgs.add(cacheConfiguration(PARTITIONED, 1, true));
+//        cfgs.add(cacheConfiguration(REPLICATED, 0, false));
+//        cfgs.add(cacheConfiguration(REPLICATED, 0, true));
+//        cfgs.add(cacheConfiguration(LOCAL, 0, false));
+//        cfgs.add(cacheConfiguration(LOCAL, 0, true));
 
         return cfgs;
     }
@@ -217,7 +219,13 @@ public class TxSavepointsTransactionalCacheTest extends GridCacheAbstractSelfTes
                     throws IgniteCheckedException {
                     int key = generateKey(cfg, nodes.primaryForKey());
 
+                    System.out.println("k1="+key);
+                    System.out.println(nodes.txOwner().affinity(cache.getName()).mapKeyToPrimaryAndBackups(key).stream().map(ClusterNode::id).collect(Collectors.toList()));
+
                     IgniteCache<Integer, Integer> cacheAsync = nodes.anotherTxOwner().getOrCreateCache(cfg);
+
+                    for (int i = 0; i < gridCount(); i++)
+                        System.out.println("grig "+i+" : "+grid(i).localNode().id());
 
                     for (TxType txType : txTypes) {
                         info("Transaction type " + txType);
@@ -229,8 +237,16 @@ public class TxSavepointsTransactionalCacheTest extends GridCacheAbstractSelfTes
 
                             IgniteInternalFuture fut = GridTestUtils.runAsync(() -> {
                                     try (Transaction tx0 = nodes.anotherTxOwner().transactions().txStart()) {
+                                        System.out.println("async 1");
                                         assertTrue(cacheAsync.putIfAbsent(key, 1));
+                                        System.out.println("async 2");
 
+                                        try {
+                                            Thread.sleep(2_000);
+                                        }
+                                        catch (InterruptedException e) {
+                                            e.printStackTrace();
+                                        }
                                         tx0.commit();
                                     }
                                 },
@@ -238,14 +254,26 @@ public class TxSavepointsTransactionalCacheTest extends GridCacheAbstractSelfTes
 
                             waitForSecondCandidate(txType.concurrency, nodes.primaryForKey(), cache, cacheAsync, key);
 
+                            try {
+                                Thread.sleep(2_000);
+                            }
+                            catch (InterruptedException e) {
+                                e.printStackTrace();
+                            }
+
+                            System.out.println(1);
                             tx.rollbackToSavepoint("sp");
+                            System.out.println(2);
 
                             fut.get(FUT_TIMEOUT);
+                            System.out.println(3);
 
                             assertEquals("Broken multithreaded rollback to savepoint in " + txType.concurrency +
                                 ' ' + txType.isolation + " transaction.", (Integer)1, cache.get(key));
+                            System.out.println(4);
 
                             tx.commit();
+                            System.out.println(5);
 
                             assertEquals("Broken rollback to savepoint in " + txType.concurrency + ' '
                                 + txType.isolation + " transaction.", (Integer)1, cache.get(key));
@@ -1356,10 +1384,15 @@ public class TxSavepointsTransactionalCacheTest extends GridCacheAbstractSelfTes
         }
     }
 
+    /**
+     *
+     */
     private abstract class TestClosure extends
         CIX3<NodeCombination, IgniteCache<Integer, Integer>, CacheConfiguration<Integer, Integer>> {}
 
-    /** Transaction concurrency and isolation level. */
+    /**
+     * Transaction concurrency and isolation level.
+     */
     private static class TxType {
         /** Concurrency. */
         final TransactionConcurrency concurrency;
@@ -1382,7 +1415,9 @@ public class TxSavepointsTransactionalCacheTest extends GridCacheAbstractSelfTes
         }
     }
 
-    /** */
+    /**
+     *
+     */
     protected class NodeCombination {
         /** Node, where transaction will be started. */
         final int txOwnerNodeId;

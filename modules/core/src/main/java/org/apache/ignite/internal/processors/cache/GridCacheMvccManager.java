@@ -45,6 +45,8 @@ import org.apache.ignite.internal.processors.affinity.AffinityTopologyVersion;
 import org.apache.ignite.internal.processors.cache.distributed.GridCacheMappedVersion;
 import org.apache.ignite.internal.processors.cache.distributed.GridDistributedCacheEntry;
 import org.apache.ignite.internal.processors.cache.distributed.dht.GridDhtTxFinishFuture;
+import org.apache.ignite.internal.processors.cache.distributed.dht.GridDhtTxPrepareFuture;
+import org.apache.ignite.internal.processors.cache.distributed.near.GridNearOptimisticTxPrepareFuture;
 import org.apache.ignite.internal.processors.cache.distributed.near.GridNearTxFinishFuture;
 import org.apache.ignite.internal.processors.cache.transactions.IgniteInternalTx;
 import org.apache.ignite.internal.processors.cache.transactions.IgniteTxKey;
@@ -522,6 +524,8 @@ public class GridCacheMvccManager extends GridCacheSharedManagerAdapter {
     public boolean addFuture(final GridCacheFuture<?> fut, final IgniteUuid futId) {
         GridCacheFuture<?> old = futs.put(futId, fut);
         log.info("mvcc.addFuture = "+futId+", fut="+fut);
+//        if (fut.getClass().equals(GridNearOptimisticTxPrepareFuture.class) || fut.getClass().equals(GridDhtTxPrepareFuture.class))
+//            U.dumpStack(log, "mvcc.addFuture = "+futId+", fut="+fut);
         assert old == null : old;
 
         return onFutureAdded(fut);
@@ -551,6 +555,9 @@ public class GridCacheMvccManager extends GridCacheSharedManagerAdapter {
      */
     @SuppressWarnings({"SynchronizationOnLocalVariableOrMethodParameter"})
     public boolean addFuture(final GridCacheVersionedFuture<?> fut) {
+        log.info("mvcc.addFuture fut="+fut);
+//        if (fut.getClass().equals(GridNearOptimisticTxPrepareFuture.class) || fut.getClass().equals(GridDhtTxPrepareFuture.class))
+//            U.dumpStack(log, "mvcc.addFuture fut="+fut);
         if (fut.isDone()) {
             fut.markNotTrackable();
 
@@ -659,6 +666,7 @@ public class GridCacheMvccManager extends GridCacheSharedManagerAdapter {
     public void removeFuture(IgniteUuid futId) {
         GridCacheFuture<?> fut = futs.remove(futId);
         log.info("mvcc.removeFuture = "+futId + ", fut="+fut);
+        //U.dumpStack(log, "mvcc.removeFuture = "+futId + ", fut="+fut);
     }
 
     /**
@@ -667,6 +675,8 @@ public class GridCacheMvccManager extends GridCacheSharedManagerAdapter {
      */
     @SuppressWarnings({"SynchronizationOnLocalVariableOrMethodParameter"})
     public boolean removeVersionedFuture(GridCacheVersionedFuture<?> fut) {
+        log.info("mvcc.removeFuture fut="+fut);
+//        U.dumpStack(log, "mvcc.removeFuture fut="+fut);
         if (!fut.trackable())
             return true;
 

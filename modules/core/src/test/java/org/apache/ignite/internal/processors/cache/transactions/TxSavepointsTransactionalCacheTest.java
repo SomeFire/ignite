@@ -221,7 +221,7 @@ public class TxSavepointsTransactionalCacheTest extends GridCacheAbstractSelfTes
 
                     System.out.println("k1="+key);
                     System.out.println(nodes.txOwner().affinity(cache.getName()).mapKeyToPrimaryAndBackups(key).stream().map(ClusterNode::id).collect(Collectors.toList()));
-
+                    cache.put(key, 33333);
                     IgniteCache<Integer, Integer> cacheAsync = nodes.anotherTxOwner().getOrCreateCache(cfg);
 
                     for (int i = 0; i < gridCount(); i++)
@@ -241,25 +241,12 @@ public class TxSavepointsTransactionalCacheTest extends GridCacheAbstractSelfTes
                                         assertTrue(cacheAsync.putIfAbsent(key, 1));
                                         System.out.println("async 2");
 
-                                        try {
-                                            Thread.sleep(2_000);
-                                        }
-                                        catch (InterruptedException e) {
-                                            e.printStackTrace();
-                                        }
                                         tx0.commit();
                                     }
                                 },
                                 "_put");
 
                             waitForSecondCandidate(txType.concurrency, nodes.primaryForKey(), cache, cacheAsync, key);
-
-                            try {
-                                Thread.sleep(2_000);
-                            }
-                            catch (InterruptedException e) {
-                                e.printStackTrace();
-                            }
 
                             System.out.println(1);
                             tx.rollbackToSavepoint("sp");

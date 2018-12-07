@@ -21,17 +21,15 @@ import java.nio.channels.ClosedChannelException;
 import java.util.ArrayList;
 import java.util.Collection;
 import org.apache.ignite.IgniteCheckedException;
-import org.apache.ignite.failure.FailureHandler;
-import org.apache.ignite.failure.NoOpFailureHandler;
 import org.apache.ignite.internal.client.impl.connection.GridClientConnectionResetException;
 import org.apache.ignite.internal.util.typedef.X;
-import org.apache.ignite.testframework.junits.common.GridCommonAbstractTest;
+import org.apache.ignite.testframework.junits.common.GridCommonAbstractTestWithNoOpHandler;
 import org.apache.ignite.testsuites.IgniteIgnore;
 
 /**
  *
  */
-public class ClientReconnectionSelfTest extends GridCommonAbstractTest {
+public class ClientReconnectionSelfTest extends GridCommonAbstractTestWithNoOpHandler {
     /** */
     public static final String HOST = "127.0.0.1";
 
@@ -50,11 +48,6 @@ public class ClientReconnectionSelfTest extends GridCommonAbstractTest {
         }
 
         super.afterTest();
-    }
-
-    /** {@inheritDoc} */
-    @Override protected FailureHandler getFailureHandler(String igniteInstanceName) {
-        return new NoOpFailureHandler();
     }
 
     /**

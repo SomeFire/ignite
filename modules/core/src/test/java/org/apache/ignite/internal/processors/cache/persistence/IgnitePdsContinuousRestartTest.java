@@ -37,19 +37,17 @@ import org.apache.ignite.configuration.DataRegionConfiguration;
 import org.apache.ignite.configuration.DataStorageConfiguration;
 import org.apache.ignite.configuration.IgniteConfiguration;
 import org.apache.ignite.configuration.WALMode;
-import org.apache.ignite.failure.FailureHandler;
-import org.apache.ignite.failure.NoOpFailureHandler;
 import org.apache.ignite.internal.IgniteInternalFuture;
 import org.apache.ignite.internal.util.tostring.GridToStringInclude;
 import org.apache.ignite.internal.util.typedef.internal.S;
 import org.apache.ignite.internal.util.typedef.internal.U;
 import org.apache.ignite.testframework.GridTestUtils;
-import org.apache.ignite.testframework.junits.common.GridCommonAbstractTest;
+import org.apache.ignite.testframework.junits.common.GridCommonAbstractTestWithNoOpHandler;
 
 /**
  * Cause by https://issues.apache.org/jira/browse/IGNITE-7278
  */
-public class IgnitePdsContinuousRestartTest extends GridCommonAbstractTest {
+public class IgnitePdsContinuousRestartTest extends GridCommonAbstractTestWithNoOpHandler {
     /** */
     private static final int GRID_CNT = 4;
 
@@ -119,11 +117,6 @@ public class IgnitePdsContinuousRestartTest extends GridCommonAbstractTest {
         stopAllGrids();
 
         cleanPersistenceDir();
-    }
-
-    /** {@inheritDoc} */
-    @Override protected FailureHandler getFailureHandler(String igniteInstanceName) {
-        return new NoOpFailureHandler();
     }
 
     /**

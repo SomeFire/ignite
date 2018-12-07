@@ -15,26 +15,27 @@
  * limitations under the License.
  */
 
-package org.apache.ignite.testframework.junits.common;
+package org.apache.ignite.testframework.junits.spi;
 
 import org.apache.ignite.failure.FailureHandler;
 import org.apache.ignite.failure.NoOpFailureHandler;
+import org.apache.ignite.spi.IgniteSpi;
 
 /**
  * NoOpFailureHandler marker interface.
  */
-public class GridCommonAbstractTestWithNoOpHandler extends GridCommonAbstractTest {
-    /**
-     * @param startGrid Start grid.
-     */
-    public GridCommonAbstractTestWithNoOpHandler(boolean startGrid) {
-        super(startGrid);
-    }
-
+public class GridSpiAbstractTestWithNoOpHandler<T extends IgniteSpi> extends GridSpiAbstractTest<T> {
     /**
      * Default constructor.
      */
-    public GridCommonAbstractTestWithNoOpHandler() {}
+    public GridSpiAbstractTestWithNoOpHandler() {}
+
+    /**
+     * @param autoStart Auto start.
+     */
+    public GridSpiAbstractTestWithNoOpHandler(boolean autoStart) {
+        super(autoStart);
+    }
 
     /** {@inheritDoc} */
     @Override protected FailureHandler getFailureHandler(String igniteInstanceName) {

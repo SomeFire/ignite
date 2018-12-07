@@ -33,8 +33,6 @@ import org.apache.ignite.cache.query.ScanQuery;
 import org.apache.ignite.cluster.ClusterNode;
 import org.apache.ignite.configuration.CacheConfiguration;
 import org.apache.ignite.configuration.IgniteConfiguration;
-import org.apache.ignite.failure.FailureHandler;
-import org.apache.ignite.failure.NoOpFailureHandler;
 import org.apache.ignite.internal.IgniteEx;
 import org.apache.ignite.internal.IgniteKernal;
 import org.apache.ignite.internal.managers.communication.GridIoMessage;
@@ -61,7 +59,7 @@ import org.apache.ignite.spi.discovery.tcp.ipfinder.TcpDiscoveryIpFinder;
 import org.apache.ignite.spi.discovery.tcp.ipfinder.vm.TcpDiscoveryVmIpFinder;
 import org.apache.ignite.testframework.GridTestUtils;
 import org.apache.ignite.testframework.GridTestUtils.SF;
-import org.apache.ignite.testframework.junits.common.GridCommonAbstractTest;
+import org.apache.ignite.testframework.junits.common.GridCommonAbstractTestWithNoOpHandler;
 
 import static org.apache.ignite.cache.CacheMode.LOCAL;
 import static org.apache.ignite.cache.CacheRebalanceMode.NONE;
@@ -69,7 +67,7 @@ import static org.apache.ignite.cache.CacheRebalanceMode.NONE;
 /**
  *
  */
-public class GridCacheRebalancingSyncSelfTest extends GridCommonAbstractTest {
+public class GridCacheRebalancingSyncSelfTest extends GridCommonAbstractTestWithNoOpHandler {
     /** */
     protected static TcpDiscoveryIpFinder ipFinder = new TcpDiscoveryVmIpFinder(true);
 
@@ -251,11 +249,6 @@ public class GridCacheRebalancingSyncSelfTest extends GridCommonAbstractTest {
         super.beforeTest();
 
         GridTestUtils.runGC(); // Clean heap before rebalancing.
-    }
-
-    /** {@inheritDoc} */
-    @Override protected FailureHandler getFailureHandler(String igniteInstanceName) {
-        return new NoOpFailureHandler();
     }
 
     /**

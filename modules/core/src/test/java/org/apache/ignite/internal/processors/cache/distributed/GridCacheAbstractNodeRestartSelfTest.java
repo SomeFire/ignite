@@ -40,13 +40,11 @@ import org.apache.ignite.cache.CacheRebalanceMode;
 import org.apache.ignite.cache.eviction.lru.LruEvictionPolicy;
 import org.apache.ignite.configuration.CacheConfiguration;
 import org.apache.ignite.configuration.IgniteConfiguration;
-import org.apache.ignite.failure.FailureHandler;
-import org.apache.ignite.failure.NoOpFailureHandler;
 import org.apache.ignite.spi.communication.tcp.TcpCommunicationSpi;
 import org.apache.ignite.spi.discovery.tcp.TcpDiscoverySpi;
 import org.apache.ignite.spi.discovery.tcp.ipfinder.TcpDiscoveryIpFinder;
 import org.apache.ignite.spi.discovery.tcp.ipfinder.vm.TcpDiscoveryVmIpFinder;
-import org.apache.ignite.testframework.junits.common.GridCommonAbstractTest;
+import org.apache.ignite.testframework.junits.common.GridCommonAbstractTestWithNoOpHandler;
 import org.apache.ignite.transactions.Transaction;
 import org.apache.ignite.transactions.TransactionConcurrency;
 
@@ -61,7 +59,7 @@ import static org.apache.ignite.transactions.TransactionIsolation.REPEATABLE_REA
 /**
  * Test node restart.
  */
-public abstract class GridCacheAbstractNodeRestartSelfTest extends GridCommonAbstractTest {
+public abstract class GridCacheAbstractNodeRestartSelfTest extends GridCommonAbstractTestWithNoOpHandler {
     /** Cache name. */
     protected static final String CACHE_NAME = "TEST_CACHE";
 
@@ -188,11 +186,6 @@ public abstract class GridCacheAbstractNodeRestartSelfTest extends GridCommonAbs
         keyCnt = DFLT_KEY_CNT;
         retries = DFLT_RETRIES;
         idx = -1;
-    }
-
-    /** {@inheritDoc} */
-    @Override protected FailureHandler getFailureHandler(String igniteInstanceName) {
-        return new NoOpFailureHandler();
     }
 
     /**

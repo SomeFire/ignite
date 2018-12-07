@@ -48,8 +48,6 @@ import org.apache.ignite.configuration.IgniteConfiguration;
 import org.apache.ignite.configuration.NearCacheConfiguration;
 import org.apache.ignite.events.Event;
 import org.apache.ignite.events.EventType;
-import org.apache.ignite.failure.FailureHandler;
-import org.apache.ignite.failure.NoOpFailureHandler;
 import org.apache.ignite.internal.IgniteEx;
 import org.apache.ignite.internal.IgniteFutureCancelledCheckedException;
 import org.apache.ignite.internal.IgniteInternalFuture;
@@ -85,7 +83,7 @@ import org.apache.ignite.spi.discovery.tcp.TcpDiscoverySpi;
 import org.apache.ignite.spi.discovery.tcp.ipfinder.vm.TcpDiscoveryVmIpFinder;
 import org.apache.ignite.testframework.GridTestUtils.SF;
 import org.apache.ignite.testframework.MvccFeatureChecker;
-import org.apache.ignite.testframework.junits.common.GridCommonAbstractTest;
+import org.apache.ignite.testframework.junits.common.GridCommonAbstractTestWithNoOpHandler;
 import org.apache.ignite.transactions.Transaction;
 import org.apache.ignite.transactions.TransactionConcurrency;
 import org.apache.ignite.transactions.TransactionIsolation;
@@ -107,7 +105,7 @@ import static org.apache.ignite.transactions.TransactionState.ROLLED_BACK;
 /**
  * Tests an ability to async rollback near transactions.
  */
-public class TxRollbackAsyncTest extends GridCommonAbstractTest {
+public class TxRollbackAsyncTest extends GridCommonAbstractTestWithNoOpHandler {
     /** */
     public static final int DURATION = SF.applyLB(60_000, 5_000);
 
@@ -192,11 +190,6 @@ public class TxRollbackAsyncTest extends GridCommonAbstractTest {
         super.afterTest();
 
         stopAllGrids();
-    }
-
-    /** {@inheritDoc} */
-    @Override protected FailureHandler getFailureHandler(String igniteInstanceName) {
-        return new NoOpFailureHandler();
     }
 
     /**

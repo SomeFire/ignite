@@ -28,15 +28,13 @@ import java.util.concurrent.atomic.AtomicIntegerArray;
 import org.apache.ignite.configuration.CacheConfiguration;
 import org.apache.ignite.configuration.IgniteConfiguration;
 import org.apache.ignite.configuration.TransactionConfiguration;
-import org.apache.ignite.failure.FailureHandler;
-import org.apache.ignite.failure.NoOpFailureHandler;
 import org.apache.ignite.internal.IgniteEx;
 import org.apache.ignite.internal.IgniteInternalFuture;
 import org.apache.ignite.internal.TestRecordingCommunicationSpi;
 import org.apache.ignite.internal.util.typedef.internal.U;
 import org.apache.ignite.spi.discovery.tcp.TcpDiscoverySpi;
 import org.apache.ignite.spi.discovery.tcp.ipfinder.vm.TcpDiscoveryVmIpFinder;
-import org.apache.ignite.testframework.junits.common.GridCommonAbstractTest;
+import org.apache.ignite.testframework.junits.common.GridCommonAbstractTestWithNoOpHandler;
 import org.apache.ignite.transactions.Transaction;
 
 import static java.lang.Thread.yield;
@@ -48,7 +46,7 @@ import static org.apache.ignite.transactions.TransactionIsolation.REPEATABLE_REA
 /**
  * Tests an ability to rollback transactions on topology change.
  */
-public class TxRollbackOnTopologyChangeTest extends GridCommonAbstractTest {
+public class TxRollbackOnTopologyChangeTest extends GridCommonAbstractTestWithNoOpHandler {
     /** */
     public static final int ROLLBACK_TIMEOUT = 500;
 
@@ -106,11 +104,6 @@ public class TxRollbackOnTopologyChangeTest extends GridCommonAbstractTest {
         super.afterTest();
 
         stopAllGrids();
-    }
-
-    /** {@inheritDoc} */
-    @Override protected FailureHandler getFailureHandler(String igniteInstanceName) {
-        return new NoOpFailureHandler();
     }
 
     /**

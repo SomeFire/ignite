@@ -34,8 +34,6 @@ import org.apache.ignite.cluster.ClusterNode;
 import org.apache.ignite.configuration.IgniteConfiguration;
 import org.apache.ignite.events.Event;
 import org.apache.ignite.events.EventType;
-import org.apache.ignite.failure.FailureHandler;
-import org.apache.ignite.failure.NoOpFailureHandler;
 import org.apache.ignite.internal.util.nio.GridCommunicationClient;
 import org.apache.ignite.internal.util.typedef.internal.U;
 import org.apache.ignite.lang.IgniteCallable;
@@ -48,13 +46,13 @@ import org.apache.ignite.spi.IgniteSpiOperationTimeoutHelper;
 import org.apache.ignite.spi.collision.fifoqueue.FifoQueueCollisionSpi;
 import org.apache.ignite.spi.discovery.tcp.TcpDiscoverySpi;
 import org.apache.ignite.spi.discovery.tcp.messages.TcpDiscoveryAbstractMessage;
-import org.apache.ignite.testframework.junits.common.GridCommonAbstractTest;
+import org.apache.ignite.testframework.junits.common.GridCommonAbstractTestWithNoOpHandler;
 import org.jetbrains.annotations.Nullable;
 
 /**
  * Tests that the client will be segmented in time and won't hang due to canceling compute jobs.
  */
-public class TcpCommunicationSpiSkipMessageSendTest extends GridCommonAbstractTest {
+public class TcpCommunicationSpiSkipMessageSendTest extends GridCommonAbstractTestWithNoOpHandler {
     /** */
     private static final CountDownLatch COMPUTE_JOB_STARTED = new CountDownLatch(1);
 
@@ -102,11 +100,6 @@ public class TcpCommunicationSpiSkipMessageSendTest extends GridCommonAbstractTe
         cfg.setDiscoverySpi(discoSpi);
 
         return cfg;
-    }
-
-    /** {@inheritDoc} */
-    @Override protected FailureHandler getFailureHandler(String igniteInstanceName) {
-        return new NoOpFailureHandler();
     }
 
     /**

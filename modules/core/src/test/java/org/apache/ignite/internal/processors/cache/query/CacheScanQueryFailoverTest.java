@@ -27,13 +27,11 @@ import org.apache.ignite.cache.query.QueryCursor;
 import org.apache.ignite.cache.query.ScanQuery;
 import org.apache.ignite.configuration.CacheConfiguration;
 import org.apache.ignite.configuration.IgniteConfiguration;
-import org.apache.ignite.failure.FailureHandler;
-import org.apache.ignite.failure.NoOpFailureHandler;
 import org.apache.ignite.failure.StopNodeOrHaltFailureHandler;
 import org.apache.ignite.lang.IgniteBiPredicate;
 import org.apache.ignite.lang.IgniteClosure;
 import org.apache.ignite.testframework.GridTestUtils;
-import org.apache.ignite.testframework.junits.common.GridCommonAbstractTest;
+import org.apache.ignite.testframework.junits.common.GridCommonAbstractTestWithNoOpHandler;
 
 import static org.apache.ignite.cache.CacheMode.LOCAL;
 import static org.apache.ignite.cache.CacheMode.PARTITIONED;
@@ -41,7 +39,7 @@ import static org.apache.ignite.cache.CacheMode.PARTITIONED;
 /**
  * ScanQuery failover test. Tests scenario where user supplied closures throw unhandled errors.
  */
-public class CacheScanQueryFailoverTest extends GridCommonAbstractTest {
+public class CacheScanQueryFailoverTest extends GridCommonAbstractTestWithNoOpHandler {
     /** */
     private static final String LOCAL_CACHE_NAME = "local";
 
@@ -82,11 +80,6 @@ public class CacheScanQueryFailoverTest extends GridCommonAbstractTest {
         cfg.setFailureHandler(new StopNodeOrHaltFailureHandler());
 
         return cfg;
-    }
-
-    /** {@inheritDoc} */
-    @Override protected FailureHandler getFailureHandler(String igniteInstanceName) {
-        return new NoOpFailureHandler();
     }
 
     /**

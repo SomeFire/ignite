@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.ignite.testframework.junits.common;
+package org.apache.ignite.internal.processors.cache;
 
 import org.apache.ignite.failure.FailureHandler;
 import org.apache.ignite.failure.NoOpFailureHandler;
@@ -23,19 +23,7 @@ import org.apache.ignite.failure.NoOpFailureHandler;
 /**
  * NoOpFailureHandler marker interface.
  */
-public class GridCommonAbstractTestWithNoOpHandler extends GridCommonAbstractTest {
-    /**
-     * @param startGrid Start grid.
-     */
-    public GridCommonAbstractTestWithNoOpHandler(boolean startGrid) {
-        super(startGrid);
-    }
-
-    /**
-     * Default constructor.
-     */
-    public GridCommonAbstractTestWithNoOpHandler() {}
-
+public abstract class GridCacheAbstractSelfTestWithNoOpHandler extends GridCacheAbstractSelfTest {
     /** {@inheritDoc} */
     @Override protected FailureHandler getFailureHandler(String igniteInstanceName) {
         return new NoOpFailureHandler();

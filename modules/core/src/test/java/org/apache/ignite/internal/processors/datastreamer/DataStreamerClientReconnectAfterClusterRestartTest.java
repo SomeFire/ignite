@@ -24,17 +24,15 @@ import org.apache.ignite.configuration.CacheConfiguration;
 import org.apache.ignite.configuration.IgniteConfiguration;
 import org.apache.ignite.events.Event;
 import org.apache.ignite.events.EventType;
-import org.apache.ignite.failure.FailureHandler;
-import org.apache.ignite.failure.NoOpFailureHandler;
 import org.apache.ignite.lang.IgnitePredicate;
 import org.apache.ignite.spi.discovery.tcp.TcpDiscoverySpi;
 import org.apache.ignite.spi.discovery.tcp.ipfinder.vm.TcpDiscoveryVmIpFinder;
-import org.apache.ignite.testframework.junits.common.GridCommonAbstractTest;
+import org.apache.ignite.testframework.junits.common.GridCommonAbstractTestWithNoOpHandler;
 
 /**
  * Tests DataStreamer reconnect behaviour when client nodes arrives at the same or different topVer than it left.
  */
-public class DataStreamerClientReconnectAfterClusterRestartTest extends GridCommonAbstractTest {
+public class DataStreamerClientReconnectAfterClusterRestartTest extends GridCommonAbstractTestWithNoOpHandler {
     /** */
     public static final TcpDiscoveryVmIpFinder IP_FINDER = new TcpDiscoveryVmIpFinder(true);
 
@@ -52,11 +50,6 @@ public class DataStreamerClientReconnectAfterClusterRestartTest extends GridComm
         cfg.setClientMode(clientMode);
 
         return cfg;
-    }
-
-    /** {@inheritDoc} */
-    @Override protected FailureHandler getFailureHandler(String igniteInstanceName) {
-        return new NoOpFailureHandler();
     }
 
     /** */

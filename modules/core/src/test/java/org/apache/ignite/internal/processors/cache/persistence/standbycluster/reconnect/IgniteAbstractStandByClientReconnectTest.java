@@ -17,12 +17,12 @@
 
 package org.apache.ignite.internal.processors.cache.persistence.standbycluster.reconnect;
 
+import com.google.common.collect.Sets;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
-import com.google.common.collect.Sets;
 import org.apache.ignite.cluster.ClusterNode;
 import org.apache.ignite.configuration.CacheConfiguration;
 import org.apache.ignite.configuration.DataRegionConfiguration;
@@ -30,8 +30,6 @@ import org.apache.ignite.configuration.DataStorageConfiguration;
 import org.apache.ignite.configuration.IgniteConfiguration;
 import org.apache.ignite.events.Event;
 import org.apache.ignite.events.EventType;
-import org.apache.ignite.failure.FailureHandler;
-import org.apache.ignite.failure.NoOpFailureHandler;
 import org.apache.ignite.internal.IgniteEx;
 import org.apache.ignite.internal.processors.cache.DynamicCacheDescriptor;
 import org.apache.ignite.internal.util.typedef.internal.CU;
@@ -41,7 +39,7 @@ import org.apache.ignite.spi.discovery.DiscoverySpiCustomMessage;
 import org.apache.ignite.spi.discovery.DiscoverySpiListener;
 import org.apache.ignite.spi.discovery.tcp.TcpDiscoverySpi;
 import org.apache.ignite.spi.discovery.tcp.ipfinder.vm.TcpDiscoveryVmIpFinder;
-import org.apache.ignite.testframework.junits.common.GridCommonAbstractTest;
+import org.apache.ignite.testframework.junits.common.GridCommonAbstractTestWithNoOpHandler;
 import org.jetbrains.annotations.Nullable;
 import org.junit.Assert;
 
@@ -50,7 +48,7 @@ import static org.apache.ignite.events.EventType.EVT_CLIENT_NODE_DISCONNECTED;
 /**
  *
  */
-public abstract class IgniteAbstractStandByClientReconnectTest extends GridCommonAbstractTest {
+public abstract class IgniteAbstractStandByClientReconnectTest extends GridCommonAbstractTestWithNoOpHandler {
     /** */
     private static final TcpDiscoveryVmIpFinder vmIpFinder = new TcpDiscoveryVmIpFinder(true);
 
@@ -153,11 +151,6 @@ public abstract class IgniteAbstractStandByClientReconnectTest extends GridCommo
         cfg.setConsistentId(name);
 
         return cfg;
-    }
-
-    /** {@inheritDoc} */
-    @Override protected FailureHandler getFailureHandler(String igniteInstanceName) {
-        return new NoOpFailureHandler();
     }
 
     /**

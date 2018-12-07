@@ -17,6 +17,7 @@
 
 package org.apache.ignite.internal.processors.cache.persistence;
 
+import com.google.common.collect.Lists;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -33,7 +34,6 @@ import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
-import com.google.common.collect.Lists;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteCache;
 import org.apache.ignite.IgniteDataStreamer;
@@ -49,8 +49,6 @@ import org.apache.ignite.configuration.DataRegionConfiguration;
 import org.apache.ignite.configuration.DataStorageConfiguration;
 import org.apache.ignite.configuration.IgniteConfiguration;
 import org.apache.ignite.configuration.WALMode;
-import org.apache.ignite.failure.FailureHandler;
-import org.apache.ignite.failure.NoOpFailureHandler;
 import org.apache.ignite.internal.IgniteEx;
 import org.apache.ignite.internal.IgniteInternalFuture;
 import org.apache.ignite.internal.processors.cache.distributed.dht.topology.GridDhtLocalPartition;
@@ -60,7 +58,7 @@ import org.apache.ignite.spi.discovery.tcp.TcpDiscoverySpi;
 import org.apache.ignite.spi.discovery.tcp.ipfinder.TcpDiscoveryIpFinder;
 import org.apache.ignite.spi.discovery.tcp.ipfinder.vm.TcpDiscoveryVmIpFinder;
 import org.apache.ignite.testframework.GridTestUtils;
-import org.apache.ignite.testframework.junits.common.GridCommonAbstractTest;
+import org.apache.ignite.testframework.junits.common.GridCommonAbstractTestWithNoOpHandler;
 import org.apache.ignite.transactions.Transaction;
 
 import static org.apache.ignite.testframework.GridTestUtils.runMultiThreadedAsync;
@@ -68,7 +66,7 @@ import static org.apache.ignite.testframework.GridTestUtils.runMultiThreadedAsyn
 /**
  * Test for rebalancing and persistence integration.
  */
-public abstract class IgnitePdsCacheRebalancingAbstractTest extends GridCommonAbstractTest {
+public abstract class IgnitePdsCacheRebalancingAbstractTest extends GridCommonAbstractTestWithNoOpHandler {
     /** */
     private static final TcpDiscoveryIpFinder IP_FINDER = new TcpDiscoveryVmIpFinder(true);
 
@@ -158,11 +156,6 @@ public abstract class IgnitePdsCacheRebalancingAbstractTest extends GridCommonAb
         );
 
         return cfg;
-    }
-
-    /** {@inheritDoc} */
-    @Override protected FailureHandler getFailureHandler(String igniteInstanceName) {
-        return new NoOpFailureHandler();
     }
 
     /**

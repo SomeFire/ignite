@@ -37,8 +37,6 @@ import org.apache.ignite.IgniteSet;
 import org.apache.ignite.configuration.AtomicConfiguration;
 import org.apache.ignite.configuration.CollectionConfiguration;
 import org.apache.ignite.configuration.IgniteConfiguration;
-import org.apache.ignite.failure.FailureHandler;
-import org.apache.ignite.failure.NoOpFailureHandler;
 import org.apache.ignite.internal.IgniteInternalFuture;
 import org.apache.ignite.internal.util.typedef.internal.U;
 import org.apache.ignite.lang.IgniteInClosure;
@@ -47,7 +45,7 @@ import org.apache.ignite.spi.discovery.tcp.TcpDiscoverySpi;
 import org.apache.ignite.spi.discovery.tcp.ipfinder.TcpDiscoveryIpFinder;
 import org.apache.ignite.spi.discovery.tcp.ipfinder.vm.TcpDiscoveryVmIpFinder;
 import org.apache.ignite.testframework.GridTestUtils;
-import org.apache.ignite.testframework.junits.common.GridCommonAbstractTest;
+import org.apache.ignite.testframework.junits.common.GridCommonAbstractTestWithNoOpHandler;
 
 import static org.apache.ignite.cache.CacheAtomicityMode.ATOMIC;
 import static org.apache.ignite.cache.CacheAtomicityMode.TRANSACTIONAL;
@@ -56,7 +54,7 @@ import static org.apache.ignite.cache.CacheMode.PARTITIONED;
 /**
  *
  */
-public class IgniteAtomicLongChangingTopologySelfTest extends GridCommonAbstractTest {
+public class IgniteAtomicLongChangingTopologySelfTest extends GridCommonAbstractTestWithNoOpHandler {
     /** Grid count. */
     private static final int GRID_CNT = 5;
 
@@ -105,11 +103,6 @@ public class IgniteAtomicLongChangingTopologySelfTest extends GridCommonAbstract
         stopAllGrids();
 
         queue.clear();
-    }
-
-    /** {@inheritDoc} */
-    @Override protected FailureHandler getFailureHandler(String igniteInstanceName) {
-        return new NoOpFailureHandler();
     }
 
     /**

@@ -32,19 +32,17 @@ import org.apache.ignite.compute.ComputeJobResult;
 import org.apache.ignite.compute.ComputeJobResultPolicy;
 import org.apache.ignite.compute.ComputeTask;
 import org.apache.ignite.configuration.IgniteConfiguration;
-import org.apache.ignite.failure.FailureHandler;
-import org.apache.ignite.failure.NoOpFailureHandler;
 import org.apache.ignite.resources.IgniteInstanceResource;
 import org.apache.ignite.spi.failover.FailoverContext;
 import org.apache.ignite.spi.failover.always.AlwaysFailoverSpi;
-import org.apache.ignite.testframework.junits.common.GridCommonAbstractTest;
+import org.apache.ignite.testframework.junits.common.GridCommonAbstractTestWithNoOpHandler;
 import org.apache.ignite.testframework.junits.common.GridCommonTest;
 
 /**
  * Test failover and topology. It don't pick local node if it has been excluded from topology.
  */
 @GridCommonTest(group = "Kernal Self")
-public class GridFailoverTopologySelfTest extends GridCommonAbstractTest {
+public class GridFailoverTopologySelfTest extends GridCommonAbstractTestWithNoOpHandler {
     /** */
     private final AtomicBoolean failed = new AtomicBoolean(false);
 
@@ -87,11 +85,6 @@ public class GridFailoverTopologySelfTest extends GridCommonAbstractTest {
         });
 
         return cfg;
-    }
-
-    /** {@inheritDoc} */
-    @Override protected FailureHandler getFailureHandler(String igniteInstanceName) {
-        return new NoOpFailureHandler();
     }
 
     /**

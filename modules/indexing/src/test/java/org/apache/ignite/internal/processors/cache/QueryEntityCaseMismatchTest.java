@@ -17,30 +17,27 @@
 
 package org.apache.ignite.internal.processors.cache;
 
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.concurrent.Callable;
 import org.apache.ignite.IgniteCheckedException;
 import org.apache.ignite.cache.QueryEntity;
 import org.apache.ignite.configuration.CacheConfiguration;
 import org.apache.ignite.configuration.IgniteConfiguration;
-import org.apache.ignite.failure.FailureHandler;
-import org.apache.ignite.failure.NoOpFailureHandler;
 import org.apache.ignite.internal.binary.BinaryMarshaller;
 import org.apache.ignite.internal.util.typedef.F;
 import org.apache.ignite.spi.discovery.tcp.TcpDiscoverySpi;
 import org.apache.ignite.spi.discovery.tcp.ipfinder.vm.TcpDiscoveryVmIpFinder;
 import org.apache.ignite.testframework.GridTestUtils;
-import org.apache.ignite.testframework.junits.common.GridCommonAbstractTest;
-
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.concurrent.Callable;
+import org.apache.ignite.testframework.junits.common.GridCommonAbstractTestWithNoOpHandler;
 
 /**
  * Test reveals issue of null values in SQL query resultset columns that correspond to compound key.
  * That happens when QueryEntity.keyFields has wrong register compared to QueryEntity.fields.
  * Issue only manifests for BinaryMarshaller case. Otherwise the keyFields aren't taken into account.
  */
-public class QueryEntityCaseMismatchTest extends GridCommonAbstractTest {
+public class QueryEntityCaseMismatchTest extends GridCommonAbstractTestWithNoOpHandler {
     /** {@inheritDoc} */
     @Override protected void afterTest() throws Exception {
         stopAllGrids();
@@ -89,11 +86,6 @@ public class QueryEntityCaseMismatchTest extends GridCommonAbstractTest {
         cfg.setCacheConfiguration(ccfg);
 
         return cfg;
-    }
-
-    /** {@inheritDoc} */
-    @Override protected FailureHandler getFailureHandler(String igniteInstanceName) {
-        return new NoOpFailureHandler();
     }
 
     /**

@@ -32,18 +32,16 @@ import org.apache.ignite.compute.ComputeTask;
 import org.apache.ignite.compute.ComputeTaskSession;
 import org.apache.ignite.compute.ComputeTaskSessionFullSupport;
 import org.apache.ignite.configuration.IgniteConfiguration;
-import org.apache.ignite.failure.FailureHandler;
-import org.apache.ignite.failure.NoOpFailureHandler;
 import org.apache.ignite.resources.TaskSessionResource;
 import org.apache.ignite.spi.failover.always.AlwaysFailoverSpi;
-import org.apache.ignite.testframework.junits.common.GridCommonAbstractTest;
+import org.apache.ignite.testframework.junits.common.GridCommonAbstractTestWithNoOpHandler;
 import org.apache.ignite.testframework.junits.common.GridCommonTest;
 
 /**
  * Job failover test.
  */
 @GridCommonTest(group = "Task Session")
-public class GridSessionJobFailoverSelfTest extends GridCommonAbstractTest {
+public class GridSessionJobFailoverSelfTest extends GridCommonAbstractTestWithNoOpHandler {
     /**
      * Default constructor.
      */
@@ -58,11 +56,6 @@ public class GridSessionJobFailoverSelfTest extends GridCommonAbstractTest {
         cfg.setFailoverSpi(new AlwaysFailoverSpi());
 
         return cfg;
-    }
-
-    /** {@inheritDoc} */
-    @Override protected FailureHandler getFailureHandler(String igniteInstanceName) {
-        return new NoOpFailureHandler();
     }
 
     /**

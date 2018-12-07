@@ -17,10 +17,10 @@
 
 package org.apache.ignite.internal.processors.cache;
 
-import javax.cache.CacheException;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
+import javax.cache.CacheException;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteCache;
 import org.apache.ignite.IgniteClientDisconnectedException;
@@ -35,16 +35,14 @@ import org.apache.ignite.configuration.CacheConfiguration;
 import org.apache.ignite.configuration.IgniteConfiguration;
 import org.apache.ignite.events.Event;
 import org.apache.ignite.events.EventType;
-import org.apache.ignite.failure.FailureHandler;
-import org.apache.ignite.failure.NoOpFailureHandler;
 import org.apache.ignite.internal.binary.BinaryMarshaller;
 import org.apache.ignite.lang.IgnitePredicate;
-import org.apache.ignite.testframework.junits.common.GridCommonAbstractTest;
+import org.apache.ignite.testframework.junits.common.GridCommonAbstractTestWithNoOpHandler;
 import org.jetbrains.annotations.NotNull;
 
 /**
  */
-public class ClientReconnectAfterClusterRestartTest extends GridCommonAbstractTest {
+public class ClientReconnectAfterClusterRestartTest extends GridCommonAbstractTestWithNoOpHandler {
     /** Server id. */
     private static final int SERVER_ID = 0;
 
@@ -112,11 +110,6 @@ public class ClientReconnectAfterClusterRestartTest extends GridCommonAbstractTe
 
         ccfg.setQueryEntities(queryEntities);
         return ccfg;
-    }
-
-    /** {@inheritDoc} */
-    @Override protected FailureHandler getFailureHandler(String igniteInstanceName) {
-        return new NoOpFailureHandler();
     }
 
     /** */

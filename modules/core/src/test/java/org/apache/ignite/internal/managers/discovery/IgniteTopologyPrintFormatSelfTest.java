@@ -21,8 +21,6 @@ import java.util.ArrayList;
 import java.util.List;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.configuration.IgniteConfiguration;
-import org.apache.ignite.failure.FailureHandler;
-import org.apache.ignite.failure.NoOpFailureHandler;
 import org.apache.ignite.internal.IgniteKernal;
 import org.apache.ignite.internal.managers.GridManagerAdapter;
 import org.apache.ignite.internal.util.typedef.F;
@@ -32,14 +30,14 @@ import org.apache.ignite.spi.discovery.tcp.TcpDiscoverySpi;
 import org.apache.ignite.spi.discovery.tcp.ipfinder.TcpDiscoveryIpFinder;
 import org.apache.ignite.spi.discovery.tcp.ipfinder.vm.TcpDiscoveryVmIpFinder;
 import org.apache.ignite.testframework.GridTestUtils;
-import org.apache.ignite.testframework.junits.common.GridCommonAbstractTest;
+import org.apache.ignite.testframework.junits.common.GridCommonAbstractTestWithNoOpHandler;
 import org.apache.ignite.testframework.junits.logger.GridTestLog4jLogger;
 import org.apache.log4j.Level;
 
 /**
  *
  */
-public class IgniteTopologyPrintFormatSelfTest extends GridCommonAbstractTest {
+public class IgniteTopologyPrintFormatSelfTest extends GridCommonAbstractTestWithNoOpHandler {
     /** */
     public static final String TOPOLOGY_SNAPSHOT = "Topology snapshot";
 
@@ -83,11 +81,6 @@ public class IgniteTopologyPrintFormatSelfTest extends GridCommonAbstractTest {
 
         if (log instanceof MockLogger)
             ((MockLogger)log).clear();
-    }
-
-    /** {@inheritDoc} */
-    @Override protected FailureHandler getFailureHandler(String igniteInstanceName) {
-        return new NoOpFailureHandler();
     }
 
     /**

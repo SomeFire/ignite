@@ -23,12 +23,10 @@ import org.apache.ignite.GridTestJob;
 import org.apache.ignite.GridTestTaskSession;
 import org.apache.ignite.cluster.ClusterNode;
 import org.apache.ignite.compute.ComputeTaskSession;
-import org.apache.ignite.failure.FailureHandler;
-import org.apache.ignite.failure.NoOpFailureHandler;
 import org.apache.ignite.lang.IgniteUuid;
 import org.apache.ignite.testframework.GridSpiTestContext;
 import org.apache.ignite.testframework.GridTestNode;
-import org.apache.ignite.testframework.junits.spi.GridSpiAbstractTest;
+import org.apache.ignite.testframework.junits.spi.GridSpiAbstractTestWithNoOpHandler;
 import org.apache.ignite.testframework.junits.spi.GridSpiTest;
 import org.apache.ignite.testframework.junits.spi.GridSpiTestConfig;
 
@@ -39,7 +37,7 @@ import static org.apache.ignite.spi.loadbalancing.roundrobin.GridRoundRobinTestU
  */
 @GridSpiTest(spi = RoundRobinLoadBalancingSpi.class, group = "Load Balancing SPI")
 public class GridRoundRobinLoadBalancingSpiTopologyChangeSelfTest
-    extends GridSpiAbstractTest<RoundRobinLoadBalancingSpi> {
+    extends GridSpiAbstractTestWithNoOpHandler<RoundRobinLoadBalancingSpi> {
     /**
      * @return Per-task configuration parameter.
      */
@@ -54,11 +52,6 @@ public class GridRoundRobinLoadBalancingSpiTopologyChangeSelfTest
         spiCtx.createRemoteNodes(10);
 
         return spiCtx;
-    }
-
-    /** {@inheritDoc} */
-    @Override protected FailureHandler getFailureHandler(String igniteInstanceName) {
-        return new NoOpFailureHandler();
     }
 
     /**

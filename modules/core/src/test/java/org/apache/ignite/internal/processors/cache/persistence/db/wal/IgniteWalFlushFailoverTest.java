@@ -20,9 +20,9 @@ package org.apache.ignite.internal.processors.cache.persistence.db.wal;
 import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.nio.MappedByteBuffer;
 import java.nio.file.OpenOption;
+import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.ignite.IgniteCache;
 import org.apache.ignite.cache.CacheAtomicityMode;
 import org.apache.ignite.configuration.CacheConfiguration;
@@ -30,8 +30,6 @@ import org.apache.ignite.configuration.DataRegionConfiguration;
 import org.apache.ignite.configuration.DataStorageConfiguration;
 import org.apache.ignite.configuration.IgniteConfiguration;
 import org.apache.ignite.configuration.WALMode;
-import org.apache.ignite.failure.FailureHandler;
-import org.apache.ignite.failure.NoOpFailureHandler;
 import org.apache.ignite.internal.GridKernalState;
 import org.apache.ignite.internal.IgniteEx;
 import org.apache.ignite.internal.processors.cache.persistence.file.FileIO;
@@ -41,7 +39,7 @@ import org.apache.ignite.internal.processors.cache.persistence.file.RandomAccess
 import org.apache.ignite.internal.processors.cache.persistence.wal.FileWriteAheadLogManager;
 import org.apache.ignite.internal.util.lang.GridAbsPredicate;
 import org.apache.ignite.testframework.GridTestUtils;
-import org.apache.ignite.testframework.junits.common.GridCommonAbstractTest;
+import org.apache.ignite.testframework.junits.common.GridCommonAbstractTestWithNoOpHandler;
 import org.apache.ignite.transactions.Transaction;
 import org.apache.ignite.transactions.TransactionConcurrency;
 import org.apache.ignite.transactions.TransactionIsolation;
@@ -49,7 +47,7 @@ import org.apache.ignite.transactions.TransactionIsolation;
 /**
  *
  */
-public class IgniteWalFlushFailoverTest extends GridCommonAbstractTest {
+public class IgniteWalFlushFailoverTest extends GridCommonAbstractTestWithNoOpHandler {
     /** */
     private static final String TEST_CACHE = "testCache";
 
@@ -95,11 +93,6 @@ public class IgniteWalFlushFailoverTest extends GridCommonAbstractTest {
         cfg.setDataStorageConfiguration(memCfg);
 
         return cfg;
-    }
-
-    /** {@inheritDoc} */
-    @Override protected FailureHandler getFailureHandler(String igniteInstanceName) {
-        return new NoOpFailureHandler();
     }
 
     /**

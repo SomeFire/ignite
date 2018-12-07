@@ -21,8 +21,6 @@ import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteCheckedException;
 import org.apache.ignite.configuration.DeploymentMode;
 import org.apache.ignite.configuration.IgniteConfiguration;
-import org.apache.ignite.failure.FailureHandler;
-import org.apache.ignite.failure.NoOpFailureHandler;
 import org.apache.ignite.internal.IgniteEx;
 import org.apache.ignite.internal.binary.BinaryMarshaller;
 import org.apache.ignite.internal.marshaller.optimized.OptimizedMarshaller;
@@ -31,7 +29,7 @@ import org.apache.ignite.spi.discovery.tcp.TestReconnectPluginProvider;
 import org.apache.ignite.spi.discovery.tcp.TestReconnectProcessor;
 import org.apache.ignite.spi.discovery.tcp.ipfinder.TcpDiscoveryIpFinder;
 import org.apache.ignite.spi.discovery.tcp.ipfinder.vm.TcpDiscoveryVmIpFinder;
-import org.apache.ignite.testframework.junits.common.GridCommonAbstractTest;
+import org.apache.ignite.testframework.junits.common.GridCommonAbstractTestWithNoOpHandler;
 
 import static org.apache.ignite.IgniteSystemProperties.IGNITE_BINARY_MARSHALLER_USE_STRING_SERIALIZATION_VER_2;
 import static org.apache.ignite.IgniteSystemProperties.IGNITE_OPTIMIZED_MARSHALLER_USE_DEFAULT_SUID;
@@ -42,7 +40,7 @@ import static org.apache.ignite.configuration.DeploymentMode.SHARED;
 /**
  * Tests for node attributes consistency checks.
  */
-public abstract class GridDiscoveryManagerAttributesSelfTest extends GridCommonAbstractTest {
+public abstract class GridDiscoveryManagerAttributesSelfTest extends GridCommonAbstractTestWithNoOpHandler {
     /** */
     private static final String PREFER_IPV4 = "java.net.preferIPv4Stack";
 
@@ -91,11 +89,6 @@ public abstract class GridDiscoveryManagerAttributesSelfTest extends GridCommonA
     /** {@inheritDoc} */
     @Override protected void afterTest() throws Exception {
         stopAllGrids();
-    }
-
-    /** {@inheritDoc} */
-    @Override protected FailureHandler getFailureHandler(String igniteInstanceName) {
-        return new NoOpFailureHandler();
     }
 
     /**

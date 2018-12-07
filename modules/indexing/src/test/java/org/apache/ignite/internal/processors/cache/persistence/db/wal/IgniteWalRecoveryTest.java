@@ -58,8 +58,6 @@ import org.apache.ignite.configuration.DataRegionConfiguration;
 import org.apache.ignite.configuration.DataStorageConfiguration;
 import org.apache.ignite.configuration.IgniteConfiguration;
 import org.apache.ignite.configuration.WALMode;
-import org.apache.ignite.failure.FailureHandler;
-import org.apache.ignite.failure.NoOpFailureHandler;
 import org.apache.ignite.internal.DiscoverySpiTestListener;
 import org.apache.ignite.internal.IgniteEx;
 import org.apache.ignite.internal.IgniteInternalFuture;
@@ -102,7 +100,7 @@ import org.apache.ignite.lang.IgnitePredicate;
 import org.apache.ignite.lang.IgniteRunnable;
 import org.apache.ignite.resources.IgniteInstanceResource;
 import org.apache.ignite.testframework.GridTestUtils;
-import org.apache.ignite.testframework.junits.common.GridCommonAbstractTest;
+import org.apache.ignite.testframework.junits.common.GridCommonAbstractTestWithNoOpHandler;
 import org.apache.ignite.testframework.junits.multijvm.IgniteProcessProxy;
 import org.apache.ignite.transactions.Transaction;
 import org.apache.ignite.transactions.TransactionConcurrency;
@@ -117,7 +115,7 @@ import static org.apache.ignite.internal.processors.cache.persistence.file.FileP
 /**
  *
  */
-public class IgniteWalRecoveryTest extends GridCommonAbstractTest {
+public class IgniteWalRecoveryTest extends GridCommonAbstractTestWithNoOpHandler {
     /** */
     private static final String HAS_CACHE = "HAS_CACHE";
 
@@ -244,11 +242,6 @@ public class IgniteWalRecoveryTest extends GridCommonAbstractTest {
         stopAllGrids();
 
         cleanPersistenceDir();
-    }
-
-    /** {@inheritDoc} */
-    @Override protected FailureHandler getFailureHandler(String igniteInstanceName) {
-        return new NoOpFailureHandler();
     }
 
     /**

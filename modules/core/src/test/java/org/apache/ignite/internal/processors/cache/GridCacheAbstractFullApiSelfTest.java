@@ -70,8 +70,6 @@ import org.apache.ignite.configuration.IgniteConfiguration;
 import org.apache.ignite.events.CacheEvent;
 import org.apache.ignite.events.Event;
 import org.apache.ignite.events.EventType;
-import org.apache.ignite.failure.FailureHandler;
-import org.apache.ignite.failure.NoOpFailureHandler;
 import org.apache.ignite.internal.IgniteEx;
 import org.apache.ignite.internal.IgniteKernal;
 import org.apache.ignite.internal.IgnitionEx;
@@ -130,7 +128,7 @@ import static org.apache.ignite.transactions.TransactionState.COMMITTED;
  * Full API cache test.
  */
 @SuppressWarnings("TransientFieldInNonSerializableClass")
-public abstract class GridCacheAbstractFullApiSelfTest extends GridCacheAbstractSelfTest {
+public abstract class GridCacheAbstractFullApiSelfTest extends GridCacheAbstractSelfTestWithNoOpHandler {
     /** Test timeout */
     private static final long TEST_TIMEOUT = 60 * 1000;
 
@@ -269,11 +267,6 @@ public abstract class GridCacheAbstractFullApiSelfTest extends GridCacheAbstract
 
         for (int i = 0; i < gridCount(); i++)
             info("Grid " + i + ": " + grid(i).localNode().id());
-    }
-
-    /** {@inheritDoc} */
-    @Override protected FailureHandler getFailureHandler(String igniteInstanceName) {
-        return new NoOpFailureHandler();
     }
 
     /**

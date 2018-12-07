@@ -17,6 +17,7 @@
 
 package org.apache.ignite.internal.processors.cache.persistence.db;
 
+import com.google.common.collect.Lists;
 import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -30,7 +31,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
-import com.google.common.collect.Lists;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteCache;
 import org.apache.ignite.IgniteIllegalStateException;
@@ -44,8 +44,6 @@ import org.apache.ignite.configuration.DataRegionConfiguration;
 import org.apache.ignite.configuration.DataStorageConfiguration;
 import org.apache.ignite.configuration.IgniteConfiguration;
 import org.apache.ignite.configuration.WALMode;
-import org.apache.ignite.failure.FailureHandler;
-import org.apache.ignite.failure.StopNodeFailureHandler;
 import org.apache.ignite.internal.IgniteEx;
 import org.apache.ignite.internal.IgniteInternalFuture;
 import org.apache.ignite.internal.TestRecordingCommunicationSpi;
@@ -61,14 +59,14 @@ import org.apache.ignite.internal.util.typedef.G;
 import org.apache.ignite.internal.util.typedef.internal.CU;
 import org.apache.ignite.internal.util.typedef.internal.U;
 import org.apache.ignite.testframework.GridTestUtils;
-import org.apache.ignite.testframework.junits.common.GridCommonAbstractTest;
+import org.apache.ignite.testframework.junits.common.GridCommonAbstractTestWithNoOpHandler;
 import org.jetbrains.annotations.Nullable;
 import org.junit.Assert;
 
 /**
  * A set of tests that check correctness of logical recovery performed during node start.
  */
-public class IgniteLogicalRecoveryTest extends GridCommonAbstractTest {
+public class IgniteLogicalRecoveryTest extends GridCommonAbstractTestWithNoOpHandler {
     /** */
     private static final int[] EVTS_DISABLED = {};
 
@@ -379,11 +377,6 @@ public class IgniteLogicalRecoveryTest extends GridCommonAbstractTest {
 
         for (int idx = 0; idx < 3; idx++)
             cacheLoader.consistencyCheck(grid(idx));
-    }
-
-    /** {@inheritDoc} */
-    @Override protected FailureHandler getFailureHandler(String igniteInstanceName) {
-        return new StopNodeFailureHandler();
     }
 
     /** {@inheritDoc} */

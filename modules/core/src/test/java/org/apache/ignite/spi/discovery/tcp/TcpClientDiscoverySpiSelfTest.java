@@ -42,8 +42,6 @@ import org.apache.ignite.cluster.ClusterNode;
 import org.apache.ignite.configuration.IgniteConfiguration;
 import org.apache.ignite.events.DiscoveryEvent;
 import org.apache.ignite.events.Event;
-import org.apache.ignite.failure.FailureHandler;
-import org.apache.ignite.failure.NoOpFailureHandler;
 import org.apache.ignite.internal.IgniteEx;
 import org.apache.ignite.internal.IgniteInternalFuture;
 import org.apache.ignite.internal.IgniteKernal;
@@ -73,7 +71,7 @@ import org.apache.ignite.spi.discovery.tcp.messages.TcpDiscoveryJoinRequestMessa
 import org.apache.ignite.spi.discovery.tcp.messages.TcpDiscoveryNodeAddFinishedMessage;
 import org.apache.ignite.spi.discovery.tcp.messages.TcpDiscoveryNodeAddedMessage;
 import org.apache.ignite.testframework.GridTestUtils;
-import org.apache.ignite.testframework.junits.common.GridCommonAbstractTest;
+import org.apache.ignite.testframework.junits.common.GridCommonAbstractTestWithNoOpHandler;
 import org.jetbrains.annotations.Nullable;
 
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
@@ -88,7 +86,7 @@ import static org.apache.ignite.events.EventType.EVT_NODE_SEGMENTED;
 /**
  * Client-based discovery tests.
  */
-public class TcpClientDiscoverySpiSelfTest extends GridCommonAbstractTest {
+public class TcpClientDiscoverySpiSelfTest extends GridCommonAbstractTestWithNoOpHandler {
     /** */
     private static final TcpDiscoveryVmIpFinder IP_FINDER = new TcpDiscoveryVmIpFinder(true);
 
@@ -269,11 +267,6 @@ public class TcpClientDiscoverySpiSelfTest extends GridCommonAbstractTest {
         longSockTimeouts = false;
 
         assert G.allGrids().isEmpty();
-    }
-
-    /** {@inheritDoc} */
-    @Override protected FailureHandler getFailureHandler(String igniteInstanceName) {
-        return new NoOpFailureHandler();
     }
 
     /**

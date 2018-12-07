@@ -36,8 +36,6 @@ import org.apache.ignite.configuration.DataRegionConfiguration;
 import org.apache.ignite.configuration.DataStorageConfiguration;
 import org.apache.ignite.configuration.IgniteConfiguration;
 import org.apache.ignite.configuration.WALMode;
-import org.apache.ignite.failure.FailureHandler;
-import org.apache.ignite.failure.NoOpFailureHandler;
 import org.apache.ignite.internal.IgniteEx;
 import org.apache.ignite.internal.IgniteInternalFuture;
 import org.apache.ignite.internal.cluster.DetachedClusterNode;
@@ -54,7 +52,7 @@ import org.apache.ignite.plugin.extensions.communication.Message;
 import org.apache.ignite.spi.IgniteSpiException;
 import org.apache.ignite.spi.communication.tcp.TcpCommunicationSpi;
 import org.apache.ignite.testframework.GridTestUtils;
-import org.apache.ignite.testframework.junits.common.GridCommonAbstractTest;
+import org.apache.ignite.testframework.junits.common.GridCommonAbstractTestWithNoOpHandler;
 import org.junit.Assert;
 
 import static org.apache.ignite.cache.CacheMode.PARTITIONED;
@@ -62,7 +60,7 @@ import static org.apache.ignite.cache.CacheMode.PARTITIONED;
 /**
  *
  */
-public class IgniteBaselineAffinityTopologyActivationTest extends GridCommonAbstractTest {
+public class IgniteBaselineAffinityTopologyActivationTest extends GridCommonAbstractTestWithNoOpHandler {
     /** */
     private String consId;
 
@@ -112,11 +110,6 @@ public class IgniteBaselineAffinityTopologyActivationTest extends GridCommonAbst
         stopAllGrids(false);
 
         cleanPersistenceDir();
-    }
-
-    /** {@inheritDoc} */
-    @Override protected FailureHandler getFailureHandler(String igniteInstanceName) {
-        return new NoOpFailureHandler();
     }
 
     /**

@@ -26,10 +26,8 @@ import org.apache.ignite.IgniteTransactions;
 import org.apache.ignite.cache.CacheAtomicityMode;
 import org.apache.ignite.configuration.CacheConfiguration;
 import org.apache.ignite.configuration.IgniteConfiguration;
-import org.apache.ignite.failure.FailureHandler;
-import org.apache.ignite.failure.NoOpFailureHandler;
 import org.apache.ignite.internal.IgniteEx;
-import org.apache.ignite.internal.processors.cache.GridCacheAbstractSelfTest;
+import org.apache.ignite.internal.processors.cache.GridCacheAbstractSelfTestWithNoOpHandler;
 import org.apache.ignite.internal.transactions.IgniteTxHeuristicCheckedException;
 import org.apache.ignite.spi.IgniteSpiAdapter;
 import org.apache.ignite.spi.IgniteSpiException;
@@ -46,7 +44,7 @@ import org.jetbrains.annotations.Nullable;
 /**
  * Indexing Spi transactional query test
  */
-public class IndexingSpiQueryTxSelfTest extends GridCacheAbstractSelfTest {
+public class IndexingSpiQueryTxSelfTest extends GridCacheAbstractSelfTestWithNoOpHandler {
     /** {@inheritDoc} */
     @Override protected int gridCount() {
         return 4;
@@ -70,11 +68,6 @@ public class IndexingSpiQueryTxSelfTest extends GridCacheAbstractSelfTest {
         cfg.setCacheConfiguration(ccfg);
 
         return cfg;
-    }
-
-    /** {@inheritDoc} */
-    @Override protected FailureHandler getFailureHandler(String igniteInstanceName) {
-        return new NoOpFailureHandler();
     }
 
     /** */

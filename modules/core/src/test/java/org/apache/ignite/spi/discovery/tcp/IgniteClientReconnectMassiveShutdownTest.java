@@ -34,15 +34,13 @@ import org.apache.ignite.IgniteTransactions;
 import org.apache.ignite.cluster.ClusterTopologyException;
 import org.apache.ignite.configuration.CacheConfiguration;
 import org.apache.ignite.configuration.IgniteConfiguration;
-import org.apache.ignite.failure.FailureHandler;
-import org.apache.ignite.failure.NoOpFailureHandler;
 import org.apache.ignite.internal.IgniteInternalFuture;
 import org.apache.ignite.internal.util.typedef.X;
 import org.apache.ignite.internal.util.typedef.internal.U;
 import org.apache.ignite.spi.communication.tcp.TcpCommunicationSpi;
 import org.apache.ignite.spi.discovery.tcp.ipfinder.TcpDiscoveryIpFinder;
 import org.apache.ignite.spi.discovery.tcp.ipfinder.vm.TcpDiscoveryVmIpFinder;
-import org.apache.ignite.testframework.junits.common.GridCommonAbstractTest;
+import org.apache.ignite.testframework.junits.common.GridCommonAbstractTestWithNoOpHandler;
 import org.apache.ignite.transactions.Transaction;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
@@ -54,7 +52,7 @@ import static org.apache.ignite.transactions.TransactionIsolation.REPEATABLE_REA
 /**
  * Client reconnect test in multi threaded mode while cache operations are in progress.
  */
-public class IgniteClientReconnectMassiveShutdownTest extends GridCommonAbstractTest {
+public class IgniteClientReconnectMassiveShutdownTest extends GridCommonAbstractTestWithNoOpHandler {
     /** */
     private static final int GRID_CNT = 14;
 
@@ -92,11 +90,6 @@ public class IgniteClientReconnectMassiveShutdownTest extends GridCommonAbstract
     /** {@inheritDoc} */
     @Override protected long getTestTimeout() {
         return 5 * 60 * 1000;
-    }
-
-    /** {@inheritDoc} */
-    @Override protected FailureHandler getFailureHandler(String igniteInstanceName) {
-        return new NoOpFailureHandler();
     }
 
     /**

@@ -56,8 +56,6 @@ import org.apache.ignite.configuration.DataRegionConfiguration;
 import org.apache.ignite.configuration.DataStorageConfiguration;
 import org.apache.ignite.configuration.IgniteConfiguration;
 import org.apache.ignite.configuration.WALMode;
-import org.apache.ignite.failure.FailureHandler;
-import org.apache.ignite.failure.NoOpFailureHandler;
 import org.apache.ignite.internal.IgniteEx;
 import org.apache.ignite.internal.IgniteInternalFuture;
 import org.apache.ignite.internal.TestRecordingCommunicationSpi;
@@ -99,7 +97,7 @@ import org.apache.ignite.lang.IgniteInClosure;
 import org.apache.ignite.lang.IgnitePredicate;
 import org.apache.ignite.plugin.extensions.communication.Message;
 import org.apache.ignite.testframework.GridTestUtils;
-import org.apache.ignite.testframework.junits.common.GridCommonAbstractTest;
+import org.apache.ignite.testframework.junits.common.GridCommonAbstractTestWithNoOpHandler;
 import org.apache.ignite.transactions.Transaction;
 import org.apache.ignite.transactions.TransactionRollbackException;
 import org.apache.ignite.transactions.TransactionTimeoutException;
@@ -122,7 +120,7 @@ import static org.apache.ignite.transactions.TransactionIsolation.READ_COMMITTED
 /**
  * Command line handler test.
  */
-public class GridCommandHandlerTest extends GridCommonAbstractTest {
+public class GridCommandHandlerTest extends GridCommonAbstractTestWithNoOpHandler {
     /** System out. */
     protected PrintStream sysOut;
 
@@ -223,11 +221,6 @@ public class GridCommandHandlerTest extends GridCommonAbstractTest {
         cfg.setClientMode(igniteInstanceName.startsWith("client"));
 
         return cfg;
-    }
-
-    /** {@inheritDoc} */
-    @Override protected FailureHandler getFailureHandler(String igniteInstanceName) {
-        return new NoOpFailureHandler();
     }
 
     /**

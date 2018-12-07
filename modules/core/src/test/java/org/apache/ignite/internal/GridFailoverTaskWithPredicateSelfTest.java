@@ -37,20 +37,18 @@ import org.apache.ignite.compute.ComputeTaskSession;
 import org.apache.ignite.compute.ComputeTaskSessionFullSupport;
 import org.apache.ignite.compute.ComputeUserUndeclaredException;
 import org.apache.ignite.configuration.IgniteConfiguration;
-import org.apache.ignite.failure.FailureHandler;
-import org.apache.ignite.failure.NoOpFailureHandler;
 import org.apache.ignite.lang.IgnitePredicate;
 import org.apache.ignite.resources.TaskSessionResource;
 import org.apache.ignite.spi.failover.FailoverContext;
 import org.apache.ignite.spi.failover.always.AlwaysFailoverSpi;
-import org.apache.ignite.testframework.junits.common.GridCommonAbstractTest;
+import org.apache.ignite.testframework.junits.common.GridCommonAbstractTestWithNoOpHandler;
 import org.apache.ignite.testframework.junits.common.GridCommonTest;
 
 /**
  * Test failover of a task with Node filter predicate.
  */
 @GridCommonTest(group = "Kernal Self")
-public class GridFailoverTaskWithPredicateSelfTest extends GridCommonAbstractTest {
+public class GridFailoverTaskWithPredicateSelfTest extends GridCommonAbstractTestWithNoOpHandler {
     /** First node's name. */
     private static final String NODE1 = "NODE1";
 
@@ -92,11 +90,6 @@ public class GridFailoverTaskWithPredicateSelfTest extends GridCommonAbstractTes
         });
 
         return cfg;
-    }
-
-    /** {@inheritDoc} */
-    @Override protected FailureHandler getFailureHandler(String igniteInstanceName) {
-        return new NoOpFailureHandler();
     }
 
     /**

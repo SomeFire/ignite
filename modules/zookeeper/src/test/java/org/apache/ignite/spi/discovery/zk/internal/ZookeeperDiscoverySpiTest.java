@@ -52,10 +52,6 @@ import javax.management.ObjectName;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;
 import org.apache.curator.retry.RetryNTimes;
-import org.apache.ignite.failure.FailureHandler;
-import org.apache.ignite.failure.NoOpFailureHandler;
-import org.apache.ignite.spi.discovery.tcp.ipfinder.zk.curator.TestingCluster;
-import org.apache.ignite.spi.discovery.tcp.ipfinder.zk.curator.TestingZooKeeperServer;
 import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteCache;
 import org.apache.ignite.IgniteCheckedException;
@@ -126,12 +122,14 @@ import org.apache.ignite.spi.communication.tcp.TcpCommunicationSpi;
 import org.apache.ignite.spi.discovery.DiscoverySpi;
 import org.apache.ignite.spi.discovery.DiscoverySpiCustomMessage;
 import org.apache.ignite.spi.discovery.DiscoverySpiNodeAuthenticator;
+import org.apache.ignite.spi.discovery.tcp.ipfinder.zk.curator.TestingCluster;
+import org.apache.ignite.spi.discovery.tcp.ipfinder.zk.curator.TestingZooKeeperServer;
 import org.apache.ignite.spi.discovery.zk.ZookeeperDiscoverySpi;
 import org.apache.ignite.spi.discovery.zk.ZookeeperDiscoverySpiAbstractTestSuite;
 import org.apache.ignite.spi.discovery.zk.ZookeeperDiscoverySpiMBean;
 import org.apache.ignite.spi.discovery.zk.ZookeeperDiscoverySpiTestSuite2;
 import org.apache.ignite.testframework.GridTestUtils;
-import org.apache.ignite.testframework.junits.common.GridCommonAbstractTest;
+import org.apache.ignite.testframework.junits.common.GridCommonAbstractTestWithNoOpHandler;
 import org.apache.ignite.transactions.Transaction;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.ZKUtil;
@@ -162,7 +160,7 @@ import static org.apache.zookeeper.ZooKeeper.ZOOKEEPER_CLIENT_CNXN_SOCKET;
  *
  */
 @SuppressWarnings("deprecation")
-public class ZookeeperDiscoverySpiTest extends GridCommonAbstractTest {
+public class ZookeeperDiscoverySpiTest extends GridCommonAbstractTestWithNoOpHandler {
     /** */
     private static final String IGNITE_ZK_ROOT = ZookeeperDiscoverySpi.DFLT_ROOT_PATH;
 
@@ -445,11 +443,6 @@ public class ZookeeperDiscoverySpiTest extends GridCommonAbstractTest {
         stopZkCluster();
 
         System.clearProperty(ZookeeperDiscoveryImpl.IGNITE_ZOOKEEPER_DISCOVERY_SPI_ACK_TIMEOUT);
-    }
-
-    /** {@inheritDoc} */
-    @Override protected FailureHandler getFailureHandler(String igniteInstanceName) {
-        return new NoOpFailureHandler();
     }
 
     /**

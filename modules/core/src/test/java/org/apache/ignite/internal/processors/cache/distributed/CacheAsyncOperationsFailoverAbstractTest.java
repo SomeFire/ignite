@@ -31,10 +31,8 @@ import org.apache.ignite.cache.CacheMode;
 import org.apache.ignite.configuration.CacheConfiguration;
 import org.apache.ignite.configuration.IgniteConfiguration;
 import org.apache.ignite.configuration.NearCacheConfiguration;
-import org.apache.ignite.failure.FailureHandler;
-import org.apache.ignite.failure.NoOpFailureHandler;
 import org.apache.ignite.internal.IgniteInternalFuture;
-import org.apache.ignite.internal.processors.cache.GridCacheAbstractSelfTest;
+import org.apache.ignite.internal.processors.cache.GridCacheAbstractSelfTestWithNoOpHandler;
 import org.apache.ignite.internal.util.typedef.internal.S;
 import org.apache.ignite.internal.util.typedef.internal.U;
 import org.apache.ignite.lang.IgniteFuture;
@@ -47,7 +45,7 @@ import static org.apache.ignite.cache.CacheMode.PARTITIONED;
 /**
  *
  */
-public abstract class CacheAsyncOperationsFailoverAbstractTest extends GridCacheAbstractSelfTest {
+public abstract class CacheAsyncOperationsFailoverAbstractTest extends GridCacheAbstractSelfTestWithNoOpHandler {
     /** */
     private static final int NODE_CNT = 4;
 
@@ -93,11 +91,6 @@ public abstract class CacheAsyncOperationsFailoverAbstractTest extends GridCache
     /** {@inheritDoc} */
     @Override protected NearCacheConfiguration nearConfiguration() {
         return null;
-    }
-
-    /** {@inheritDoc} */
-    @Override protected FailureHandler getFailureHandler(String igniteInstanceName) {
-        return new NoOpFailureHandler();
     }
 
     /**

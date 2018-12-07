@@ -27,20 +27,18 @@ import org.apache.ignite.configuration.IgniteConfiguration;
 import org.apache.ignite.events.DiscoveryEvent;
 import org.apache.ignite.events.Event;
 import org.apache.ignite.events.EventType;
-import org.apache.ignite.failure.FailureHandler;
-import org.apache.ignite.failure.NoOpFailureHandler;
 import org.apache.ignite.internal.IgniteClientReconnectAbstractTest;
 import org.apache.ignite.lang.IgnitePredicate;
 import org.apache.ignite.resources.LoggerResource;
 import org.apache.ignite.spi.discovery.tcp.ipfinder.TcpDiscoveryIpFinder;
-import org.apache.ignite.testframework.junits.common.GridCommonAbstractTest;
+import org.apache.ignite.testframework.junits.common.GridCommonAbstractTestWithNoOpHandler;
 
 import static org.apache.ignite.internal.IgniteClientReconnectAbstractTest.reconnectClientNode;
 
 /**
  * Checks whether on client reconnect node attributes from kernal context are sent.
  */
-public class TcpDiscoveryNodeAttributesUpdateOnReconnectTest extends GridCommonAbstractTest {
+public class TcpDiscoveryNodeAttributesUpdateOnReconnectTest extends GridCommonAbstractTestWithNoOpHandler {
     /** */
     private volatile String rejoinAttr;
 
@@ -82,11 +80,6 @@ public class TcpDiscoveryNodeAttributesUpdateOnReconnectTest extends GridCommonA
     /** {@inheritDoc} */
     @Override protected void beforeTest() throws Exception {
         TestReconnectPluginProvider.enabled = true;
-    }
-
-    /** {@inheritDoc} */
-    @Override protected FailureHandler getFailureHandler(String igniteInstanceName) {
-        return new NoOpFailureHandler();
     }
 
     /**

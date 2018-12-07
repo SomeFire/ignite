@@ -20,19 +20,17 @@ package org.apache.ignite.spi.discovery.tcp;
 import org.apache.ignite.IgniteCheckedException;
 import org.apache.ignite.configuration.BinaryConfiguration;
 import org.apache.ignite.configuration.IgniteConfiguration;
-import org.apache.ignite.failure.FailureHandler;
-import org.apache.ignite.failure.NoOpFailureHandler;
 import org.apache.ignite.internal.binary.BinaryMarshaller;
 import org.apache.ignite.marshaller.jdk.JdkMarshaller;
 import org.apache.ignite.spi.IgniteSpiException;
 import org.apache.ignite.spi.discovery.tcp.ipfinder.TcpDiscoveryIpFinder;
 import org.apache.ignite.spi.discovery.tcp.ipfinder.vm.TcpDiscoveryVmIpFinder;
-import org.apache.ignite.testframework.junits.common.GridCommonAbstractTest;
+import org.apache.ignite.testframework.junits.common.GridCommonAbstractTestWithNoOpHandler;
 
 /**
  * Test for {@link org.apache.ignite.spi.discovery.tcp.TcpDiscoverySpi}.
  */
-public class TcpClientDiscoveryMarshallerCheckSelfTest extends GridCommonAbstractTest {
+public class TcpClientDiscoveryMarshallerCheckSelfTest extends GridCommonAbstractTestWithNoOpHandler {
     /** */
     private static TcpDiscoveryIpFinder ipFinder = new TcpDiscoveryVmIpFinder(true);
 
@@ -79,11 +77,6 @@ public class TcpClientDiscoveryMarshallerCheckSelfTest extends GridCommonAbstrac
     /** {@inheritDoc} */
     @Override protected void afterTest() throws Exception {
         stopAllGrids();
-    }
-
-    /** {@inheritDoc} */
-    @Override protected FailureHandler getFailureHandler(String igniteInstanceName) {
-        return new NoOpFailureHandler();
     }
 
     /**

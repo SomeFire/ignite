@@ -27,8 +27,6 @@ import org.apache.ignite.Ignite;
 import org.apache.ignite.IgniteCheckedException;
 import org.apache.ignite.cluster.ClusterNode;
 import org.apache.ignite.configuration.IgniteConfiguration;
-import org.apache.ignite.failure.FailureHandler;
-import org.apache.ignite.failure.NoOpFailureHandler;
 import org.apache.ignite.internal.IgniteEx;
 import org.apache.ignite.internal.IgniteInternalFuture;
 import org.apache.ignite.internal.TestRecordingCommunicationSpi;
@@ -42,12 +40,12 @@ import org.apache.ignite.spi.IgniteSpiOperationTimeoutException;
 import org.apache.ignite.spi.IgniteSpiOperationTimeoutHelper;
 import org.apache.ignite.spi.discovery.tcp.TcpDiscoverySpi;
 import org.apache.ignite.spi.discovery.tcp.messages.TcpDiscoveryAbstractMessage;
-import org.apache.ignite.testframework.junits.common.GridCommonAbstractTest;
+import org.apache.ignite.testframework.junits.common.GridCommonAbstractTestWithNoOpHandler;
 
 /**
  * Abstract class for tests over split in two half topology.
  */
-public abstract class IgniteCacheTopologySplitAbstractTest extends GridCommonAbstractTest {
+public abstract class IgniteCacheTopologySplitAbstractTest extends GridCommonAbstractTestWithNoOpHandler {
     /** Segmentation state. */
     private volatile boolean segmented;
 
@@ -62,11 +60,6 @@ public abstract class IgniteCacheTopologySplitAbstractTest extends GridCommonAbs
         cfg.setCommunicationSpi(new TestRecordingCommunicationSpi());
 
         return cfg;
-    }
-
-    /** {@inheritDoc} */
-    @Override protected FailureHandler getFailureHandler(String igniteInstanceName) {
-        return new NoOpFailureHandler();
     }
 
     /**

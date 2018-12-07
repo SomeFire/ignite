@@ -37,8 +37,6 @@ import org.apache.ignite.cache.store.CacheStoreAdapter;
 import org.apache.ignite.cluster.ClusterNode;
 import org.apache.ignite.configuration.CacheConfiguration;
 import org.apache.ignite.configuration.IgniteConfiguration;
-import org.apache.ignite.failure.FailureHandler;
-import org.apache.ignite.failure.NoOpFailureHandler;
 import org.apache.ignite.internal.IgniteEx;
 import org.apache.ignite.internal.IgniteInternalFuture;
 import org.apache.ignite.internal.processors.datastreamer.DataStreamerImpl;
@@ -52,7 +50,7 @@ import org.apache.ignite.lang.IgniteInClosure;
 import org.apache.ignite.spi.communication.tcp.TcpCommunicationSpi;
 import org.apache.ignite.testframework.GridTestUtils;
 import org.apache.ignite.testframework.MvccFeatureChecker;
-import org.apache.ignite.testframework.junits.common.GridCommonAbstractTest;
+import org.apache.ignite.testframework.junits.common.GridCommonAbstractTestWithNoOpHandler;
 import org.jetbrains.annotations.Nullable;
 
 import static org.apache.ignite.cache.CacheAtomicityMode.ATOMIC;
@@ -63,7 +61,7 @@ import static org.apache.ignite.testframework.GridTestUtils.runAsync;
 /**
  * Tests for cache data loading during simultaneous grids start.
  */
-public class CacheLoadingConcurrentGridStartSelfTest extends GridCommonAbstractTest implements Serializable {
+public class CacheLoadingConcurrentGridStartSelfTest extends GridCommonAbstractTestWithNoOpHandler implements Serializable {
     /** Grids count */
     private static int GRIDS_CNT = 5;
 
@@ -141,11 +139,6 @@ public class CacheLoadingConcurrentGridStartSelfTest extends GridCommonAbstractT
     /** {@inheritDoc} */
     @Override protected void afterTest() throws Exception {
         stopAllGrids();
-    }
-
-    /** {@inheritDoc} */
-    @Override protected FailureHandler getFailureHandler(String igniteInstanceName) {
-        return new NoOpFailureHandler();
     }
 
     /**
